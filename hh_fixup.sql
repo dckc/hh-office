@@ -25,7 +25,7 @@ from Client;
 insert into groups
 select 0+id, Name
      , 0+substr(rate, length('USD $.'))
-     , case Eval when 'Yes' then 1 else 0 end
+     , case Eval when 'Yes' then 'true' else 'false' end
 from "Group";
 
 insert into sessions
@@ -38,7 +38,8 @@ from Session
 where date > '' and "group" > '';
 
 insert into visits
-select 0+id, 0+session, 0+client, attend
+select 0+id, 0+session, 0+client
+     , case when attend > 0 then 'true' else 'false' end
      , 0+substr(client_pd, length('USD $.'))
      , note
      , case when bill_date > '' then
@@ -67,7 +68,7 @@ join (
   group by c.id
   ) t
 on t.id == c.id
-where julianday('now') - julianday(t.last_seen) < 10 -- @@ 60
+where julianday('now') - julianday(t.last_seen) < 60
 ;
 
 create table current_visits as

@@ -241,7 +241,7 @@ class HH_Zoho(ZohoAPI):
     def load_visits(self):
         dml = '''select session as session_dabble
                      , client as client_dabble, attend as Attend
-                     , note, bill_date, check_date, ins_paid
+                     , note, client_pd, bill_date, check_date, ins_paid
                 from current_visits'''
         cols, records = self._query(dml)
         self.truncate('visit')
