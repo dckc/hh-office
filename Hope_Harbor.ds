@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 18-May-2011 17:56:12
+ * Generated on : 18-May-2011 20:43:29
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -17,9 +17,9 @@ application "Hope Harbor"
             displayname = "Client List"
             show  all  rows  from  client 
             (
+                DOB
                 Name
                 officer_name as "Officer"
-                officer_dabble
             )
             sort by
             (
@@ -35,6 +35,16 @@ application "Hope Harbor"
                 edit = true
                 bulk edit = true
                 delete = true
+            )
+            custom actions
+            (
+                "Link Visits and Sessions"
+                (
+                    function = fixup.link_visits(client)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
             )
         }
 
@@ -202,7 +212,6 @@ application "Hope Harbor"
                 )
                 Name
                 rate
-                id_dabble
             )
             sort by
             (
@@ -219,6 +228,13 @@ application "Hope Harbor"
                     function = fixup.link_sessions(group)
                     show action in view header = true
                     show action for each record = false
+                    success message = ""
+                )
+                "Sessions"
+                (
+                    function = show_sessions_for_group(group)
+                    show action in view header = false
+                    show action for each record = true
                     success message = ""
                 )
             )
@@ -299,12 +315,12 @@ application "Hope Harbor"
             displayname = "visit View"
             show  all  rows  from  visit 
             (
-                session_dabble
-                client_dabble
+                session_dabble.date_field as "date"
+                session
+                session_dabble.group_name as "Group"
+                client
                 note
                 client_pd as "Client Pd"
-                session_dabble.date_field as "date"
-                session_dabble.group_name as "Group"
             )
         }
 
@@ -318,7 +334,7 @@ application "Hope Harbor"
                 (
                     type  =  picklist
                     values  =  session.ID
-                    displayformat = [ id_dabble ]
+                    displayformat = [ Group_Name1 + " - " + date_field ]
                     allow new entries = true
                     [
                         displayname = "Add session"
@@ -676,8 +692,6 @@ application "Hope Harbor"
                 Time
                 group_name as "Group"
                 Therapist
-                group_dabble
-                id_dabble
             )
             sort by
             (
@@ -686,6 +700,16 @@ application "Hope Harbor"
             options
             (
                 display rows = 20
+            )
+            custom actions
+            (
+                "Sign-in Sheet"
+                (
+                    function = show_sheet_for_session(session)
+                    show action in view header = false
+                    show action for each record = true
+                    success message = ""
+                )
             )
         }
 
@@ -821,10 +845,32 @@ application "Hope Harbor"
                 client
                 Attend
             )
+        }
+
+        grid  Sign_in_sheet
+        {
+            displayname = "Sign in sheet"
+            show  all  rows  from  visit 
+            (
+                session.ID
+                session.date_field as "date"
+                session.Group_Name1 as "Group Name"
+                client
+                Attend
+                client_pd as "client pd"
+                note
+            )
             filters 
             (
                 bill_date
                 check_date
+            )
+            permission
+            (
+                add = true
+                edit = true
+                bulk edit = true
+                delete = true
             )
         }
 
@@ -844,23 +890,23 @@ application "Hope Harbor"
                 ins_paid as "Ins Paid $", display total
                 due as "Due", display total
                 note as "Note"
-                client_dabble.officer_name as "Officer"
-                client_dabble
                 session_dabble.group_name as "Group"
-            )
-            filters 
-            (
-                bill_date
-                check_date
+                client
+                client.officer_name as "Officer"
             )
             group by
             (
                 session_dabble.group_name   ascending
-                client_dabble   ascending
+                client   ascending
+                client.officer_name   ascending
             )
             sort by
             (
                 session_dabble.date_field   ascending
+            )
+            options
+            (
+                display rows = 50
             )
         }
 
@@ -1529,10 +1575,6 @@ content
                 check_date as "check date"
                 ins_paid as "ins paid $", display total
             )
-            filters 
-            (
-                client
-            )
             group by
             (
                 client   ascending
@@ -1587,15 +1629,6 @@ content
 </table>
         <%}%>
 
-        htmlpage Sign_in_Sheet()
-displayname = "Sign-in Sheet"
-content
-        <%{%>
-<h1>Sign-in Sheet</h1>
-
-<div elName='zc-component' formLinkName='session' params='zc_Header=true&amp;zc_SuccMsg=Data Added Sucessfully!&amp;zc_SubmitVal=Submit&amp;zc_ResetVal=Reset'>Loading Form...</div> 
-<div elName='zc-component' formLinkName='visit' params='zc_Header=false&amp;zc_SuccMsg=Data Added Sucessfully!&amp;zc_SubmitVal=Submit&amp;zc_ResetVal=Reset'>Loading Form...</div>         <%}%>
-
         form  Sign_in_visit
         {
             displayname  =  "Sign in visit"
@@ -1642,12 +1675,17 @@ content
             }
         }
 
-        htmlpage Sign_in_Sheet_x()
+        htmlpage Sign_in_Sheet_x(for_session_id)
 displayname = "Sign in Sheet x"
 content
-        <%{%>
-<div elName='zc-component' formLinkName='Sign_in_top' params='zc_Header=false&amp;zc_SuccMsg=Data Added Sucessfully!&amp;zc_SubmitVal=Submit&amp;zc_ResetVal=Reset'>Loading ...</div> 
-<div elName='zc-component' formLinkName='Sign_in_visit' params='zc_Header=true&amp;zc_SuccMsg=Data Added Sucessfully!&amp;zc_SubmitVal=Submit&amp;zc_ResetVal=Reset'>Loading Form...</div>         <%}%>
+        <%{
+            if ((input.for_session_id).length()  >  0)
+            {
+                gn = session[ID == input.for_session_id.toLong()].group_name;%>
+<%=gn%>
+              <%}%>
+<div elName='zc-component' formLinkName='Sign_in_top' params='zc_Header=false&zc_SuccMsg=Data Added Sucessfully!&zc_SubmitVal=Submit&zc_ResetVal=Reset'>Loading ...</div> 
+<div elName='zc-component' formLinkName='Sign_in_visit' params='zc_Header=true&zc_SuccMsg=Data Added Sucessfully!&zc_SubmitVal=Submit&zc_ResetVal=Reset'>Loading Form...</div>         <%}%>
 
         calendar  Session_Calendar
         {
@@ -1722,104 +1760,10 @@ content
             }
         }
 
-        form  KCK_Client_List
-        {
-            displayname  =  "KCK Client List"
-            field alignment = left
-            
-            Client_Name_Last_First
-            (
-                displayname  =  "Client Name  (Last, First)"
-                type  =  text
-                tooltip  =  "Web application"
-            )
-
-            Client_ID
-            (
-                displayname  =  "Client ID#"
-                type  =  number
-                maxchar  =  99
-                tooltip  =  "Web application"
-            )
-
-            Date_of_Birth
-            (
-                displayname  =  "Date of Birth"
-                type  =  date
-                tooltip  =  "Web application"
-            )
-
-            Date_Opened
-            (
-                displayname  =  "Date Opened"
-                type  =  date
-                tooltip  =  "Web application"
-            )
-
-            actions
-            {
-                on add
-                {
-                    Submit
-                    (
-                        type  =  submit
-                        displayname  =  "Submit"
-                    )
-                    Reset
-                    (
-                        type  =  reset
-                        displayname  =  "Reset"
-                    )
-                }
-                on edit
-                {
-                    Update
-                    (
-                        type  =  submit
-                        displayname  =  "Update"
-                    )
-                    Cancel
-                    (
-                        type  =  cancel
-                        displayname  =  "Cancel"
-                    )
-                }
-            }
-        }
-
-        list  KCK_Client_List_View
-        {
-            displayname = "KCK Client List View"
-            show  all  rows  from  KCK_Client_List 
-            (
-                Client_Name_Last_First as "Client Name  (Last, First)"
-                Client_ID as "Client ID#", display total
-                Date_of_Birth as "Date of Birth"
-                Date_Opened as "Date Opened"
-            )
-            filters 
-            (
-                Date_of_Birth
-                Date_Opened
-            )
-        }
-
     }
 
     functions
     {
-        void fixup.truncate_bulk()
-        {
-            delete from visit[ ID != 0 ];
-            delete from session[ ID != 0 ];
-            delete from client[ ID != 0 ];
-        }
-
-        void fixup.truncate_script()
-        {
-            delete from session[ ID != 0 ];
-        }
-
         string session_group(int sid)
         {
             //s  =  session  [ID == input.sid];
@@ -1840,13 +1784,6 @@ content
                 info g.Name + ": " + qty;
             }
             return qty;
-        }
-
-        void fixup.truncate_basic()
-        {
-            delete from group[ ID != 0 ];
-            delete from office[ ID != 0 ];
-            delete from officer[ ID != 0 ];
         }
 
         int fixup.link_officers(office where)
@@ -1882,6 +1819,36 @@ content
                 info ((target.Name) + ": ") + qty;
             }
             return qty;
+        }
+
+        int fixup.link_visits(client who)
+        {
+            qty = count(visit[(client_dabble == who.id_dabble && ((client is null) || (session is null)))]);
+            if (qty  >  0)
+            {
+                for each linked_visit in visit  [(client_dabble == who.id_dabble && ((client is null) || (session is null)))]
+                {
+                    linked_session = session[id_dabble = linked_visit.session_dabble].ID;
+                    linked_visit.session = linked_session;
+                    linked_visit.client = who.ID;
+                }
+                info who.Name + ": " + qty;
+            }
+            return qty;
+        }
+
+        void show_sessions_for_group(group choice)
+        {
+            // cf http://kbase.creator.zoho.com/forms/search-interface
+            target = "#View:session_View?group_name=" + choice.Name;
+            openUrl(target, "samewindow");
+        }
+
+        void show_sheet_for_session(session choice)
+        {
+            // cf http://kbase.creator.zoho.com/forms/search-interface
+            target = "#View:Sign_in_sheet?session.ID=" + choice.ID;
+            openUrl(target, "samewindow");
         }
 
     }

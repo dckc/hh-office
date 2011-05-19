@@ -238,15 +238,25 @@ class HH_Zoho(ZohoAPI):
         return sum(len(r) for r in
                    self.add_records(self.app, 'session', cols, records))
 
-    def load_visits(self):
+    def load_visits(self, skip_past='Fetter, Jared'):
+        dummy, client_records = self._query(
+            "select id, name from current_clients "
+            "where name > ? "
+            "order by name", [skip_past])
+
         dml = '''select session as session_dabble
                      , client as client_dabble, attend as Attend
                      , note, client_pd, bill_date, check_date, ins_paid
-                from current_visits'''
-        cols, records = self._query(dml)
+                from current_visits where client = ?'''
+
         self.truncate('visit')
-        return sum(len(r) for r in
-                   self.add_records(self.app, 'visit', cols, records))
+        tot = 0
+        for who in client_records:
+            print >> sys.stderr, "load visits for: ", who['name'].encode('utf-8')
+            cols, records = self._query(dml, [who['id']])
+            tot += sum(len(r) for r in
+                       self.add_records(self.app, 'visit', cols, records))
+        return tot
 
     def truncate(self, form):
         return self.delete(self.app, form,
@@ -263,9 +273,9 @@ class HH_Zoho(ZohoAPI):
         return sum(len(r)
                    for r in self.add_records(self.app, 'office', cols, records))
 
-    def _query(self, dml):
+    def _query(self, dml, params = []):
         with transaction(self._conn) as q:
-            q.execute(dml)
+            q.execute(dml, params)
             cols = [coldesc[0] for coldesc in q.description]
             return cols, [dict(zip(cols, row))
                           for row in q.fetchall()]
