@@ -9,10 +9,27 @@ MKDIR=mkdir
 
 XSLTPROC=xsltproc
 PYTHON=python
+SQLITE3=sqlite3
+DIFF=diff
+PAGER=less
 
 DB=/tmp/dz.db
 BAK=../hh-dabble-kaput/Dabble-2011-05-16-130809
 U=dconnolly@hopeharborkc.com
+
+check: att_cur_norm.csv att_zoho_norm.csv
+	$(DIFF) -u att_cur_norm.csv att_zoho_norm.csv | $(PAGER)
+
+att_cur_norm.csv: $(DB) flatten_attendance_current.sql csv_norm.py
+	$(SQLITE3) -csv $(DB) '.read flatten_attendance_current.sql' \
+		| $(PYTHON) csv_norm.py /dev/stdin > $@
+
+att_zoho_norm.csv: csv_norm.py att_flat_zoho.csv
+	$(PYTHON) csv_norm.py  att_flat_zoho.csv >$@
+
+attendance_flat_dabble.csv: $(DB) flatten_attendance_dabble.sql
+	(echo ".output $@"; echo ".read flatten_attendance_dabble.sql") \
+	  | $(SQLITE3) -csv $(DB) 
 
 start: load-basics load-visits
 
