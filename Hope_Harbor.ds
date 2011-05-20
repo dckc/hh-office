@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 19-May-2011 23:00:37
+ * Generated on : 19-May-2011 23:08:07
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -1099,19 +1099,6 @@ content
             }
         }
 
-        list  session_idmap
-        {
-            show  all  rows  from  session 
-            (
-                id_dabble
-                ID
-            )
-            filters 
-            (
-                Therapist
-            )
-        }
-
         summary  officer_Summary1
         {
             displayname = "officer Summary"
@@ -1422,26 +1409,6 @@ content
             }
         }
 
-        list  Recent_Sessions1
-        {
-            displayname = "Recent Sessions"
-            show  all  rows  from  visit 
-            (
-                client_pd as "client pd"
-                note
-                bill_date as "bill date"
-                check_date as "check date"
-                ins_paid as "ins paid $"
-                id_dabble
-                session
-                (
-                    view = session_Summary
-                )
-                client
-                Attend
-            )
-        }
-
         htmlpage Invoice_Exploration()
 displayname = "Invoice Exploration"
 print = true
@@ -1692,29 +1659,6 @@ content
 
 </style></meta>        <%}%>
 
-        grid  Sessions_by_Group
-        {
-            displayname = "Sessions by Group"
-            show  all  rows  from  session 
-            (
-                date_field as "date"
-                Therapist
-                Time
-            )
-            filters 
-            (
-                Therapist
-            )
-            permission
-            (
-                add = true
-                duplicate = true
-                edit = true
-                bulk edit = true
-                delete = true
-            )
-        }
-
         htmlpage HTML_PDF_Test()
 displayname = "HTML PDF Test"
 print = true
@@ -1736,147 +1680,6 @@ content
 </tbody>
 </table>
         <%}%>
-
-        htmlpage Recent_Sessions()
-displayname = "Recent Sessions html"
-print = true
-pdf = true
-content
-        <%{%>
-<p><em>todo: link groups, clients</em></p>
-<table>
-<thead>
-<th>date</th>
-<th>group</th>
-<th>Last Modified</th>
-<th>visit</th>
-</thead>
-<tbody><%for each s in session sort by  date_field desc range from 1 to 20
-            {%>
-<tr>
- <td><%=s.date_field%></td>
-
- <td>        <%grp  =  group  [Name == s.group_name];%>
-<%=grp.Name%>
-</td>
- <td>@@</td>
- <td>                <%for each v in visit  [session == s.ID]
-                {%>
- <%=v.client.Name%>
-                                                                                                              <%}%>
- </td>
-
-     
-</tr>
-                                                                    <%}%>
-</tbody>
-</table>
-        <%}%>
-
-        htmlpage Sign_in_Sheet_x(for_session_id)
-displayname = "Sign in Sheet x"
-content
-        <%{
-            if ((input.for_session_id).length()  >  0)
-            {
-                gn = session[ID == input.for_session_id.toLong()].group_name;%>
-<%=gn%>
-              <%}%>
-<div elName='zc-component' formLinkName='Sign_in_top' params='zc_Header=false&zc_SuccMsg=Data Added Sucessfully!&zc_SubmitVal=Submit&zc_ResetVal=Reset'>Loading ...</div> 
-<div elName='zc-component' formLinkName='Sign_in_visit' params='zc_Header=true&zc_SuccMsg=Data Added Sucessfully!&zc_SubmitVal=Submit&zc_ResetVal=Reset'>Loading Form...</div>         <%}%>
-
-        form  Target
-        {
-            field alignment = left
-            
-            Name
-            (
-                type  =  text
-                width  =  200px
-            )
-
-            actions
-            {
-                on add
-                {
-                    Submit
-                    (
-                        type  =  submit
-                        displayname  =  "Submit"
-                    )
-                    Reset
-                    (
-                        type  =  reset
-                        displayname  =  "Reset"
-                    )
-                }
-                on edit
-                {
-                    Update
-                    (
-                        type  =  submit
-                        displayname  =  "Update"
-                    )
-                    Cancel
-                    (
-                        type  =  cancel
-                        displayname  =  "Cancel"
-                    )
-                }
-            }
-        }
-
-        form  Source
-        {
-            field alignment = left
-            
-            Lookup_1
-            (
-                displayname  =  "Lookup 1"
-                type  =  picklist
-                values  =  Target.Name
-                width  =  206px
-            )
-
-            Lookup_2
-            (
-                displayname  =  "Lookup 2"
-                type  =  picklist
-                values  =  Target.ID
-                displayformat = [ Name ]
-                width  =  206px
-            )
-
-            actions
-            {
-                on add
-                {
-                    Submit
-                    (
-                        type  =  submit
-                        displayname  =  "Submit"
-                    )
-                    Reset
-                    (
-                        type  =  reset
-                        displayname  =  "Reset"
-                    )
-                }
-                on edit
-                {
-                    Update
-                    (
-                        type  =  submit
-                        displayname  =  "Update"
-                    )
-                    Cancel
-                    (
-                        type  =  cancel
-                        displayname  =  "Cancel"
-                    )
-                }
-            }
-        }
 
         list  Attendance_Flat
         {
