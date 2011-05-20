@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 19-May-2011 20:47:25
+ * Generated on : 19-May-2011 21:48:54
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -1895,6 +1895,159 @@ content
                 session.date_field   descending
             )
         }
+
+        htmlpage Invoice(for_client)
+        <%{
+            some_clients  =  client  [ID != 0] range from 1 to 1;
+            for each who in some_clients
+            {%>
+<style type="text/css">
+body { font-size: 10pt }
+
+div.letterhead {
+ border-style: solid;
+ padding: 0.5em;
+ margin: 0;
+ }
+
+h1 {
+ float: right; font-family: sans; font-style: italic
+ }
+
+h2 {
+ font-family: sans;
+ font-weight: normal;
+ }
+
+
+.logo { float: left }
+
+table.fields {
+ margin-top: 2em;
+ margin-bottom: 2em;
+ margin-left: 2em;
+}
+
+.error { color: red }
+
+@media print {
+ input { border: none }
+}
+
+thead { display: table-header-group; }
+tfoot { display: table-footer-group; }
+
+table.fields tbody tr th {
+ text-align: left;
+ padding-right: 3em;
+ }
+
+table.rows  {
+ border: 1px solid gray;
+ margin-left: 2em;
+ width: 80%;
+ }
+
+table.rows th, table.rows td { padding: 0 0.5em;
+  border-bottom: 1px solid #DDD;
+  border-right: 1px solid gray;
+}
+
+th { font-weight: normal }
+
+.amt { text-align: right }
+
+th.tot {
+ text-align: left;
+ font-weight: bold;
+ }
+
+
+address {
+ text-align: center;
+ font-size: smaller;
+ font-family: serif;
+ font-style: normal;
+ margin-top: 4em;
+ float: bottom;
+ }
+
+</style>
+<div class="letterhead">
+ <h1>Invoice</h1>
+ <div class="hcard">
+ <!-- TODO span class="logo">/\</span -->
+ <h2 class="org">Associates at Hope Harbor</h2>
+ <span class="fn">Dr. Bascom Ratliff, DSW</span> *
+ <span>Mary Connolly, BA</span> <!-- hcard agent? hm. -->
+ <br clear="all" />
+ </div>
+</div>
+
+<table class="fields">
+
+<tbody>
+<tr><th>Date:</th><td id="date"></td></tr>
+<tr>
+  <th>Client Name:</th>
+  <td><%=who.Name%>
+  </td>
+</tr>
+<tr><th>Amount Due:</th><td id="due1" class="amt_"></td></tr>
+</tbody>
+</table>
+</form>
+
+<table class="rows">
+<thead>
+<tr>
+ <th>Service Date</th>
+ <th>Description</th>
+ <th>Amount Billed</th>
+</tr>
+<tr><td>&#160;</td><td> </td><td> </td></tr>
+</thead>
+
+<tbody id="fill">
+<tr>
+    <td></td>
+</tr>
+</tbody>
+
+<tbody>
+<tr><td>&#160;</td><td> </td><td> </td></tr>
+<tr>
+  <th class="tot">SUBTOTAL</th><td> </td>
+  <td id="subtot" class="amt"></td>
+</tr>
+<tr>
+  <th class="tot">Paid by Client</th><td> </td>
+  <td id="pd" class="amt"></td>
+</tr>
+<tr>
+  <th class="tot">Paid by Insurance</th><td> </td>
+  <td id="ins" class="amt"></td>
+</tr>
+<tr>
+  <th class="tot">Amount Due:</th><td> </td>
+  <td id="due" class="amt"></td>
+</tr>
+</tbody>
+</table>
+
+<address>
+  <!-- TODO: hcard again -->
+  Mailing: P.O. Box 26374, Shawnee Mission, KS 66225 *
+  <a href="http://www.hopeharborkc.com/">www.hopeharborkc.com</a><br />
+  Office: 913-710-5744 / Fax 913-681-5949<br />
+  Location 1: 10201 W. 127<sup>th</sup> St. (Grace Fellowship church)<br />
+  Location 2: 3730 Metropolitan Ave, KC KS 66106 (United Methodist Church)
+</address>
+
+
+
+            <%}
+        }%>
 
     }
 
