@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 18-May-2011 20:43:29
+ * Generated on : 19-May-2011 20:35:03
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -9,9 +9,9 @@ application "Hope Harbor"
     secured connection = true
     date format = "MM/dd/yyyy"
     time zone = "America/Chicago"
-    section client1
+    section client11
     {
-        displayname = "Client"
+        displayname = "Clients"
         list  client_View
         {
             displayname = "Client List"
@@ -50,6 +50,8 @@ application "Hope Harbor"
 
         form  client
         {
+            displayname  =  "Client Entry"
+            success message  =  "Added Client."
             field alignment = left
             
             column
@@ -84,6 +86,7 @@ application "Hope Harbor"
                     displayname  =  "Officer"
                     type  =  picklist
                     values  =  officer.Name
+                    sortorder  =  ascending
                     width  =  206px
                 )
 
@@ -167,24 +170,40 @@ application "Hope Harbor"
             }
         }
 
-        grid  Client_Entry
+        grid  Billing_Ins_Edits_test
         {
-            displayname = "Client Entry"
-            show  all  rows  from  client 
+            displayname = "Billing Ins Edits test"
+            show  all  rows  from  visit 
             (
-                Name
-                address
-                Note
-                DX
-                Ins
-                Approval
-                phone
-                DOB
-                batch
+                client.Name
+                session.date_field as "date"
+                session.Group_Name1 as "Group"
+                Attend
+                rate, display total
+                client_pd as "client pd", display total
+                ins_paid as "ins paid $", display total
+                due, display total
+                note
+                bill_date as "bill date"
+                check_date as "check date"
+                client.ID
             )
             filters 
             (
-                DOB
+                client
+            )
+            group by
+            (
+                client.Name   ascending
+                client.ID   ascending
+            )
+            sort by
+            (
+                session.date_field   ascending
+            )
+            options
+            (
+                display rows = 30
             )
             permission
             (
@@ -198,12 +217,12 @@ application "Hope Harbor"
 
     }
 
-    section group1
+    section group11
     {
-        displayname = "Group"
+        displayname = "Groups"
         list  group_View
         {
-            displayname = "group View"
+            displayname = "Group List"
             show  all  rows  from  group 
             (
                 Eval
@@ -242,6 +261,8 @@ application "Hope Harbor"
 
         form  group
         {
+            displayname  =  "Group Entry"
+            success message  =  "Data Added Successfully!"
             field alignment = left
             
             column
@@ -307,9 +328,63 @@ application "Hope Harbor"
 
     }
 
-    section visit1
+    section session111
     {
-        displayname = "Visit"
+        displayname = "Sign-in Sheets"
+        list  session_View
+        {
+            displayname = "Session List"
+            show  all  rows  from  session 
+            (
+                date_field as "Date"
+                Time
+                group_name as "Group"
+                Therapist
+            )
+            sort by
+            (
+                date_field   descending
+            )
+            options
+            (
+                display rows = 20
+            )
+            custom actions
+            (
+                "Sign-in Sheet"
+                (
+                    function = show_sheet_for_session(session)
+                    show action in view header = false
+                    show action for each record = true
+                    success message = ""
+                )
+                "Add visit"
+                (
+                    function = show_visit_form_for_session(session)
+                    show action in view header = false
+                    show action for each record = true
+                    success message = ""
+                )
+            )
+        }
+
+        calendar  Session_Calendar
+        {
+            displayname = "Session Calendar"
+            show  all  rows  from  session 
+            (
+                date_field as "date"
+            )
+            filters 
+            (
+                Therapist
+            )
+            options
+            (
+                show calendar based on date_field
+            )
+        }
+
         list  visit_View
         {
             displayname = "visit View"
@@ -322,8 +397,405 @@ application "Hope Harbor"
                 note
                 client_pd as "Client Pd"
             )
+            sort by
+            (
+                session_dabble.date_field   descending
+            )
         }
 
+        form  session
+        {
+            displayname  =  "Session Entry"
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                must  have  date_field
+                (
+                    displayname  =  "date"
+                    type  =  date
+                    width  =  130px
+                )
+
+                Time
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                must  have  group_name
+                (
+                    displayname  =  "Group"
+                    type  =  picklist
+                    values  =  group.Name
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+                Therapist
+                (
+                    type  =  picklist
+                    values  =  {"Ratliff, Dr. Bascom",   "Maxey, Debra",   "Woody",   "Clemmons, Tamara",   "Hall, Jon",   "Amy",   "Mary C",   "Yang, Ann",   "Lowe, Kelly",   "Fry, Tori",   "Jackson, Cherlisa",   "Hardy, Lauren",   "Delhanty, Will",   "Jessi Lefholz",   "Shelton, Danyele",   "Christa",   "Delehanty, Will",   "Casey, Meghan",   "Lynda Falley",   "Parrett, Shelley",   "Kathryn Dawn",   "Foxworthy, Brian",   "Porter, Pamela",   "McLemore, Alicia",   "Hammond, Chelsea",   "April Craig",   "Susan"}
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+            }
+            column
+            {
+                id_dabble
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                group_dabble
+                (
+                    type  =  picklist
+                    values  =  group.id_dabble
+                    displayformat = [ Name ]
+                    width  =  206px
+                )
+
+                Group_Name1
+                (
+                    displayname  =  "Group Name"
+                    type  =  formula
+                    value  =  group_name
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    on load
+                    {
+                        hide id_dabble;
+                        hide group_dabble;
+                    }
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                        PreSubmit = "<preoncommit><openurl><type><![CDATA[form]]></type><value><![CDATA[Sign_in_visit]]></value></openurl></preoncommit>"
+                        on success
+                        {
+                            openUrl("#Form:Sign_in_visit?session=" + input.ID, "popup");
+                        }
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset Form"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Close Form"
+                    )
+                }
+            }
+        }
+
+        grid  Sign_in_sheet
+        {
+            displayname = "Sign in sheet"
+            show  all  rows  from  visit 
+            (
+                session.ID
+                session.date_field as "date"
+                session.Group_Name1 as "Group Name"
+                client
+                Attend
+                client_pd as "client pd"
+                note
+            )
+            filters 
+            (
+                bill_date
+                check_date
+            )
+            permission
+            (
+                add = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
+    }
+
+    section officer11
+    {
+        displayname = "Officers"
+        list  officer_View
+        {
+            displayname = "Officer List"
+            show  all  rows  from  officer 
+            (
+                Name
+                email
+                office_name as "Office"
+                office_dabble
+            )
+            sort by
+            (
+                Name   ascending
+            )
+            options
+            (
+                display rows = 40
+            )
+            custom actions
+            (
+                "Link Clients"
+                (
+                    function = fixup.link_clients(officer)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+            )
+        }
+
+        list  office_View
+        {
+            displayname = "Office List"
+            show  all  rows  from  office 
+            (
+                Name
+                fax
+                notes
+            )
+            custom actions
+            (
+                "Link Officers"
+                (
+                    function = fixup.link_officers(office)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+            )
+        }
+
+        form  officer
+        {
+            displayname  =  "Officer Entry"
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                must  have  unique  Name
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                email
+                (
+                    type  =  email
+                    width  =  200px
+                )
+
+                office_name
+                (
+                    displayname  =  "Office"
+                    type  =  picklist
+                    values  =  office.Name
+                    allow new entries = true
+                    [
+                        displayname = "office"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+            }
+            column
+            {
+                unique  id_dabble
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                office_dabble
+                (
+                    type  =  picklist
+                    values  =  office.id_dabble
+                    displayformat = [ Name ]
+                    width  =  206px
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset Form"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Close Form"
+                    )
+                }
+            }
+        }
+
+        form  office
+        {
+            displayname  =  "Office Entry"
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                must  have  unique  Name
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                fax
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                address
+                (
+                    type  =  textarea
+                    height  =  100px
+                    width  =  200px
+                )
+
+            }
+            column
+            {
+                id_dabble
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                notes
+                (
+                    type  =  textarea
+                    height  =  100px
+                    width  =  200px
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset Form"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Close Form"
+                    )
+                }
+            }
+        }
+
+    }
+
+    section Reports
+    {
+        list  attendance
+        {
+            displayname = "Attendance with Officers"
+            show  all  rows  from  visit 
+            (
+                session_dabble.date_field as "date"
+                Attend
+                rate as "Rate", display total
+                client_pd as "Client Pd", display total
+                ins_paid as "Ins Paid $", display total
+                due as "Due", display total
+                note as "Note"
+                session_dabble.group_name as "Group"
+                client
+                client.officer_name as "Officer"
+            )
+            group by
+            (
+                session_dabble.group_name   ascending
+                client   ascending
+                client.officer_name   ascending
+            )
+            sort by
+            (
+                session_dabble.date_field   ascending
+            )
+            options
+            (
+                display rows = 50
+            )
+        }
+
+        htmlpage Attendance_pagination_test()
+displayname = "Attendance pagination test"
+print = true
+pdf = true
+content
+        <%{%>
+<div elName='zc-component' viewLinkName='attendance' params='zc_Header=false&amp;zc_Footer=false&amp;zc_SecHeader=false&amp;zc_AddRec=false&amp;zc_EditRec=false&amp;zc_DelRec=false&amp;zc_DuplRec=false&amp;zc_EditBulkRec=false&amp;zc_Filter=false&amp;zc_Search=false&amp;zc_Paging=false&amp;zc_ColMenu=false&amp;zc_Summary=false&amp;zc_RecSelect=false&amp;zc_SaveRec=false'>Loading View...</div>         <%}%>
+
+    }
+
+    section Utility
+    {
+        hide = true
         form  visit
         {
             field alignment = left
@@ -437,6 +909,12 @@ application "Hope Harbor"
             {
                 on add
                 {
+                    on load
+                    {
+                        hide id_dabble;
+                        hide session_dabble;
+                        hide client_dabble;
+                    }
                     Submit
                     (
                         type  =  submit
@@ -464,465 +942,107 @@ application "Hope Harbor"
             }
         }
 
-    }
-
-    section officer1
-    {
-        displayname = "Officer"
-        list  officer_View
+        form  Sign_in_visit
         {
-            displayname = "Officer List"
-            show  all  rows  from  officer 
-            (
-                Name
-                email
-                office_name as "Office"
-                office_dabble
-            )
-            sort by
-            (
-                Name   ascending
-            )
-            options
-            (
-                display rows = 40
-            )
-            custom actions
-            (
-                "Link Clients"
-                (
-                    function = fixup.link_clients(officer)
-                    show action in view header = true
-                    show action for each record = false
-                    success message = ""
-                )
-            )
-        }
-
-        form  officer
-        {
+            displayname  =  "Sign in visit"
+            store data in zc = false
+            success message  =  "Data Added Successfully!"
             field alignment = left
             
             column
             {
-                must  have  unique  Name
-                (
-                    type  =  text
-                    width  =  200px
-                )
-
-                email
-                (
-                    type  =  email
-                    width  =  200px
-                )
-
-                office_name
-                (
-                    displayname  =  "Office"
-                    type  =  picklist
-                    values  =  office.Name
-                    allow new entries = true
-                    [
-                        displayname = "office"
-                    ]
-                    width  =  206px
-                )
-
-            }
-            column
-            {
-                unique  id_dabble
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-                office_dabble
-                (
-                    type  =  picklist
-                    values  =  office.id_dabble
-                    displayformat = [ Name ]
-                    width  =  206px
-                )
-
-            }
-            actions
-            {
-                on add
-                {
-                    Submit
-                    (
-                        type  =  submit
-                        displayname  =  "Save Changes"
-                    )
-                    Reset
-                    (
-                        type  =  reset
-                        displayname  =  "Reset Form"
-                    )
-                }
-                on edit
-                {
-                    Update
-                    (
-                        type  =  submit
-                        displayname  =  "Save Changes"
-                    )
-                    Cancel
-                    (
-                        type  =  cancel
-                        displayname  =  "Close Form"
-                    )
-                }
-            }
-        }
-
-    }
-
-    section office1
-    {
-        displayname = "Office"
-        list  office_View
-        {
-            displayname = "office View"
-            show  all  rows  from  office 
-            (
-                Name
-                fax
-                notes
-                id_dabble
-            )
-            custom actions
-            (
-                "Link Officers"
-                (
-                    function = fixup.link_officers(office)
-                    show action in view header = true
-                    show action for each record = false
-                    success message = ""
-                )
-            )
-        }
-
-        form  office
-        {
-            field alignment = left
-            
-            column
-            {
-                must  have  unique  Name
-                (
-                    type  =  text
-                    width  =  200px
-                )
-
-                fax
-                (
-                    type  =  text
-                    width  =  200px
-                )
-
-                address
-                (
-                    type  =  textarea
-                    height  =  100px
-                    width  =  200px
-                )
-
-            }
-            column
-            {
-                id_dabble
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-                notes
-                (
-                    type  =  textarea
-                    height  =  100px
-                    width  =  200px
-                )
-
-            }
-            actions
-            {
-                on add
-                {
-                    Submit
-                    (
-                        type  =  submit
-                        displayname  =  "Save Changes"
-                    )
-                    Reset
-                    (
-                        type  =  reset
-                        displayname  =  "Reset Form"
-                    )
-                }
-                on edit
-                {
-                    Update
-                    (
-                        type  =  submit
-                        displayname  =  "Save Changes"
-                    )
-                    Cancel
-                    (
-                        type  =  cancel
-                        displayname  =  "Close Form"
-                    )
-                }
-            }
-        }
-
-    }
-
-    section session1
-    {
-        displayname = "Session"
-        list  session_View
-        {
-            displayname = "Session List"
-            show  all  rows  from  session 
-            (
-                date_field as "Date"
-                Time
-                group_name as "Group"
-                Therapist
-            )
-            sort by
-            (
-                date_field   descending
-            )
-            options
-            (
-                display rows = 20
-            )
-            custom actions
-            (
-                "Sign-in Sheet"
-                (
-                    function = show_sheet_for_session(session)
-                    show action in view header = false
-                    show action for each record = true
-                    success message = ""
-                )
-            )
-        }
-
-        form  session
-        {
-            field alignment = left
-            
-            column
-            {
-                must  have  date_field
-                (
-                    displayname  =  "date"
-                    type  =  date
-                    width  =  130px
-                )
-
-                Time
-                (
-                    type  =  text
-                    width  =  200px
-                )
-
-                group_name
-                (
-                    displayname  =  "Group"
-                    type  =  picklist
-                    values  =  group.Name
-                    tooltip  =  "@@should be required, but can't be during bulk import"
-                    width  =  206px
-                )
-
-                Therapist
-                (
-                    type  =  picklist
-                    values  =  {"Ratliff, Dr. Bascom",   "Maxey, Debra",   "Woody",   "Clemmons, Tamara",   "Hall, Jon",   "Amy",   "Mary C",   "Yang, Ann",   "Lowe, Kelly",   "Fry, Tori",   "Jackson, Cherlisa",   "Hardy, Lauren",   "Delhanty, Will",   "Jessi Lefholz",   "Shelton, Danyele",   "Christa",   "Delehanty, Will",   "Casey, Meghan",   "Lynda Falley",   "Parrett, Shelley",   "Kathryn Dawn",   "Foxworthy, Brian",   "Porter, Pamela",   "McLemore, Alicia",   "Hammond, Chelsea",   "April Craig",   "Susan"}
-                    width  =  206px
-                )
-
-            }
-            column
-            {
-                id_dabble
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-                group_dabble
-                (
-                    type  =  picklist
-                    values  =  group.id_dabble
-                    displayformat = [ Name ]
-                    width  =  206px
-                )
-
-                Group_Name1
-                (
-                    displayname  =  "Group Name"
-                    type  =  formula
-                    value  =  group_name
-                )
-
-            }
-            actions
-            {
-                on add
-                {
-                    Submit
-                    (
-                        type  =  submit
-                        displayname  =  "Save Changes"
-                    )
-                    Reset
-                    (
-                        type  =  reset
-                        displayname  =  "Reset Form"
-                    )
-                }
-                on edit
-                {
-                    Update
-                    (
-                        type  =  submit
-                        displayname  =  "Save Changes"
-                    )
-                    Cancel
-                    (
-                        type  =  cancel
-                        displayname  =  "Close Form"
-                    )
-                }
-            }
-        }
-
-        grid  Sessions_by_Group
-        {
-            displayname = "Sessions by Group"
-            show  all  rows  from  session 
-            (
-                date_field as "date"
-                Therapist
-                Time
-            )
-            filters 
-            (
-                Therapist
-            )
-            permission
-            (
-                add = true
-                duplicate = true
-                edit = true
-                bulk edit = true
-                delete = true
-            )
-        }
-
-        list  Recent_Sessions1
-        {
-            displayname = "Recent Sessions"
-            show  all  rows  from  visit 
-            (
-                client_pd as "client pd"
-                note
-                bill_date as "bill date"
-                check_date as "check date"
-                ins_paid as "ins paid $"
-                id_dabble
                 session
                 (
-                    view = session_Summary
+                    displayname  =  "Session"
+                    type  =  picklist
+                    values  =  session.ID
+                    displayformat = [ Group_Name1 + " - " + date_field ]
+                    sortorder  =  ascending
+                    width  =  206px
                 )
-                client
+
+                must  have  Client
+                (
+                    type  =  picklist
+                    values  =  client.ID
+                    displayformat = [ Name ]
+                    allow new entries = true
+                    [
+                        displayname = "client"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+                Client_pd
+                (
+                    displayname  =  "Client pd"
+                    type  =  USD
+                    width  =  100px
+                )
+
+            }
+            column
+            {
                 Attend
-            )
+                (
+                    type  =  checkbox
+                    defaultvalue  =  true
+                )
+
+                Note
+                (
+                    type  =  textarea
+                    height  =  100px
+                    width  =  200px
+                )
+
+            }
+            actions
+            {
+                on load
+                {
+                    disable session;
+                }
+                add
+                (
+                    type  =  button
+                    displayname  =  "Save and Add Another"
+                    on click
+                    {
+                        insert into visit
+                        [
+                            Added_User = zoho.loginuser
+                            Attend = input.Attend
+                            client = input.Client
+                            client_pd = input.Client_pd
+                            note = input.Note
+                            session = input.session
+                        ]
+                        openUrl("#Form:Sign_in_visit?session=" + input.session, "Popup window");
+                    }
+                )
+                Save_and_Close
+                (
+                    type  =  submit
+                    displayname  =  "Save and Close"
+                    on click
+                    {
+                        insert into visit
+                        [
+                            Added_User = zoho.loginuser
+                            Attend = input.Attend
+                            client = input.Client
+                            client_pd = input.Client_pd
+                            note = input.Note
+                            session = input.session
+                        ]
+                        openUrl("#Script:page.close", "same window");
+                    }
+                )
+            }
         }
 
-        grid  Sign_in_sheet
-        {
-            displayname = "Sign in sheet"
-            show  all  rows  from  visit 
-            (
-                session.ID
-                session.date_field as "date"
-                session.Group_Name1 as "Group Name"
-                client
-                Attend
-                client_pd as "client pd"
-                note
-            )
-            filters 
-            (
-                bill_date
-                check_date
-            )
-            permission
-            (
-                add = true
-                edit = true
-                bulk edit = true
-                delete = true
-            )
-        }
-
-    }
-
-    section Reports
-    {
-        list  attendance
-        {
-            displayname = "Attendance with Officers"
-            show  all  rows  from  visit 
-            (
-                session_dabble.date_field as "date"
-                Attend
-                rate as "Rate", display total
-                client_pd as "Client Pd", display total
-                ins_paid as "Ins Paid $", display total
-                due as "Due", display total
-                note as "Note"
-                session_dabble.group_name as "Group"
-                client
-                client.officer_name as "Officer"
-            )
-            group by
-            (
-                session_dabble.group_name   ascending
-                client   ascending
-                client.officer_name   ascending
-            )
-            sort by
-            (
-                session_dabble.date_field   ascending
-            )
-            options
-            (
-                display rows = 50
-            )
-        }
-
-        htmlpage Attendance_pagination_test()
-displayname = "Attendance pagination test"
-print = true
-pdf = true
-content
-        <%{%>
-<div elName='zc-component' viewLinkName='attendance' params='zc_Header=false&amp;zc_Footer=false&amp;zc_SecHeader=false&amp;zc_AddRec=false&amp;zc_EditRec=false&amp;zc_DelRec=false&amp;zc_DuplRec=false&amp;zc_EditBulkRec=false&amp;zc_Filter=false&amp;zc_Search=false&amp;zc_Paging=false&amp;zc_ColMenu=false&amp;zc_Summary=false&amp;zc_RecSelect=false&amp;zc_SaveRec=false'>Loading View...</div>         <%}%>
-
-    }
-
-    section Utility
-    {
-        hide = true
         form  batch
         {
             field alignment = left
@@ -962,23 +1082,6 @@ content
                     )
                 }
             }
-        }
-
-        list  client_idmap
-        {
-            show  all  rows  from  client 
-            (
-                Name as "name"
-                DOB
-                id_dabble
-                Added_Time as "added"
-                ID
-                Modified_Time as "modified"
-            )
-            filters 
-            (
-                DOB
-            )
         }
 
         list  session_idmap
@@ -1022,15 +1125,6 @@ content
                 edit = true
                 bulk edit = true
                 delete = true
-            )
-        }
-
-        list  batch_View
-        {
-            displayname = "batch View"
-            show  all  rows  from  batch 
-            (
-                Name
             )
         }
 
@@ -1133,6 +1227,35 @@ content
 
     section Testing
     {
+        grid  Client_Entry
+        {
+            displayname = "Client Bulk Edit"
+            show  all  rows  from  client 
+            (
+                Name
+                address
+                Note
+                DX
+                Ins
+                Approval
+                phone
+                DOB
+                batch
+            )
+            filters 
+            (
+                DOB
+            )
+            permission
+            (
+                add = true
+                duplicate = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
         form  Clear_Forms
         {
             displayname  =  "Clear Forms"
@@ -1280,6 +1403,26 @@ content
                     displayname  =  "Reset"
                 )
             }
+        }
+
+        list  Recent_Sessions1
+        {
+            displayname = "Recent Sessions"
+            show  all  rows  from  visit 
+            (
+                client_pd as "client pd"
+                note
+                bill_date as "bill date"
+                check_date as "check date"
+                ins_paid as "ins paid $"
+                id_dabble
+                session
+                (
+                    view = session_Summary
+                )
+                client
+                Attend
+            )
         }
 
         htmlpage Invoice_Exploration()
@@ -1532,6 +1675,29 @@ content
 
 </style></meta>        <%}%>
 
+        grid  Sessions_by_Group
+        {
+            displayname = "Sessions by Group"
+            show  all  rows  from  session 
+            (
+                date_field as "date"
+                Therapist
+                Time
+            )
+            filters 
+            (
+                Therapist
+            )
+            permission
+            (
+                add = true
+                duplicate = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
         htmlpage HTML_PDF_Test()
 displayname = "HTML PDF Test"
 print = true
@@ -1553,45 +1719,6 @@ content
 </tbody>
 </table>
         <%}%>
-
-        grid  Billing_Ins_Edits_test
-        {
-            displayname = "Billing Ins Edits test"
-            show  all  rows  from  visit 
-            (
-                client
-                (
-                    view = client_Summary1
-                )
-                session.date_field as "date"
-                session
-                (
-                    view = session_Summary
-                )
-                Attend
-                client_pd as "client pd", display total
-                note
-                bill_date as "bill date"
-                check_date as "check date"
-                ins_paid as "ins paid $", display total
-            )
-            group by
-            (
-                client   ascending
-            )
-            sort by
-            (
-                session.date_field   ascending
-            )
-            permission
-            (
-                add = true
-                duplicate = true
-                edit = true
-                bulk edit = true
-                delete = true
-            )
-        }
 
         htmlpage Recent_Sessions()
 displayname = "Recent Sessions html"
@@ -1629,52 +1756,6 @@ content
 </table>
         <%}%>
 
-        form  Sign_in_visit
-        {
-            displayname  =  "Sign in visit"
-            store data in zc = false
-            field alignment = left
-            
-            column
-            {
-                must  have  Client
-                (
-                    type  =  picklist
-                    values  =  client.ID
-                    displayformat = [ Name ]
-                    allow new entries = true
-                    [
-                        displayname = "client"
-                    ]
-                    width  =  206px
-                )
-
-                Client_pd
-                (
-                    displayname  =  "Client pd"
-                    type  =  USD
-                    width  =  100px
-                )
-
-            }
-            column
-            {
-                Attend
-                (
-                    type  =  checkbox
-                    defaultvalue  =  true
-                )
-
-                Note
-                (
-                    type  =  textarea
-                    height  =  100px
-                    width  =  200px
-                )
-
-            }
-        }
-
         htmlpage Sign_in_Sheet_x(for_session_id)
 displayname = "Sign in Sheet x"
 content
@@ -1687,77 +1768,124 @@ content
 <div elName='zc-component' formLinkName='Sign_in_top' params='zc_Header=false&zc_SuccMsg=Data Added Sucessfully!&zc_SubmitVal=Submit&zc_ResetVal=Reset'>Loading ...</div> 
 <div elName='zc-component' formLinkName='Sign_in_visit' params='zc_Header=true&zc_SuccMsg=Data Added Sucessfully!&zc_SubmitVal=Submit&zc_ResetVal=Reset'>Loading Form...</div>         <%}%>
 
-        calendar  Session_Calendar
+        form  Target
         {
-            displayname = "Session Calendar"
-            show  all  rows  from  session 
+            field alignment = left
+            
+            Name
             (
-                date_field as "date"
+                type  =  text
+                width  =  200px
+            )
+
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Submit"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Update"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Cancel"
+                    )
+                }
+            }
+        }
+
+        form  Source
+        {
+            field alignment = left
+            
+            Lookup_1
+            (
+                displayname  =  "Lookup 1"
+                type  =  picklist
+                values  =  Target.Name
+                width  =  206px
+            )
+
+            Lookup_2
+            (
+                displayname  =  "Lookup 2"
+                type  =  picklist
+                values  =  Target.ID
+                displayformat = [ Name ]
+                width  =  206px
+            )
+
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Submit"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Update"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Cancel"
+                    )
+                }
+            }
+        }
+
+        list  Attendance_Flat
+        {
+            displayname = "Attendance Flat"
+            show  all  rows  from  visit 
+            (
+                client.Name
+                session.date_field as "date"
+                session.Group_Name1 as "Group Name"
+                Attend
+                client_pd as "client pd"
+                ins_paid as "ins paid $"
+                note
+                bill_date as "bill date"
+                check_date as "check date"
             )
             filters 
             (
-                Therapist
+                bill_date
+                check_date
             )
-            options
+            sort by
             (
-                show calendar based on date_field
+                client.Name   ascending
+                session.date_field   descending
             )
-        }
-
-        form  Sign_in_top
-        {
-            displayname  =  "Sign in Sheet Top"
-            store data in zc = false
-            success message  =  "Data Added Successfully!"
-            field alignment = left
-            
-            column
-            {
-                must  have  group_id
-                (
-                    displayname  =  "Group"
-                    type  =  picklist
-                    values  =  group.ID
-                    displayformat = [ Name ]
-                    allow new entries = true
-                    [
-                        displayname = "group"
-                    ]
-                    width  =  206px
-                )
-
-                Therapist
-                (
-                    type  =  picklist
-                    values  =  {"Option 1",   "Option 2",   "Option 3"}
-                    width  =  206px
-                )
-
-                Session
-                (
-                    type  =  picklist
-                    values  =  session.ID
-                    displayformat = [ " - " + date_field ]
-                    width  =  206px
-                )
-
-            }
-            column
-            {
-                must  have  Date_field
-                (
-                    displayname  =  "Date"
-                    type  =  date
-                    width  =  130px
-                )
-
-                Time
-                (
-                    type  =  text
-                    width  =  200px
-                )
-
-            }
         }
 
     }
@@ -1849,6 +1977,11 @@ content
             // cf http://kbase.creator.zoho.com/forms/search-interface
             target = "#View:Sign_in_sheet?session.ID=" + choice.ID;
             openUrl(target, "samewindow");
+        }
+
+        void show_visit_form_for_session(session choice)
+        {
+            openUrl("#Form:Sign_in_visit?session=" + choice.ID, "Popup window");
         }
 
     }
