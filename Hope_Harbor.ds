@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 19-May-2011 22:29:30
+ * Generated on : 19-May-2011 23:00:37
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -1918,7 +1918,7 @@ content
                 if (ins_pd  <  0)
                 {
                     // umm... what's up here?!?
-                    ins_pd = 0;
+                    ins_pd = 0.0;
                 }
                 amount_due = (subtot  -  client_pd  -  ins_pd);%>
 <style type="text/css">
@@ -2014,7 +2014,7 @@ address {
   <td><%=who.Name%>
   </td>
 </tr>
-<tr><th>Amount Due:</th><td id="due1" class="amt_"><%=amount_due%></td></tr>
+<tr><th>Amount Due:</th><td id="due1" class="amt_"><%=thisapp.fmt.currency(amount_due)%></td></tr>
 </tbody>
 </table>
 </form>
@@ -2036,28 +2036,28 @@ address {
 <tr>
     <td><%=its_session.date_field%></td>
     <td><%=its_session.group_name%></td>
-    <td class="amt"><%=item.rate%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.rate)%></td>
 </tr>
-                                                <%}%>
+                                                                        <%}%>
 </tbody>
 
 <tbody>
 <tr><td> </td><td> </td><td> </td></tr>
 <tr>
   <th class="tot">SUBTOTAL</th><td> </td>
-  <td id="subtot" class="amt"><%=subtot%></td>
+  <td id="subtot" class="amt"><%=thisapp.fmt.currency(subtot)%></td>
 </tr>
 <tr>
   <th class="tot">Paid by Client</th><td> </td>
-  <td id="pd" class="amt"><%=client_pd%></td>
+  <td id="pd" class="amt"><%=thisapp.fmt.currency(client_pd)%></td>
 </tr>
 <tr>
   <th class="tot">Paid by Insurance</th><td> </td>
-  <td id="ins" class="amt"><%=ins_pd%></td>
+  <td id="ins" class="amt"><%=thisapp.fmt.currency(ins_pd)%></td>
 </tr>
 <tr>
   <th class="tot">Amount Due:</th><td> </td>
-  <td id="due" class="amt"><%=amount_due%></td>
+  <td id="due" class="amt"><%=thisapp.fmt.currency(amount_due)%></td>
 </tr>
 </tbody>
 </table>
@@ -2073,7 +2073,7 @@ address {
 
 
 </div>
-                            <%}
+                                        <%}
         }%>
 
     }
@@ -2170,6 +2170,19 @@ address {
         void show_visit_form_for_session(session choice)
         {
             openUrl("#Form:Sign_in_visit?session=" + choice.ID, "Popup window");
+        }
+
+        string fmt.currency(float amt)
+        {
+            // ack: Yoge (Moderator) on 13-Sep-2010 09:32 AM
+            // http://forums.zoho.com/topic/amount-display
+            formatted_number = (input.amt.toString()).replaceAll(("(?<!\.\d)(?<=\d)(?=(?:\d\d\d)+\b)"),",");
+            // trailing 0
+            if ((formatted_number).replaceAll("(\.\d)$","")  !=  formatted_number)
+            {
+                formatted_number = formatted_number + "0";
+            }
+            return formatted_number;
         }
 
     }
