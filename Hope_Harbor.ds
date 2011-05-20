@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 19-May-2011 21:48:54
+ * Generated on : 19-May-2011 22:29:30
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -20,7 +20,8 @@ application "Hope Harbor"
                 DOB
                 Name
                 officer_name as "Officer"
-                visits_link as "billing detail"
+                visits_link as "Billing"
+                Invoice_link1 as "Invoice"
             )
             sort by
             (
@@ -143,6 +144,13 @@ application "Hope Harbor"
                 (
                     type  =  formula
                     value  =  "<a href='#View:billing_detail?client.ID=" + ID + "'>billing</a>"
+                )
+
+                Invoice_link1
+                (
+                    displayname  =  "Invoice_link"
+                    type  =  formula
+                    value  =  "<a href='#View:Invoice?for_client=" + ID + "'>invoice</a>"
                 )
 
             }
@@ -1153,6 +1161,7 @@ content
                 officer_dabble
                 officer_name as "Officer"
                 visits_link
+                Invoice_link1 as "Invoice_link"
             )
             filters 
             (
@@ -1897,12 +1906,23 @@ content
         }
 
         htmlpage Invoice(for_client)
+print = true
+pdf = true
+content
         <%{
-            some_clients  =  client  [ID != 0] range from 1 to 1;
-            for each who in some_clients
-            {%>
+            for each who in client  [ID == input.for_client.toLong()]
+            {
+                subtot = visit[(client == who.ID && Attend)].sum(rate);
+                client_pd = visit[client == who.ID].sum(client_pd);
+                ins_pd = visit[client == who.ID].sum(ins_paid);
+                if (ins_pd  <  0)
+                {
+                    // umm... what's up here?!?
+                    ins_pd = 0;
+                }
+                amount_due = (subtot  -  client_pd  -  ins_pd);%>
 <style type="text/css">
-body { font-size: 10pt }
+.body { font-size: 10pt }
 
 div.letterhead {
  border-style: solid;
@@ -1973,6 +1993,7 @@ address {
  }
 
 </style>
+<div class="body">
 <div class="letterhead">
  <h1>Invoice</h1>
  <div class="hcard">
@@ -1987,13 +2008,13 @@ address {
 <table class="fields">
 
 <tbody>
-<tr><th>Date:</th><td id="date"></td></tr>
+<tr><th>Date:</th><td id="date"><%=zoho.currentdate%></td></tr>
 <tr>
   <th>Client Name:</th>
   <td><%=who.Name%>
   </td>
 </tr>
-<tr><th>Amount Due:</th><td id="due1" class="amt_"></td></tr>
+<tr><th>Amount Due:</th><td id="due1" class="amt_"><%=amount_due%></td></tr>
 </tbody>
 </table>
 </form>
@@ -2005,32 +2026,38 @@ address {
  <th>Description</th>
  <th>Amount Billed</th>
 </tr>
-<tr><td>&#160;</td><td> </td><td> </td></tr>
+<tr><td> </td><td> </td><td> </td></tr>
 </thead>
 
 <tbody id="fill">
+<%for each item in visit  [(client = who.ID && Attend)]
+                {
+                    its_session  =  session  [ID = item.session];%>
 <tr>
-    <td></td>
+    <td><%=its_session.date_field%></td>
+    <td><%=its_session.group_name%></td>
+    <td class="amt"><%=item.rate%></td>
 </tr>
+                                                <%}%>
 </tbody>
 
 <tbody>
-<tr><td>&#160;</td><td> </td><td> </td></tr>
+<tr><td> </td><td> </td><td> </td></tr>
 <tr>
   <th class="tot">SUBTOTAL</th><td> </td>
-  <td id="subtot" class="amt"></td>
+  <td id="subtot" class="amt"><%=subtot%></td>
 </tr>
 <tr>
   <th class="tot">Paid by Client</th><td> </td>
-  <td id="pd" class="amt"></td>
+  <td id="pd" class="amt"><%=client_pd%></td>
 </tr>
 <tr>
   <th class="tot">Paid by Insurance</th><td> </td>
-  <td id="ins" class="amt"></td>
+  <td id="ins" class="amt"><%=ins_pd%></td>
 </tr>
 <tr>
   <th class="tot">Amount Due:</th><td> </td>
-  <td id="due" class="amt"></td>
+  <td id="due" class="amt"><%=amount_due%></td>
 </tr>
 </tbody>
 </table>
@@ -2045,8 +2072,8 @@ address {
 </address>
 
 
-
-            <%}
+</div>
+                            <%}
         }%>
 
     }
