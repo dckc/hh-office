@@ -44,6 +44,12 @@ def main(argv):
         hz.load_sessions()
         hz.load_visits()
 
+    elif '--load-csv' in argv:
+        db, inf, table = argv[2:5]
+        conn = sqlite3.connect(db)
+        with transaction(conn) as work:
+            import_csv(work, inf, table, create=False)
+
 
 def prepare_db(db, bak, init='hh_data.sql', fixup='hh_fixup.sql'):
     conn = sqlite3.connect(db)
@@ -291,7 +297,7 @@ class HH_Zoho(ZohoAPI):
                                              cols, records))
 
 
-def import_csv(trx, fn, table, colsize=500):
+def import_csv(trx, fn, table, create=True, colsize=500):
     '''Import data from a comma-separated file into a table.
 
     1st line contains column names; '_' is substituted for spaces.
@@ -299,11 +305,16 @@ def import_csv(trx, fn, table, colsize=500):
     rows = csv.reader(open(fn))
     colnames = [n.replace(' ', '_').upper()
                 for n in rows.next()]
-    try:
-        trx.execute('drop table %s' % table)
-    except:
-        pass
-    trx.execute(_create_ddl(table, colnames, colsize))
+    if create:
+        try:
+            trx.execute('drop table %s' % table)
+        except:
+            pass
+        trx.execute(_create_ddl(table, colnames, colsize))
+    else:
+        trx.execute('select * from %s where 1=0' % table)
+        colnames = [desc[0] for desc in trx.description]
+
     trx.executemany(_insert_dml(table, colnames),
                     [dict(zip(colnames,
                               [cell.decode('utf-8') for cell in row]))

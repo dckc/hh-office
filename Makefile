@@ -15,21 +15,31 @@ PAGER=less
 
 DB=/tmp/dz.db
 BAK=../hh-dabble-kaput/Dabble-2011-05-16-130809
+CLAIMS=../hh-dabble-kaput/claim-spreadsheets
 U=dconnolly@hopeharborkc.com
 
 check: att_cur_norm.csv att_zoho_norm.csv
 	$(DIFF) -u att_cur_norm.csv att_zoho_norm.csv | $(PAGER)
 
-att_cur_norm.csv: $(DB) flatten_attendance_current.sql csv_norm.py
-	$(SQLITE3) -csv $(DB) '.read flatten_attendance_current.sql' \
-		| $(PYTHON) csv_norm.py /dev/stdin > $@
+att_cur_norm.csv: $(DB) flatten_attendance_current.sql
+	$(SQLITE3) -csv $(DB) '.read flatten_attendance_current.sql' >$@
 
-att_zoho_norm.csv: csv_norm.py att_flat_zoho.csv
-	$(PYTHON) csv_norm.py  att_flat_zoho.csv >$@
+att_zoho_norm.csv: create_flat_zoho.sql att_flat_zoho.csv
+	$(SQLITE3) $(DB) '.read create_flat_zoho.sql'
+	$(PYTHON) migrate_hh.py --load-csv \
+		$(DB) att_flat_zoho.csv attendance_zoho
+	(echo 'update attendance_zoho '; \
+	 echo 'set client_pd = 1.0 * client_pd, ins_paid = 1.0 * ins_paid;'; \
+	 echo 'select * from attendance_zoho;') \
+	| $(SQLITE3) -csv $(DB)  > $@
+
 
 attendance_flat_dabble.csv: $(DB) flatten_attendance_dabble.sql
 	(echo ".output $@"; echo ".read flatten_attendance_dabble.sql") \
 	  | $(SQLITE3) -csv $(DB) 
+
+claims_scrape: claim_grok.py
+	$(PYTHON) claim_grok.py $(CLAIMS)
 
 start: load-basics load-visits
 
