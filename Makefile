@@ -34,10 +34,6 @@ att_zoho_norm.csv: create_flat_zoho.sql att_flat_zoho.csv
 	| $(SQLITE3) -csv $(DB)  > $@
 
 
-attendance_flat_dabble.csv: $(DB) flatten_attendance_dabble.sql
-	(echo ".output $@"; echo ".read flatten_attendance_dabble.sql") \
-	  | $(SQLITE3) -csv $(DB) 
-
 claims_scrape: claim_grok.py
 	$(PYTHON) claim_grok.py $(CLAIMS)
 
