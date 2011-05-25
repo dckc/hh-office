@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 19-May-2011 23:08:07
+ * Generated on : 24-May-2011 18:30:05
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -17,11 +17,12 @@ application "Hope Harbor"
             displayname = "Client List"
             show  all  rows  from  client 
             (
-                DOB
                 Name
+                DOB
                 officer_name as "Officer"
                 visits_link as "Billing"
                 Invoice_link1 as "Invoice"
+                visit_count as "visit count"
             )
             sort by
             (
@@ -43,6 +44,13 @@ application "Hope Harbor"
                 "Link Visits and Sessions"
                 (
                     function = fixup.link_visits(client)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+                "Update visit counts"
+                (
+                    function = fixup.count_visits(client)
                     show action in view header = true
                     show action for each record = false
                     success message = ""
@@ -153,6 +161,13 @@ application "Hope Harbor"
                     value  =  "<a href='#View:Invoice?for_client=" + ID + "'>invoice</a>"
                 )
 
+                visit_count
+                (
+                    displayname  =  "visit count"
+                    type  =  number
+                    width  =  100px
+                )
+
             }
             actions
             {
@@ -190,22 +205,17 @@ application "Hope Harbor"
             displayname = "Billing Detail"
             show  all  rows  from  visit 
             (
-                client.Name
+                client.Name as "Client"
                 session.date_field as "date"
-                session.Group_Name1 as "Group"
                 Attend
                 rate, display total
                 client_pd as "client pd", display total
                 ins_paid as "ins paid $", display total
-                due, display total
+                due as "Due", display total
                 note
                 bill_date as "bill date"
                 check_date as "check date"
                 client.ID
-            )
-            filters 
-            (
-                client
             )
             group by
             (
@@ -229,6 +239,123 @@ application "Hope Harbor"
                 delete = true
             )
         }
+
+        list  client_file_list
+        {
+            displayname = "Client File List"
+            show  all  rows  from  client_file 
+            (
+                Name
+                site
+                file_id as "id"
+                DOB
+                Opened
+            )
+            sort by
+            (
+                Name   ascending
+            )
+        }
+
+        form  client_file
+        {
+            displayname  =  "Client File Entry"
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                Name
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                DOB
+                (
+                    type  =  date
+                    width  =  130px
+                )
+
+            }
+            column
+            {
+                site
+                (
+                    type  =  radiobuttons
+                    values  =  {"kck",   "op"}
+                )
+
+                Opened
+                (
+                    type  =  date
+                    width  =  130px
+                )
+
+                file_id
+                (
+                    displayname  =  "File ID"
+                    type  =  number
+                    width  =  100px
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Submit"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Update"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Cancel"
+                    )
+                }
+            }
+        }
+
+        htmlpage Client_Detail(choice, clue)
+displayname = "Client Detail"
+content
+        <%{%>
+<div elName='zc-component' formLinkName='Client_Search' params='zc_Header=true&zc_SuccMsg=Data Added Sucessfully!&zc_SubmitVal=Submit&zc_ResetVal=Reset'>Loading Form...</div> 
+
+<%if ((input.choice).length()  >  0)
+            {%>
+
+<div elName='zc-component' viewLinkName='client_Summary' params='zc_Header=true&ID=<%=choice%>'>Loading View...</div> 
+<div elName='zc-component' viewLinkName='billing_detail' params='zc_Header=true&client.ID=<%=choice%>'>Loading View...</div>                             <%}%>
+
+<%if ((input.clue).length()  >  0)
+            {%>
+  <ul>
+<%for each who in client  [Name.contains(input.clue)]
+                {%>
+<li><a href='#View:Client_Detail?choice=<%=who.ID%>'><%=who.Name%></a></li>
+                    <%}%>
+
+  </ul>
+
+                <%}%>
+
+        <%}%>
 
     }
 
@@ -400,24 +527,6 @@ application "Hope Harbor"
             )
         }
 
-        list  visit_View
-        {
-            displayname = "visit View"
-            show  all  rows  from  visit 
-            (
-                session_dabble.date_field as "date"
-                session
-                session_dabble.group_name as "Group"
-                client
-                note
-                client_pd as "Client Pd"
-            )
-            sort by
-            (
-                session_dabble.date_field   descending
-            )
-        }
-
         form  session
         {
             displayname  =  "Session Entry"
@@ -444,6 +553,10 @@ application "Hope Harbor"
                     displayname  =  "Group"
                     type  =  picklist
                     values  =  group.Name
+                    allow new entries = true
+                    [
+                        displayname = "Group Entry"
+                    ]
                     sortorder  =  ascending
                     width  =  206px
                 )
@@ -452,7 +565,6 @@ application "Hope Harbor"
                 (
                     type  =  picklist
                     values  =  {"Ratliff, Dr. Bascom",   "Maxey, Debra",   "Woody",   "Clemmons, Tamara",   "Hall, Jon",   "Amy",   "Mary C",   "Yang, Ann",   "Lowe, Kelly",   "Fry, Tori",   "Jackson, Cherlisa",   "Hardy, Lauren",   "Delhanty, Will",   "Jessi Lefholz",   "Shelton, Danyele",   "Christa",   "Delehanty, Will",   "Casey, Meghan",   "Lynda Falley",   "Parrett, Shelley",   "Kathryn Dawn",   "Foxworthy, Brian",   "Porter, Pamela",   "McLemore, Alicia",   "Hammond, Chelsea",   "April Craig",   "Susan"}
-                    sortorder  =  ascending
                     width  =  206px
                 )
 
@@ -471,13 +583,6 @@ application "Hope Harbor"
                     values  =  group.id_dabble
                     displayformat = [ Name ]
                     width  =  206px
-                )
-
-                Group_Name1
-                (
-                    displayname  =  "Group Name"
-                    type  =  formula
-                    value  =  group_name
                 )
 
             }
@@ -529,7 +634,6 @@ application "Hope Harbor"
             (
                 session.ID
                 session.date_field as "date"
-                session.Group_Name1 as "Group Name"
                 client
                 Attend
                 client_pd as "client pd"
@@ -562,7 +666,6 @@ application "Hope Harbor"
                 Name
                 email
                 office_name as "Office"
-                office_dabble
             )
             sort by
             (
@@ -771,26 +874,26 @@ application "Hope Harbor"
             displayname = "Attendance with Officers"
             show  all  rows  from  visit 
             (
-                session_dabble.date_field as "date"
                 Attend
                 rate as "Rate", display total
                 client_pd as "Client Pd", display total
                 ins_paid as "Ins Paid $", display total
                 due as "Due", display total
                 note as "Note"
-                session_dabble.group_name as "Group"
                 client
                 client.officer_name as "Officer"
+                session.date_field as "date"
+                session.group_name as "Group"
             )
             group by
             (
-                session_dabble.group_name   ascending
+                session.group_name   ascending
                 client   ascending
                 client.officer_name   ascending
             )
             sort by
             (
-                session_dabble.date_field   ascending
+                session.date_field   ascending
             )
             options
             (
@@ -821,7 +924,7 @@ content
                 (
                     type  =  picklist
                     values  =  session.ID
-                    displayformat = [ Group_Name1 + " - " + date_field ]
+                    displayformat = [ " - " + date_field ]
                     allow new entries = true
                     [
                         displayname = "Add session"
@@ -895,7 +998,6 @@ content
                 (
                     type  =  picklist
                     values  =  session.id_dabble
-                    displayformat = [ Group_Name1 ]
                     width  =  206px
                 )
 
@@ -910,13 +1012,19 @@ content
                 due
                 (
                     type  =  formula
-                    value  =  (thisapp.session_rate(session_dabble)  -  if((client_pd  ==  null),0.0,client_pd)  -  if((ins_paid  ==  null),0.0,ins_paid))
+                    value  =  (thisapp.session_rate(session)  -  if((client_pd  ==  null),0.0,client_pd)  -  if((ins_paid  ==  null),0.0,ins_paid))
                 )
 
                 rate
                 (
                     type  =  formula
-                    value  =  thisapp.session_rate(session_dabble)
+                    value  =  thisapp.session_rate(session)
+                )
+
+                Group
+                (
+                    type  =  formula
+                    value  =  session
                 )
 
             }
@@ -971,7 +1079,7 @@ content
                     displayname  =  "Session"
                     type  =  picklist
                     values  =  session.ID
-                    displayformat = [ Group_Name1 + " - " + date_field ]
+                    displayformat = [ " - " + date_field ]
                     sortorder  =  ascending
                     width  =  206px
                 )
@@ -1099,19 +1207,6 @@ content
             }
         }
 
-        summary  officer_Summary1
-        {
-            displayname = "officer Summary"
-            show  all  rows  from  officer 
-            (
-                Name
-                email
-                id_dabble
-                office_name as "Office"
-                office_dabble
-            )
-        }
-
         summary  officer_Summary
         {
             displayname = "officer Summary"
@@ -1143,12 +1238,10 @@ content
                 address
                 phone
                 DOB
-                id_dabble
-                batch
-                officer_dabble
                 officer_name as "Officer"
-                visits_link
+                visits_link as "Visits"
                 Invoice_link1 as "Invoice_link"
+                ID
             )
             filters 
             (
@@ -1202,12 +1295,9 @@ content
             show  all  rows  from  session 
             (
                 date_field as "date"
-                id_dabble
                 Therapist
                 Time
                 group_name as "Group Name"
-                group_dabble
-                Group_Name1 as "Group Name"
             )
             filters 
             (
@@ -1222,9 +1312,52 @@ content
             (
                 Name
                 rate
-                id_dabble
                 Eval
             )
+        }
+
+        form  Client_Search
+        {
+            displayname  =  "Client Search"
+            store data in zc = false
+            field alignment = left
+            
+            choice
+            (
+                displayname  =  "Pick Client"
+                type  =  picklist
+                values  =  client.ID
+                displayformat = [ Name ]
+                sortorder  =  ascending
+                width  =  206px
+            )
+
+            clue
+            (
+                displayname  =  "Search by name"
+                type  =  text
+                width  =  200px
+            )
+
+            actions
+            {
+                Show_Details
+                (
+                    type  =  submit
+                    displayname  =  "Show Details"
+                    on click
+                    {
+                        if (input.choice  !=  null)
+                        {
+                            openUrl("#View:Client_Detail?choice=" + input.choice, "same window");
+                        }
+                        else
+                        {
+                            openUrl("#View:Client_Detail?clue=" + input.clue, "same window");
+                        }
+                    }
+                )
+            }
         }
 
     }
@@ -1269,50 +1402,17 @@ content
             
             column
             {
-                visits
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-                sessions
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-                clients
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-                officers
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-                offices
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-                groups
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-            }
-            column
-            {
                 delete_all_visits
                 (
                     displayname  =  "Delete all visits?"
                     type  =  checkbox
                     defaultvalue  =  false
+                )
+
+                visits
+                (
+                    type  =  number
+                    width  =  100px
                 )
 
                 delete_all_sessions
@@ -1322,6 +1422,12 @@ content
                     defaultvalue  =  false
                 )
 
+                sessions
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
                 delete_all_clients
                 (
                     displayname  =  "Delete all clients?"
@@ -1329,11 +1435,41 @@ content
                     defaultvalue  =  false
                 )
 
+                clients
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                delete_empty_clients
+                (
+                    displayname  =  "Delete client with no visits?"
+                    type  =  checkbox
+                    defaultvalue  =  false
+                    tooltip  =  "be sure to update visit counts first"
+                )
+
+                empty_clients
+                (
+                    displayname  =  "Empty clients"
+                    type  =  number
+                    width  =  100px
+                )
+
+            }
+            column
+            {
                 delete_all_officers
                 (
                     displayname  =  "Delete all officers?"
                     type  =  checkbox
                     defaultvalue  =  false
+                )
+
+                officers
+                (
+                    type  =  number
+                    width  =  100px
                 )
 
                 delete_all_offices
@@ -1343,11 +1479,23 @@ content
                     defaultvalue  =  false
                 )
 
+                offices
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
                 delete_all_groups
                 (
                     displayname  =  "Delete all groups?"
                     type  =  checkbox
                     defaultvalue  =  false
+                )
+
+                groups
+                (
+                    type  =  number
+                    width  =  100px
                 )
 
             }
@@ -1356,22 +1504,24 @@ content
                 on load
                 {
                     input.visits = count(visit[ID != 0]);
-                    input.sessions = count(session[ID != 0]);
-                    input.clients = count(client[ID != 0]);
-                    input.officers = count(officer[ID != 0]);
-                    input.offices = count(office[ID != 0]);
-                    input.groups = count(group[ID != 0]);
                     disable visits;
+                    input.sessions = count(session[ID != 0]);
                     disable sessions;
+                    input.clients = count(client[ID != 0]);
                     disable clients;
+                    input.officers = count(officer[ID != 0]);
                     disable officers;
+                    input.offices = count(office[ID != 0]);
                     disable offices;
+                    input.groups = count(group[ID != 0]);
                     disable groups;
+                    input.empty_clients = count(client[((visit_count is not null) && visit_count == 0)]);
+                    disable empty_clients;
                 }
                 Delete_All
                 (
                     type  =  submit
-                    displayname  =  "Delete All"
+                    displayname  =  "Delete Selected"
                     tooltip  =  "\n"
                     on click
                     {
@@ -1399,6 +1549,10 @@ content
                         {
                             delete from group[ ID != 0 ];
                         }
+                        if (input.delete_empty_clients)
+                        {
+                            delete from client[ visit_count == 0 ];
+                        }
                     }
                 )
                 Reset
@@ -1408,256 +1562,6 @@ content
                 )
             }
         }
-
-        htmlpage Invoice_Exploration()
-displayname = "Invoice Exploration"
-print = true
-pdf = true
-content
-        <%{%>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title></title>
-<link href="l1t1c2sda.css" rel="stylesheet" type="text/css" />
-<table id="customizeContentArea" width="100%" border="0" cellpadding="0" cellspacing="0">
-    <tbody>
-        <tr>
-            <td><!-- Company Name and Address -->
-            <table id="customizeContentArea2" width="100%" border="0" cellpadding="0" cellspacing="0">
-                <tbody>
-                    <tr>
-                        <td width="47%">logo</td>
-                        <td width="53%" align="right" valign="top">Associates at Hope Harbor , <br />
-                        CompanyStreetAddress1 , <br />
-                        CompanyStreetAddress2 , <br />
-                        CompanyCity , <br />
-                        CompanyState   CompanyPostalCode , <br />
-                        CompanyCountry .</td>
-                    </tr>
-                    <tr height="20">
-                        <td colspan="2"><hr />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><!-- Bill To Address -->
-                        <table width="70%" border="0" cellpadding="2" cellspacing="0" class="zc-summarytable-template">
-                            <tbody>
-                                <tr>
-                                    <td class="zc-viewrowheader-template"><strong>Bill To</strong></td>
-                                </tr>
-                                <tr>
-                                    <td>CustomerName ,<br />
-                                    CustomerBillToAddress ,<br />
-                                    CustomerBillToCity ,<br />
-                                    CustomerBillToState ,<br />
-                                    CustomerBillToCountry ,<br />
-                                    ContactEMailIds .</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <br />
-                        <!-- Ship To Address -->
-                        <table width="70%" border="0" cellpadding="2" cellspacing="0" class="zc-summarytable-template">
-                            <tbody>
-                                <tr>
-                                    <td class="zc-viewrowheader-template"><strong>Ship To</strong></td>
-                                </tr>
-                                <tr>
-                                    <td>CustomerShipToAddress ,<br />
-                                    CustomerShipToCity ,<br />
-                                    CustomerShipToState ,<br />
-                                    CustomerShipToCountry ,<br />
-                                    CustomerShipToCode .</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        </td>
-                        <td valign="top" align="right"><!--  Items list -->
-                        <table width="56%" border="0" cellpadding="5" cellspacing="0" class="zc-summarytable-template">
-                            <tbody>
-                                <tr>
-                                    <td width="35%" class="zc-summary-label-template"><strong>Invoice #</strong></td>
-                                    <td width="65%" class="zc-summary-data-template">InvoiceNumber</td>
-                                </tr>
-                                <tr>
-                                    <td class="zc-summary-label-template"><strong>Invoice Date </strong></td>
-                                    <td class="zc-summary-data-template">InvoiceDate</td>
-                                </tr>
-                                <tr>
-                                    <td class="zc-summary-label-template"><strong>Terms</strong></td>
-                                    <td class="zc-summary-data-template">NetTerms</td>
-                                </tr>
-                                <tr>
-                                    <td class="zc-summary-label-template"><strong>Due Date </strong></td>
-                                    <td class="zc-summary-data-template">DueDate</td>
-                                </tr>
-                                <tr>
-                                    <td class="zc-summary-label-template"><strong>P.O. # </strong></td>
-                                    <td class="zc-summary-data-template">P.O.Number</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td valign="top" align="right">&nbsp;</td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                        <table width="100%" border="0" cellpadding="5" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th align="left" class="zc-viewrowheader-template">Item</th>
-                                    <th align="left" class="zc-viewrowheader-template">Description</th>
-                                    <th class="zc-viewrowheader-template" align="right">Qty.</th>
-                                    <th class="zc-viewrowheader-template" align="right">Rate</th>
-                                    <th class="zc-viewrowheader-template" align="right">Discount</th>
-                                    <th class="zc-viewrowheader-template" align="right">Amount</th>
-                                </tr>
-                                <tr class="zc-viewrow zc-row-1">
-                                    <td align="left" czc-viewrow="" zc-row-1="">ItemName</td>
-                                    <td align="left">ItemDescription</td>
-                                    <td align="right">ItemQty</td>
-                                    <td align="right">ItemRate</td>
-                                    <td align="right">ItemDiscount</td>
-                                    <td align="right">ItemAmount</td>
-                                </tr>
-                                <tr class="zc-viewrow zc-row-1">
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td align="right">&nbsp;</td>
-                                    <td align="right">&nbsp;</td>
-                                    <td align="right">&nbsp;</td>
-                                    <td align="right">&nbsp;</td>
-                                </tr>
-                                <tr>
-                                    <td width="32%" colspan="6">&nbsp;</td>
-                                </tr>
-                            </thead>
-                        </table>
-                        <!--  Notes -->
-                        <table width="100%" border="0" cellpadding="5" cellspacing="0">
-                            <tbody>
-                                <tr>
-                                    <td width="64%" valign="top">Notes</td>
-                                    <td width="36%" valign="top"><!--  Total and Balance Due Calculations -->
-                                    <table width="100%" border="0" cellpadding="5" cellspacing="0">
-                                        <tbody>
-                                            <tr class="zc-viewrow zc-row-1">
-                                                <td width="9%" align="right">SubTotal</td>
-                                                <td width="17%" align="right">InvoiceSubTotal</td>
-                                            </tr>
-                                            <tr class="zc-viewrow zc-row-1">
-                                                <td align="right">TaxName</td>
-                                                <td align="right">TaxValue</td>
-                                            </tr>
-                                            <tr class="zc-viewrow zc-row-1">
-                                                <td align="right"><b>Total</b></td>
-                                                <td align="right">InvoiceTotal</td>
-                                            </tr>
-                                            <tr class="zc-viewrow zc-row-1">
-                                                <td align="right">Late Fee</td>
-                                                <td align="right">LateFee</td>
-                                            </tr>
-                                            <tr class="zc-viewrow zc-row-1">
-                                                <td align="right">Payment Made</td>
-                                                <td align="right">PaymentMade</td>
-                                            </tr>
-                                            <tr class="zc-viewrow zc-row-1">
-                                                <td align="right"><strong>Balance Due</strong></td>
-                                                <td align="right">InvoiceBalance</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td height="40" colspan="2">&nbsp;</td>
-                    </tr>
-                    <tr>
-                        <!--  Terms and Conditions -->
-                        <td colspan="2"><strong>Terms and Conditions</strong>                                                         <br />
-                        <br />
-                        TermsAndConditions</td>
-                    </tr>
-                </tbody>
-            </table>
-            </td>
-        </tr>
-    </tbody>
-</table>
-<style type="text/css">
-
-*.zc-viewtable { 
-        width : 100%;
-        border-top : none;
-        border-right : 1px solid rgb(93,155,215);
-        border-left : 1px solid rgb(93,155,215);
-        border-bottom : 1px solid rgb(93,155,215);
-}
-*.zc-viewheader { 
-        background-color : rgb(127, 190, 251);
-        padding : 5px 5px;
-        text-align : left;
-        border-top : 1px solid rgb(93,155,215);
-        border-left : 1px solid rgb(93,155,215);
-        border-right : 1px solid rgb(93,155,215);
-        border-bottom : 1px solid rgb(93,155,215);
-        background-image : none;
-}
-*.zc-viewheader-height { 
-        height : 25px;
-} 
-.zc-viewrowheader-template
-{
-        background-color : rgb(127, 190, 251);
-        padding : 5px 5px;
-        text-align : left;
-        border-top : 1px solid rgb(93,155,215);
-        border-left : 1px solid rgb(93,155,215);
-        border-right : 1px solid rgb(93,155,215);
-        border-bottom : 1px solid rgb(93,155,215);
-        background-image : none;
-} 
-
-*.zc-viewrow td { 
-        border-left : none;
-        border-bottom : 1px solid rgb(205,228,249);
-        border-right : 1px solid rgb(205,228,249);
-        vertical-align : middle;
-        white-space : nowrap;
-        height : 27px;
-        font-size : 12px;
-        padding : 3px;
-} 
-*.zc-row-1 { 
-        background-color : rgb(255, 255, 255);
-} 
-.zc-summarytable-template
-{
-        border:1px solid #CFE2A9;
-}
-.zc-summary-label-template
-{
-        font: 12px Arial, Helvetica, sans-serif;
-        background-color :rgb(127, 190, 251);
-        border-bottom:1px solid #DBEBBB;
-        border-right:1px solid #DBEBBB;
-        height:25px;
-}
-
-.zc-summary-data-template
-{
-        font: 12px Arial, Helvetica, sans-serif;
-        height:25px;
-        background-color:#FFFFFF;
-        border-bottom:1px solid #DBEBBB;
-}
-
-</style></meta>        <%}%>
 
         htmlpage HTML_PDF_Test()
 displayname = "HTML PDF Test"
@@ -1674,9 +1578,8 @@ content
     <td><%=office.Name%></td>
     <td><%=office.fax%></td>
     <td><%=office.ID%></td>
-    <td><%=office.id_dabble%></td>
    </tr>
-                    <%}%>
+                        <%}%>
 </tbody>
 </table>
         <%}%>
@@ -1688,7 +1591,6 @@ content
             (
                 client.Name
                 session.date_field as "date"
-                session.Group_Name1 as "Group Name"
                 Attend
                 client_pd as "client pd"
                 ins_paid as "ins paid $"
@@ -1883,14 +1785,6 @@ address {
 
     functions
     {
-        string session_group(int sid)
-        {
-            //s  =  session  [ID == input.sid];
-            //g  =  group  [ID = s.group_id];
-            //return g.Name;
-            return "@@";
-        }
-
         int fixup.link_sessions(group g)
         {
             qty = count(session[(group_dabble == g.id_dabble && (group_name is null))]);
@@ -1917,13 +1811,6 @@ address {
                 info where.Name + ": " + qty;
             }
             return qty;
-        }
-
-        float session_rate(int session_dabble)
-        {
-            gn = session[id_dabble = input.session_dabble].group_name;
-            r = group[Name = gn].rate;
-            return if((r  ==  null),0.0,r);
         }
 
         int fixup.link_clients(officer target)
@@ -1986,6 +1873,27 @@ address {
                 formatted_number = formatted_number + "0";
             }
             return formatted_number;
+        }
+
+        int fixup.count_visits(client who)
+        {
+            qty = count(visit[client = who.ID]);
+            who.visit_count = qty;
+            return qty;
+        }
+
+        float session_rate(int which_session)
+        {
+            gn = session[ID = input.which_session].group_name;
+            r = group[Name = gn].rate;
+            return if((r  ==  null),0.0,r);
+        }
+
+        float session_rate(int which_session)
+        {
+            gn = session[ID = input.which_session].group_name;
+            r = group[Name = gn].rate;
+            return if((r  ==  null),0.0,r);
         }
 
     }
