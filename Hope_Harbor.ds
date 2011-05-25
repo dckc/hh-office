@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 25-May-2011 11:40:23
+ * Generated on : 25-May-2011 12:41:48
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -379,7 +379,7 @@ content
                     width = 40px
                 )
                 Name
-                rate
+                rate as "Rate"
                 Sessions_link as "Sessions"
             )
             sort by
@@ -501,6 +501,12 @@ content
             (
                 display rows = 20
             )
+            permission
+            (
+                add = true
+                edit = true
+                delete = true
+            )
         }
 
         calendar  Session_Calendar
@@ -509,6 +515,10 @@ content
             show  all  rows  from  session 
             (
                 date_field as "date"
+                group_name.Name
+                Sign_in_sheet as "Sign-in sheet"
+                Therapist
+                Time
             )
             filters 
             (
@@ -600,6 +610,13 @@ content
                     value  =  "<a href='#View:Sign_in_sheet?session.ID=" + ID + "' >sign-in sheet</a>"
                 )
 
+                Group_Label
+                (
+                    displayname  =  "Group Label"
+                    type  =  formula
+                    value  =  group_name
+                )
+
             }
             actions
             {
@@ -650,10 +667,17 @@ content
             (
                 session.ID
                 session.date_field as "date"
-                client
-                Attend
+                session.Group_Label as "Group Label"
+                client.Name as "Client"
+                attend_n as "Attend"
                 client_pd as "client pd"
                 note
+            )
+            group by
+            (
+                session.Group_Label   ascending
+                session.date_field   ascending
+                session.ID   ascending
             )
             permission
             (
@@ -936,7 +960,7 @@ content
                 (
                     type  =  picklist
                     values  =  session.ID
-                    displayformat = [ " - " + date_field ]
+                    displayformat = [ Group_Label + " - " + date_field ]
                     allow new entries = true
                     [
                         displayname = "Add session"
@@ -1029,12 +1053,6 @@ content
                     values  =  client.id_dabble
                     displayformat = [ Name ]
                     width  =  206px
-                )
-
-                Group
-                (
-                    type  =  formula
-                    value  =  session
                 )
 
             }
@@ -1273,6 +1291,7 @@ content
                 rate as "Rate"
                 add_visit as "add visit"
                 Sign_in_sheet as "Sign-in sheet"
+                Group_Label as "Group Label"
             )
             filters 
             (
@@ -1587,21 +1606,7 @@ content
         <%{
             for each who in client  [ID == input.for_client.toLong()]
             {
-                subtot = 0.0;
-                for each item in visit  [(client == who.ID && attend_n == 1)]
-                {
-                    its_session  =  session  [ID = item.session];
-                    group_rate = group[Name == its_session.group_name].rate;
-                    subtot = (subtot  +  group_rate);
-                }
-                client_pd = visit[client == who.ID].sum(client_pd);
-                ins_pd = visit[client == who.ID].sum(ins_paid);
-                if (ins_pd  <  0)
-                {
-                    // umm... what's up here?!?
-                    ins_pd = 0.0;
-                }
-                amount_due = (subtot  -  client_pd  -  ins_pd);%>
+                bsum = thisapp.billing_summary(client [ID == who.ID]);%>
 <style type="text/css">
 .body { font-size: 10pt }
 
@@ -1695,7 +1700,7 @@ address {
   <td><%=who.Name%>
   </td>
 </tr>
-<tr><th>Amount Due:</th><td id="due1" class="amt_"><%=thisapp.fmt.currency(amount_due)%></td></tr>
+<tr><th>Amount Due:</th><td id="due1" class="amt_"><%=bsum.get("amount_due")%></td></tr>
 </tbody>
 </table>
 
@@ -1725,21 +1730,21 @@ address {
     <td class="amt"><%=thisapp.fmt.currency(item.ins_paid)%></td>
 </tr>
                                                                                                                         
-                                                                                                                        <%}%>
+                                                                                                                                <%}%>
 </tbody>
 
 <tbody>
 <tr><td> </td><td> </td><td> </td></tr>
 <tr>
   <th class="tot">SUBTOTAL</th><td> </td>
-  <td id="subtot" class="amt"><strong><%=thisapp.fmt.currency(subtot)%></strong></td>
-  <td id="pd" class="amt"><strong><%=thisapp.fmt.currency(client_pd)%></strong></td>
-  <td id="ins" class="amt"><strong><%=thisapp.fmt.currency(ins_pd)%></strong></td>
+  <td id="subtot" class="amt"><strong><%=bsum.get("subtot")%></strong></td>
+  <td id="pd" class="amt"><strong><%=bsum.get("client_pd")%></strong></td>
+  <td id="ins" class="amt"><strong><%=bsum.get("ins_paid")%></strong></td>
 </tr>
 <tr><td>&nbsp;</td></tr>
 <tr>
   <th class="tot">Amount Due:</th>
-  <td id="due" class="amt"><strong><%=thisapp.fmt.currency(amount_due)%></strong></td>
+  <td id="due" class="amt"><strong><%=bsum.get("amount_due")%></strong></td>
 </tr>
 </tbody>
 </table>
@@ -1756,7 +1761,7 @@ address {
 
 
 </div>
-                                                                                                                                    <%}
+                                                                                                                                        <%}
         }%>
 
         list  fix_visits
@@ -1768,6 +1773,9 @@ address {
                 note
                 ins_paid as "ins paid $"
                 session
+                (
+                    view = session_Summary
+                )
                 client
                 Attend as "A t/f"
                 attend_n as "Attend"
@@ -1819,7 +1827,7 @@ content
     <td class="amt"><%=thisapp.fmt.currency(item.ins_paid)%></td>
 </tr>
                                                                                                                         
-                                                                                                                                                                                <%}%>
+                                                                                                                                                                                        <%}%>
 </tbody>
 
 <tbody>
@@ -1830,13 +1838,14 @@ content
   <td id="pd" class="amt"><strong><%=bsum.get("client_pd")%></strong></td>
   <td id="ins" class="amt"><strong><%=bsum.get("ins_paid")%></strong></td>
 </tr>
+<tr><td>&nbsp;</td></tr>
 <tr>
-  <th class="tot">Amount Due:</th><td> </td>
+  <th class="tot">Amount Due:</th>
   <td id="due" class="amt"><strong><%=bsum.get("amount_due")%></strong></td>
 </tr>
 </tbody>
 </table>
-                                        <%}
+                                            <%}
         }%>
 
     }
