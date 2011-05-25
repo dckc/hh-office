@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 24-May-2011 18:30:05
+ * Generated on : 25-May-2011 11:40:23
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -51,6 +51,13 @@ application "Hope Harbor"
                 "Update visit counts"
                 (
                     function = fixup.count_visits(client)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+                "Fix Visits"
+                (
+                    function = fixup.fix_visits(client)
                     show action in view header = true
                     show action for each record = false
                     success message = ""
@@ -128,12 +135,6 @@ application "Hope Harbor"
                     width  =  200px
                 )
 
-                batch
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
                 id_dabble
                 (
                     type  =  number
@@ -207,11 +208,13 @@ application "Hope Harbor"
             (
                 client.Name as "Client"
                 session.date_field as "date"
-                Attend
-                rate, display total
+                session.group_name as "Group"
+                (
+                    view = group_Summary
+                )
+                attend_n as "Attend", display total
                 client_pd as "client pd", display total
                 ins_paid as "ins paid $", display total
-                due as "Due", display total
                 note
                 bill_date as "bill date"
                 check_date as "check date"
@@ -265,7 +268,7 @@ application "Hope Harbor"
             
             column
             {
-                Name
+                must  have  Name
                 (
                     type  =  text
                     width  =  200px
@@ -280,19 +283,19 @@ application "Hope Harbor"
             }
             column
             {
-                site
+                must  have  site
                 (
                     type  =  radiobuttons
                     values  =  {"kck",   "op"}
                 )
 
-                Opened
+                must  have  Opened
                 (
                     type  =  date
                     width  =  130px
                 )
 
-                file_id
+                must  have  file_id
                 (
                     displayname  =  "File ID"
                     type  =  number
@@ -340,8 +343,12 @@ content
 <%if ((input.choice).length()  >  0)
             {%>
 
-<div elName='zc-component' viewLinkName='client_Summary' params='zc_Header=true&ID=<%=choice%>'>Loading View...</div> 
-<div elName='zc-component' viewLinkName='billing_detail' params='zc_Header=true&client.ID=<%=choice%>'>Loading View...</div>                             <%}%>
+<div elName='zc-component' viewLinkName='client_Summary' params='zc_Header=false&ID=<%=choice%>'>Loading View...</div> 
+
+<div elName='zc-component' viewLinkName='billing_table' params='for_client=<%=choice%>'>Loading View...</div> 
+
+
+<div elName='zc-component' viewLinkName='billing_detail' params='zc_Header=true&client.ID=<%=choice%>'>Loading View...</div>                                 <%}%>
 
 <%if ((input.clue).length()  >  0)
             {%>
@@ -349,11 +356,11 @@ content
 <%for each who in client  [Name.contains(input.clue)]
                 {%>
 <li><a href='#View:Client_Detail?choice=<%=who.ID%>'><%=who.Name%></a></li>
-                    <%}%>
+                            <%}%>
 
   </ul>
 
-                <%}%>
+                    <%}%>
 
         <%}%>
 
@@ -373,6 +380,7 @@ content
                 )
                 Name
                 rate
+                Sessions_link as "Sessions"
             )
             sort by
             (
@@ -389,13 +397,6 @@ content
                     function = fixup.link_sessions(group)
                     show action in view header = true
                     show action for each record = false
-                    success message = ""
-                )
-                "Sessions"
-                (
-                    function = show_sessions_for_group(group)
-                    show action in view header = false
-                    show action for each record = true
                     success message = ""
                 )
             )
@@ -434,6 +435,13 @@ content
                 (
                     type  =  number
                     width  =  100px
+                )
+
+                Sessions_link
+                (
+                    displayname  =  "Sessions link"
+                    type  =  formula
+                    value  =  ("<a href='#View:session_View?group_name=" + encodeUrl(Name)) + "/>sessions</a>"
                 )
 
             }
@@ -482,6 +490,8 @@ content
                 Time
                 group_name as "Group"
                 Therapist
+                Sign_in_sheet as "Sign-in sheet"
+                add_visit as "Add Visits"
             )
             sort by
             (
@@ -490,23 +500,6 @@ content
             options
             (
                 display rows = 20
-            )
-            custom actions
-            (
-                "Sign-in Sheet"
-                (
-                    function = show_sheet_for_session(session)
-                    show action in view header = false
-                    show action for each record = true
-                    success message = ""
-                )
-                "Add visit"
-                (
-                    function = show_visit_form_for_session(session)
-                    show action in view header = false
-                    show action for each record = true
-                    success message = ""
-                )
             )
         }
 
@@ -553,12 +546,20 @@ content
                     displayname  =  "Group"
                     type  =  picklist
                     values  =  group.Name
+                    displayformat = [ Name + " - " + rate ]
                     allow new entries = true
                     [
                         displayname = "Group Entry"
                     ]
                     sortorder  =  ascending
                     width  =  206px
+                )
+
+                rate
+                (
+                    displayname  =  "Rate"
+                    type  =  USD
+                    width  =  100px
                 )
 
                 Therapist
@@ -585,6 +586,20 @@ content
                     width  =  206px
                 )
 
+                add_visit
+                (
+                    displayname  =  "add visit"
+                    type  =  formula
+                    value  =  "<a href='#Form:Sign_in_visit?session=" + ID + "'>add visit</a>"
+                )
+
+                Sign_in_sheet
+                (
+                    displayname  =  "Sign-in sheet"
+                    type  =  formula
+                    value  =  "<a href='#View:Sign_in_sheet?session.ID=" + ID + "' >sign-in sheet</a>"
+                )
+
             }
             actions
             {
@@ -594,6 +609,7 @@ content
                     {
                         hide id_dabble;
                         hide group_dabble;
+                        disable rate;
                     }
                     Submit
                     (
@@ -638,11 +654,6 @@ content
                 Attend
                 client_pd as "client pd"
                 note
-            )
-            filters 
-            (
-                bill_date
-                check_date
             )
             permission
             (
@@ -874,16 +885,17 @@ content
             displayname = "Attendance with Officers"
             show  all  rows  from  visit 
             (
-                Attend
-                rate as "Rate", display total
+                session.date_field as "date"
+                attend_n as "Attend", display total
                 client_pd as "Client Pd", display total
                 ins_paid as "Ins Paid $", display total
-                due as "Due", display total
                 note as "Note"
-                client
+                client as "Client"
                 client.officer_name as "Officer"
-                session.date_field as "date"
                 session.group_name as "Group"
+                (
+                    view = group_Summary
+                )
             )
             group by
             (
@@ -950,6 +962,16 @@ content
                     defaultvalue  =  true
                 )
 
+                must  have  attend_n
+                (
+                    displayname  =  "Attend"
+                    type  =  number
+                    defaultvalue  =  1
+                    maxchar  =  1
+                    tooltip  =  "1 if attended\n0 for other entries"
+                    width  =  100px
+                )
+
                 client_pd
                 (
                     displayname  =  "client pd"
@@ -1007,18 +1029,6 @@ content
                     values  =  client.id_dabble
                     displayformat = [ Name ]
                     width  =  206px
-                )
-
-                due
-                (
-                    type  =  formula
-                    value  =  (thisapp.session_rate(session)  -  if((client_pd  ==  null),0.0,client_pd)  -  if((ins_paid  ==  null),0.0,ins_paid))
-                )
-
-                rate
-                (
-                    type  =  formula
-                    value  =  thisapp.session_rate(session)
                 )
 
                 Group
@@ -1097,7 +1107,7 @@ content
                     width  =  206px
                 )
 
-                Client_pd
+                must  have  Client_pd
                 (
                     displayname  =  "Client pd"
                     type  =  USD
@@ -1107,10 +1117,13 @@ content
             }
             column
             {
-                Attend
+                must  have  attend_n
                 (
-                    type  =  checkbox
-                    defaultvalue  =  true
+                    displayname  =  "Attend"
+                    type  =  number
+                    defaultvalue  =  1
+                    maxchar  =  1
+                    width  =  100px
                 )
 
                 Note
@@ -1136,7 +1149,7 @@ content
                         insert into visit
                         [
                             Added_User = zoho.loginuser
-                            Attend = input.Attend
+                            attend_n = input.attend_n
                             client = input.Client
                             client_pd = input.Client_pd
                             note = input.Note
@@ -1154,7 +1167,7 @@ content
                         insert into visit
                         [
                             Added_User = zoho.loginuser
-                            Attend = input.Attend
+                            attend_n = input.attend_n
                             client = input.Client
                             client_pd = input.Client_pd
                             note = input.Note
@@ -1163,47 +1176,6 @@ content
                         openUrl("#Script:page.close", "same window");
                     }
                 )
-            }
-        }
-
-        form  batch
-        {
-            field alignment = left
-            
-            Name
-            (
-                type  =  text
-                width  =  200px
-            )
-
-            actions
-            {
-                on add
-                {
-                    Submit
-                    (
-                        type  =  submit
-                        displayname  =  "Save Changes"
-                    )
-                    Reset
-                    (
-                        type  =  reset
-                        displayname  =  "Reset Form"
-                    )
-                }
-                on edit
-                {
-                    Update
-                    (
-                        type  =  submit
-                        displayname  =  "Save Changes"
-                    )
-                    Cancel
-                    (
-                        type  =  cancel
-                        displayname  =  "Close Form"
-                    )
-                }
             }
         }
 
@@ -1298,6 +1270,9 @@ content
                 Therapist
                 Time
                 group_name as "Group Name"
+                rate as "Rate"
+                add_visit as "add visit"
+                Sign_in_sheet as "Sign-in sheet"
             )
             filters 
             (
@@ -1313,6 +1288,7 @@ content
                 Name
                 rate
                 Eval
+                Sessions_link as "Sessions link"
             )
         }
 
@@ -1377,7 +1353,6 @@ content
                 Approval
                 phone
                 DOB
-                batch
             )
             filters 
             (
@@ -1598,11 +1573,6 @@ content
                 bill_date as "bill date"
                 check_date as "check date"
             )
-            filters 
-            (
-                bill_date
-                check_date
-            )
             sort by
             (
                 client.Name   ascending
@@ -1617,7 +1587,13 @@ content
         <%{
             for each who in client  [ID == input.for_client.toLong()]
             {
-                subtot = visit[(client == who.ID && Attend)].sum(rate);
+                subtot = 0.0;
+                for each item in visit  [(client == who.ID && attend_n == 1)]
+                {
+                    its_session  =  session  [ID = item.session];
+                    group_rate = group[Name == its_session.group_name].rate;
+                    subtot = (subtot  +  group_rate);
+                }
                 client_pd = visit[client == who.ID].sum(client_pd);
                 ins_pd = visit[client == who.ID].sum(ins_paid);
                 if (ins_pd  <  0)
@@ -1722,7 +1698,7 @@ address {
 <tr><th>Amount Due:</th><td id="due1" class="amt_"><%=thisapp.fmt.currency(amount_due)%></td></tr>
 </tbody>
 </table>
-</form>
+
 
 <table class="rows">
 <thead>
@@ -1730,42 +1706,44 @@ address {
  <th>Service Date</th>
  <th>Description</th>
  <th>Amount Billed</th>
+ <th>Client Paid</th>
+ <th>Insurance Paid</th>
 </tr>
 <tr><td> </td><td> </td><td> </td></tr>
 </thead>
 
 <tbody id="fill">
-<%for each item in visit  [(client = who.ID && Attend)]
+<%for each item in visit  [(client == who.ID && attend_n == 1)]
                 {
-                    its_session  =  session  [ID = item.session];%>
+                    its_session  =  session  [ID == item.session];
+                    group_rate = group[Name == its_session.group_name].rate;%>
 <tr>
     <td><%=its_session.date_field%></td>
     <td><%=its_session.group_name%></td>
-    <td class="amt"><%=thisapp.fmt.currency(item.rate)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(group_rate)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.client_pd)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.ins_paid)%></td>
 </tr>
-                                                                        <%}%>
+                                                                                                                        
+                                                                                                                        <%}%>
 </tbody>
 
 <tbody>
 <tr><td> </td><td> </td><td> </td></tr>
 <tr>
   <th class="tot">SUBTOTAL</th><td> </td>
-  <td id="subtot" class="amt"><%=thisapp.fmt.currency(subtot)%></td>
+  <td id="subtot" class="amt"><strong><%=thisapp.fmt.currency(subtot)%></strong></td>
+  <td id="pd" class="amt"><strong><%=thisapp.fmt.currency(client_pd)%></strong></td>
+  <td id="ins" class="amt"><strong><%=thisapp.fmt.currency(ins_pd)%></strong></td>
 </tr>
+<tr><td>&nbsp;</td></tr>
 <tr>
-  <th class="tot">Paid by Client</th><td> </td>
-  <td id="pd" class="amt"><%=thisapp.fmt.currency(client_pd)%></td>
-</tr>
-<tr>
-  <th class="tot">Paid by Insurance</th><td> </td>
-  <td id="ins" class="amt"><%=thisapp.fmt.currency(ins_pd)%></td>
-</tr>
-<tr>
-  <th class="tot">Amount Due:</th><td> </td>
-  <td id="due" class="amt"><%=thisapp.fmt.currency(amount_due)%></td>
+  <th class="tot">Amount Due:</th>
+  <td id="due" class="amt"><strong><%=thisapp.fmt.currency(amount_due)%></strong></td>
 </tr>
 </tbody>
 </table>
+
 
 <address>
   <!-- TODO: hcard again -->
@@ -1778,6 +1756,86 @@ address {
 
 
 </div>
+                                                                                                                                    <%}
+        }%>
+
+        list  fix_visits
+        {
+            displayname = "fix visits"
+            show  all  rows  from  visit 
+            (
+                client_pd as "client pd"
+                note
+                ins_paid as "ins paid $"
+                session
+                client
+                Attend as "A t/f"
+                attend_n as "Attend"
+            )
+            options
+            (
+                display rows = 100
+            )
+            permission
+            (
+                add = true
+                duplicate = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
+        htmlpage billing_table(for_client)
+displayname = "billing table"
+content
+        <%{
+            for each who in client  [ID == input.for_client.toLong()]
+            {
+                bsum = thisapp.billing_summary(client [ID == who.ID]);%>
+
+<table class="rows">
+<thead>
+<tr>
+ <th>Service Date</th>
+ <th>Description</th>
+ <th>Amount Billed</th>
+ <th>Client Paid</th>
+ <th>Insurance Paid</th>
+</tr>
+<tr><td> </td><td> </td><td> </td></tr>
+</thead>
+
+<tbody id="fill">
+<%for each item in visit  [client == who.ID]
+                {
+                    its_session  =  session  [ID == item.session];
+                    group_rate = group[Name == its_session.group_name].rate;%>
+<tr>
+    <td><%=its_session.date_field%></td>
+    <td><%=its_session.group_name%></td>
+    <td class="amt"><%=thisapp.fmt.currency(group_rate)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.client_pd)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.ins_paid)%></td>
+</tr>
+                                                                                                                        
+                                                                                                                                                                                <%}%>
+</tbody>
+
+<tbody>
+<tr><td> </td><td> </td><td> </td></tr>
+<tr>
+  <th class="tot">SUBTOTAL</th><td> </td>
+  <td id="subtot" class="amt"><strong><%=bsum.get("subtot")%></strong></td>
+  <td id="pd" class="amt"><strong><%=bsum.get("client_pd")%></strong></td>
+  <td id="ins" class="amt"><strong><%=bsum.get("ins_paid")%></strong></td>
+</tr>
+<tr>
+  <th class="tot">Amount Due:</th><td> </td>
+  <td id="due" class="amt"><strong><%=bsum.get("amount_due")%></strong></td>
+</tr>
+</tbody>
+</table>
                                         <%}
         }%>
 
@@ -1843,38 +1901,6 @@ address {
             return qty;
         }
 
-        void show_sessions_for_group(group choice)
-        {
-            // cf http://kbase.creator.zoho.com/forms/search-interface
-            target = "#View:session_View?group_name=" + choice.Name;
-            openUrl(target, "samewindow");
-        }
-
-        void show_sheet_for_session(session choice)
-        {
-            // cf http://kbase.creator.zoho.com/forms/search-interface
-            target = "#View:Sign_in_sheet?session.ID=" + choice.ID;
-            openUrl(target, "samewindow");
-        }
-
-        void show_visit_form_for_session(session choice)
-        {
-            openUrl("#Form:Sign_in_visit?session=" + choice.ID, "Popup window");
-        }
-
-        string fmt.currency(float amt)
-        {
-            // ack: Yoge (Moderator) on 13-Sep-2010 09:32 AM
-            // http://forums.zoho.com/topic/amount-display
-            formatted_number = (input.amt.toString()).replaceAll(("(?<!\.\d)(?<=\d)(?=(?:\d\d\d)+\b)"),",");
-            // trailing 0
-            if ((formatted_number).replaceAll("(\.\d)$","")  !=  formatted_number)
-            {
-                formatted_number = formatted_number + "0";
-            }
-            return formatted_number;
-        }
-
         int fixup.count_visits(client who)
         {
             qty = count(visit[client = who.ID]);
@@ -1889,11 +1915,63 @@ address {
             return if((r  ==  null),0.0,r);
         }
 
-        float session_rate(int which_session)
+        int fixup.fix_visits(client who)
         {
-            gn = session[ID = input.which_session].group_name;
-            r = group[Name = gn].rate;
-            return if((r  ==  null),0.0,r);
+            qty = count(visit[(client == who.ID && ((attend_n is null) || (client_pd is null)))]);
+            if (qty  >  0)
+            {
+                for each raw_visit in visit  [(client == who.ID && ((attend_n is null) || (client_pd is null)))]
+                {
+                    raw_visit.attend_n = if(raw_visit.Attend,1,0);
+                    raw_visit.client_pd = if((raw_visit.client_pd  ==  null),0.0,raw_visit.client_pd);
+                }
+                info who.Name + ": " + qty;
+            }
+            return qty;
+        }
+
+        void fixup.test_if()
+        {
+            attend = false;
+            n = if(attend,1,0);
+            info n;
+        }
+
+        string fmt.currency(float amt)
+        {
+            if (input.amt  ==  null)
+            {
+                input.amt = 0.0;
+            }
+            // ack: Yoge (Moderator) on 13-Sep-2010 09:32 AM
+            // http://forums.zoho.com/topic/amount-display
+            formatted_number = (input.amt.toString()).replaceAll(("(?<!\.\d)(?<=\d)(?=(?:\d\d\d)+\b)"),",");
+            // trailing 0
+            if ((formatted_number).replaceAll("(\.\d)$","")  !=  formatted_number)
+            {
+                formatted_number = formatted_number + "0";
+            }
+            return formatted_number;
+        }
+
+        map billing_summary(client who)
+        {
+            client_pd = visit[client == who.ID].sum(client_pd);
+            ins_pd = visit[client == who.ID].sum(ins_paid);
+            if (ins_pd  <  0)
+            {
+                // umm... what's up here?!?
+                ins_pd = 0.0;
+            }
+            subtot = 0.0;
+            for each item in visit  [(client == who.ID && attend_n == 1)]
+            {
+                its_session  =  session  [ID = item.session];
+                group_rate = group[Name == its_session.group_name].rate;
+                subtot = (subtot  +  group_rate);
+            }
+            amount_due = (subtot  -  client_pd  -  ins_pd);
+            return { "who" : who.ID, "attend" : count(visit[(client == who.ID && attend_n == 1)]), "client_pd" : thisapp.fmt.currency(client_pd), "ins_paid" : thisapp.fmt.currency(ins_pd), "subtot" : thisapp.fmt.currency(subtot), "amount_due" : thisapp.fmt.currency(amount_due) };
         }
 
     }
