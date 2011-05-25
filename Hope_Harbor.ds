@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 25-May-2011 12:41:48
+ * Generated on : 25-May-2011 14:02:44
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -51,13 +51,6 @@ application "Hope Harbor"
                 "Update visit counts"
                 (
                     function = fixup.count_visits(client)
-                    show action in view header = true
-                    show action for each record = false
-                    success message = ""
-                )
-                "Fix Visits"
-                (
-                    function = fixup.fix_visits(client)
                     show action in view header = true
                     show action for each record = false
                     success message = ""
@@ -364,6 +357,101 @@ content
 
         <%}%>
 
+        form  Treatment
+        {
+            field alignment = left
+            
+            must  have  client
+            (
+                displayname  =  "Client"
+                type  =  picklist
+                values  =  client.ID
+                displayformat = [ Name ]
+                allow new entries = true
+                [
+                    displayname = "Client Entry"
+                ]
+                sortorder  =  ascending
+                width  =  206px
+            )
+
+            must  have  Group
+            (
+                type  =  picklist
+                values  =  group.Name
+                displayformat = [ Name + " - " + rate ]
+                allow new entries = true
+                [
+                    displayname = "Group Entry"
+                ]
+                sortorder  =  ascending
+                width  =  206px
+            )
+
+            must  have  Rate
+            (
+                type  =  USD
+                width  =  100px
+            )
+
+            must  have  Start_Date
+            (
+                displayname  =  "Start Date"
+                type  =  datetime
+                width  =  130px
+            )
+
+            End_Date
+            (
+                displayname  =  "End Date"
+                type  =  datetime
+                width  =  130px
+            )
+
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Submit"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Update"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Cancel"
+                    )
+                }
+            }
+        }
+
+        list  Treatment_View
+        {
+            displayname = "Treatment View"
+            show  all  rows  from  Treatment 
+            (
+                client as "Client"
+                Group
+                Rate
+                Start_Date as "Start Date"
+                End_Date as "End Date"
+            )
+        }
+
     }
 
     section group11
@@ -474,6 +562,71 @@ content
                     )
                 }
             }
+        }
+
+        form  IDC9
+        {
+            field alignment = left
+            
+            DX
+            (
+                type  =  text
+                width  =  200px
+                on update
+                {
+                    input.Diagnosis = thisapp.icd_diagnosis(input.DX);
+                }
+                on user input
+                {
+                    input.Diagnosis = thisapp.icd_diagnosis(input.DX);
+                }
+            )
+
+            Diagnosis
+            (
+                type  =  text
+                width  =  200px
+            )
+
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Submit"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Update"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Cancel"
+                    )
+                }
+            }
+        }
+
+        list  IDC9_View
+        {
+            displayname = "IDC9 View"
+            show  all  rows  from  IDC9 
+            (
+                DX
+                Diagnosis
+            )
         }
 
     }
@@ -978,12 +1131,6 @@ content
                         displayname = "Add client"
                     ]
                     width  =  206px
-                )
-
-                Attend
-                (
-                    type  =  checkbox
-                    defaultvalue  =  true
                 )
 
                 must  have  attend_n
@@ -1585,7 +1732,6 @@ content
             (
                 client.Name
                 session.date_field as "date"
-                Attend
                 client_pd as "client pd"
                 ins_paid as "ins paid $"
                 note
@@ -1777,7 +1923,6 @@ address {
                     view = session_Summary
                 )
                 client
-                Attend as "A t/f"
                 attend_n as "Attend"
             )
             options
@@ -1924,21 +2069,6 @@ content
             return if((r  ==  null),0.0,r);
         }
 
-        int fixup.fix_visits(client who)
-        {
-            qty = count(visit[(client == who.ID && ((attend_n is null) || (client_pd is null)))]);
-            if (qty  >  0)
-            {
-                for each raw_visit in visit  [(client == who.ID && ((attend_n is null) || (client_pd is null)))]
-                {
-                    raw_visit.attend_n = if(raw_visit.Attend,1,0);
-                    raw_visit.client_pd = if((raw_visit.client_pd  ==  null),0.0,raw_visit.client_pd);
-                }
-                info who.Name + ": " + qty;
-            }
-            return qty;
-        }
-
         void fixup.test_if()
         {
             attend = false;
@@ -1981,6 +2111,14 @@ content
             }
             amount_due = (subtot  -  client_pd  -  ins_pd);
             return { "who" : who.ID, "attend" : count(visit[(client == who.ID && attend_n == 1)]), "client_pd" : thisapp.fmt.currency(client_pd), "ins_paid" : thisapp.fmt.currency(ins_pd), "subtot" : thisapp.fmt.currency(subtot), "amount_due" : thisapp.fmt.currency(amount_due) };
+        }
+
+        string icd_diagnosis(string code)
+        {
+            addr = "http://datasets.caregraf.org/icd9/sparql?query=PREFIX+icd%3A+%3Chttp%3A%2F%2Fdatasets.caregraf.org%2Ficd9%2F%3E+SELECT+%3Fs+%3Ftxt+WHERE+{+%3Fs+icd%3Acode_number+%22" + input.code + "%22%3B+icd%3Adiagnosis+%3Ftxt+}&output=xml";
+            ans = getUrl(addr,false);
+            txt = ans.get("responseText");
+            return txt.toXML().executeXPath("//*[@name=\"txt\"]/*/text()").toString();
         }
 
     }
