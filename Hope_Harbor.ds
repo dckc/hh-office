@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 25-May-2011 14:02:44
+ * Generated on : 25-May-2011 17:53:35
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -19,10 +19,12 @@ application "Hope Harbor"
             (
                 Name
                 DOB
+                File
+                file_opened as "Opened"
+                file_site as "Site"
                 officer_name as "Officer"
                 visits_link as "Billing"
                 Invoice_link1 as "Invoice"
-                visit_count as "visit count"
             )
             sort by
             (
@@ -51,6 +53,20 @@ application "Hope Harbor"
                 "Update visit counts"
                 (
                     function = fixup.count_visits(client)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+                "Set up Treatments"
+                (
+                    function = set_up_treatments(client)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+                "Look up Files"
+                (
+                    function = fixup.look_up_file(client)
                     show action in view header = true
                     show action for each record = false
                     success message = ""
@@ -98,6 +114,26 @@ application "Hope Harbor"
                     values  =  officer.Name
                     sortorder  =  ascending
                     width  =  206px
+                )
+
+                File
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                file_site
+                (
+                    displayname  =  "File Site"
+                    type  =  radiobuttons
+                    values  =  {"kck",   "op"}
+                )
+
+                file_opened
+                (
+                    displayname  =  "File Opened"
+                    type  =  date
+                    width  =  130px
                 )
 
             }
@@ -361,53 +397,71 @@ content
         {
             field alignment = left
             
-            must  have  client
-            (
-                displayname  =  "Client"
-                type  =  picklist
-                values  =  client.ID
-                displayformat = [ Name ]
-                allow new entries = true
-                [
-                    displayname = "Client Entry"
-                ]
-                sortorder  =  ascending
-                width  =  206px
-            )
+            column
+            {
+                must  have  client
+                (
+                    displayname  =  "Client"
+                    type  =  picklist
+                    values  =  client.ID
+                    displayformat = [ Name ]
+                    allow new entries = true
+                    [
+                        displayname = "Client Entry"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                )
 
-            must  have  Group
-            (
-                type  =  picklist
-                values  =  group.Name
-                displayformat = [ Name + " - " + rate ]
-                allow new entries = true
-                [
-                    displayname = "Group Entry"
-                ]
-                sortorder  =  ascending
-                width  =  206px
-            )
+                must  have  Group
+                (
+                    type  =  picklist
+                    values  =  group.Name
+                    displayformat = [ Name + " - " + rate ]
+                    allow new entries = true
+                    [
+                        displayname = "Group Entry"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                    on user input
+                    {
+                        default_rate = group[Name = input.Group].rate;
+                        input.Rate = default_rate;
+                    }
+                )
 
-            must  have  Rate
-            (
-                type  =  USD
-                width  =  100px
-            )
+                must  have  Rate
+                (
+                    type  =  USD
+                    width  =  100px
+                )
 
-            must  have  Start_Date
-            (
-                displayname  =  "Start Date"
-                type  =  datetime
-                width  =  130px
-            )
+                must  have  Start_Date
+                (
+                    displayname  =  "Start Date"
+                    type  =  date
+                    width  =  130px
+                )
 
-            End_Date
-            (
-                displayname  =  "End Date"
-                type  =  datetime
-                width  =  130px
-            )
+                End_Date
+                (
+                    displayname  =  "End Date"
+                    type  =  date
+                    width  =  130px
+                )
 
+            }
+            column
+            {
+                Group_Label
+                (
+                    displayname  =  "Group Label"
+                    type  =  formula
+                    value  =  Group
+                )
+
+            }
             actions
             {
                 on add
@@ -449,6 +503,7 @@ content
                 Rate
                 Start_Date as "Start Date"
                 End_Date as "End Date"
+                Group_Label as "Group Label"
             )
         }
 
@@ -529,7 +584,7 @@ content
                 (
                     displayname  =  "Sessions link"
                     type  =  formula
-                    value  =  ("<a href='#View:session_View?group_name=" + encodeUrl(Name)) + "/>sessions</a>"
+                    value  =  ("<a href='#View:session_View?group_name=" + encodeUrl(Name)) + "'/>sessions</a>"
                 )
 
             }
@@ -1098,6 +1153,13 @@ content
         <%{%>
 <div elName='zc-component' viewLinkName='attendance' params='zc_Header=false&amp;zc_Footer=false&amp;zc_SecHeader=false&amp;zc_AddRec=false&amp;zc_EditRec=false&amp;zc_DelRec=false&amp;zc_DuplRec=false&amp;zc_EditBulkRec=false&amp;zc_Filter=false&amp;zc_Search=false&amp;zc_Paging=false&amp;zc_ColMenu=false&amp;zc_Summary=false&amp;zc_RecSelect=false&amp;zc_SaveRec=false'>Loading View...</div>         <%}%>
 
+        report Attendance_by_Group_and_Client
+        {
+            displayname = "Attendance by Group and Client"
+            type = PivotTable
+            based on billing_detail
+        }
+
     }
 
     section Utility
@@ -1199,6 +1261,15 @@ content
                     type  =  picklist
                     values  =  client.id_dabble
                     displayformat = [ Name ]
+                    width  =  206px
+                )
+
+                Treatment
+                (
+                    type  =  picklist
+                    values  =  Treatment.ID
+                    displayformat = [ " - " + Group_Label ]
+                    sortorder  =  ascending
                     width  =  206px
                 )
 
@@ -1379,10 +1450,14 @@ content
                 visits_link as "Visits"
                 Invoice_link1 as "Invoice_link"
                 ID
+                File
+                file_site as "File Site"
+                file_opened as "File Opened"
             )
             filters 
             (
                 DOB
+                file_site
             )
             permission
             (
@@ -2121,6 +2196,58 @@ content
             return txt.toXML().executeXPath("//*[@name=\"txt\"]/*/text()").toString();
         }
 
+        void set_up_treatments(client who)
+        {
+            rates = map();
+            dates = map();
+            for each v in visit  [client == who.ID]
+            {
+                its_session  =  session  [ID == v.session];
+                its_group  =  group  [Name == its_session.group_name];
+                gn = its_group.Name;
+                rates.put(gn, its_group.rate);
+                session_date = its_session.date_field;
+                if (if((dates.get(gn)  ==  null),true,(session_date  <  (dates.get(gn)).toDate())))
+                {
+                    dates.put(gn, session_date.toString());
+                }
+                //info ((dates.get(gn)) + gn) + rates.get(gn);
+            }
+            for each gn in rates.keys()
+            {
+                if (count(Treatment[(client == who.ID && Group == gn)])  ==  0)
+                {
+                    t = insert into Treatment
+                    [
+	                    Added_User = zoho.loginuser
+	                    client = who.ID
+	                    Group = gn
+	                    Rate = (rates.get(gn)).toDecimal()
+	                    Start_Date = (dates.get(gn)).toDate()
+                    ];
+                    info "added treatment for: " + who.Name + " " + gn;
+                }
+            }
+        }
+
+        void fixup.look_up_file(client who)
+        {
+            qty = count(client_file[Name == who.Name]);
+            if (qty  ==  1)
+            {
+                for each f in client_file  [Name == who.Name]
+                {
+                    who.File = f.file_id;
+                    who.file_site = f.site;
+                    who.file_opened = f.Opened;
+                    if (who.DOB  ==  null)
+                    {
+                        who.DOB = f.DOB;
+                    }
+                }
+            }
+        }
+
     }
 
     customize
@@ -2128,5 +2255,10 @@ content
         layout = "drop down menu"
         base theme = "headerimage"
         color = "light green"
+    }
+    reports configuration
+    {
+        Version = 1251000015926011
+        Key     = "GPBqV6PYjBE5pPpOqpSwTBNmXTWF0tjxGvN7gMPZd9XV3kABHPpXeZRFKP00ev55V5SnnhjafEMjeQRh1xaAtYZjgBxraqpWrxvB"
     }
 }
