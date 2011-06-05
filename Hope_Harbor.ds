@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 30-May-2011 14:36:15
+ * Generated on : 05-Jun-2011 15:25:40
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -246,15 +246,6 @@ application "Hope Harbor"
                 note
                 check_date as "Check date"
                 bill_date as "Bill date"
-            )
-            group by
-            (
-                client.Name   ascending
-                client.ID   ascending
-            )
-            options
-            (
-                display rows = 30
             )
             permission
             (
@@ -1344,12 +1335,6 @@ content
             {
                 on add
                 {
-                    on load
-                    {
-                        hide id_dabble;
-                        hide session_dabble;
-                        hide client_dabble;
-                    }
                     Submit
                     (
                         type  =  submit
@@ -1363,12 +1348,6 @@ content
                 }
                 on edit
                 {
-                    on load
-                    {
-                        hide id_dabble;
-                        hide client_dabble;
-                        hide session_dabble;
-                    }
                     Update
                     (
                         type  =  submit
@@ -2369,7 +2348,7 @@ content
     }
     reports configuration
     {
-        Version = 1251000016030185
-        Key     = "gyp1kFaJ3qeBMfwDDdKXFwWPFUJYWszsgnZCJmSS5TerSGa1VJNYdvpW1GEmq7ruf8GTPg6REsxRHYx1GVJkFghHNCM1OO4JKzw5"
+        Version = 1251000016124061
+        Key     = "uYhQ2OFjjAJyknKDTmgjeVfTUsQ0OU3rmaZe13ZrZtRDFbpaTQrKHjbGsSARg9FHasdANTysxG0J5Q7q8s9N0yynxTh4jsGjEDmy"
     }
 }
