@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 05-Jun-2011 15:25:40
+ * Generated on : 20-Jun-2011 12:49:10
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -549,7 +549,7 @@ content
                 Eval
                 (
                     type  =  checkbox
-                    defaultvalue  =  false
+                    initial value  =  false
                 )
 
             }
@@ -1252,7 +1252,7 @@ content
                 (
                     displayname  =  "Attend"
                     type  =  number
-                    defaultvalue  =  1
+                    initial value  =  1
                     maxchar  =  1
                     tooltip  =  "1 if attended\n0 for other entries"
                     width  =  100px
@@ -1415,7 +1415,7 @@ content
                 (
                     displayname  =  "Attend"
                     type  =  number
-                    defaultvalue  =  1
+                    initial value  =  1
                     maxchar  =  1
                     width  =  100px
                 )
@@ -1572,6 +1572,9 @@ content
                 Therapist
                 Time
                 group_name as "Group Name"
+                (
+                    view = group_Summary
+                )
                 rate as "Rate"
                 add_visit as "add visit"
                 Sign_in_sheet as "Sign-in sheet"
@@ -1684,7 +1687,7 @@ content
                 (
                     displayname  =  "Delete all visits?"
                     type  =  checkbox
-                    defaultvalue  =  false
+                    initial value  =  false
                 )
 
                 visits
@@ -1697,7 +1700,7 @@ content
                 (
                     displayname  =  "Delete all sessions?"
                     type  =  checkbox
-                    defaultvalue  =  false
+                    initial value  =  false
                 )
 
                 sessions
@@ -1710,7 +1713,7 @@ content
                 (
                     displayname  =  "Delete all clients?"
                     type  =  checkbox
-                    defaultvalue  =  false
+                    initial value  =  false
                 )
 
                 clients
@@ -1723,7 +1726,7 @@ content
                 (
                     displayname  =  "Delete client with no visits?"
                     type  =  checkbox
-                    defaultvalue  =  false
+                    initial value  =  false
                     tooltip  =  "be sure to update visit counts first"
                 )
 
@@ -1741,7 +1744,7 @@ content
                 (
                     displayname  =  "Delete all officers?"
                     type  =  checkbox
-                    defaultvalue  =  false
+                    initial value  =  false
                 )
 
                 officers
@@ -1754,7 +1757,7 @@ content
                 (
                     displayname  =  "Delete all offices?"
                     type  =  checkbox
-                    defaultvalue  =  false
+                    initial value  =  false
                 )
 
                 offices
@@ -1767,7 +1770,7 @@ content
                 (
                     displayname  =  "Delete all groups?"
                     type  =  checkbox
-                    defaultvalue  =  false
+                    initial value  =  false
                 )
 
                 groups
@@ -2348,7 +2351,7 @@ content
     }
     reports configuration
     {
-        Version = 1251000016124061
-        Key     = "uYhQ2OFjjAJyknKDTmgjeVfTUsQ0OU3rmaZe13ZrZtRDFbpaTQrKHjbGsSARg9FHasdANTysxG0J5Q7q8s9N0yynxTh4jsGjEDmy"
+        Version = 1251000016389154
+        Key     = "OwVvnCg62Pyv2V5mur02SEZtM6hn2B25wBrNU7DktZZt6YJrQxpFMqkCu4D9KTYbVFMuKfUJRW9kZBW1naCOJQDr4rkNOk5B4r4a"
     }
 }
