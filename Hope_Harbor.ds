@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 20-Jun-2011 12:49:10
+ * Generated on : 20-Jun-2011 12:53:12
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -246,6 +246,10 @@ application "Hope Harbor"
                 note
                 check_date as "Check date"
                 bill_date as "Bill date"
+            )
+            sort by
+            (
+                session.date_field   ascending
             )
             permission
             (
@@ -1202,6 +1206,10 @@ content
                 client.Name   ascending
                 client.File   ascending
                 client.Ins   ascending
+            )
+            sort by
+            (
+                session.date_field   ascending
             )
             options
             (
@@ -2351,7 +2359,7 @@ content
     }
     reports configuration
     {
-        Version = 1251000016389154
-        Key     = "OwVvnCg62Pyv2V5mur02SEZtM6hn2B25wBrNU7DktZZt6YJrQxpFMqkCu4D9KTYbVFMuKfUJRW9kZBW1naCOJQDr4rkNOk5B4r4a"
+        Version = 1251000016389166
+        Key     = "a9F3bJEuzJFnuOvUewkrdPE97CsdasJ8v8DAzXXOtxj3T3KSAVQGGPrZOWvHsP9mztDHp0WdmsFbYRRU4Z0GFjUzHfAE7w9q5SRz"
     }
 }
