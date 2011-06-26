@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 20-Jun-2011 12:53:12
+ * Generated on : 25-Jun-2011 19:12:39
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -242,14 +242,14 @@ application "Hope Harbor"
                 attend_n as "Attend"
                 charge as "Charge", display total
                 client_pd as "Client pd", display total
-                ins_paid as "Ins Paid $", display total
                 note
-                check_date as "Check date"
                 bill_date as "Bill date"
+                ins_paid as "Ins Paid $", display total
+                check_date as "Check date"
             )
             sort by
             (
-                session.date_field   ascending
+                session.date_field   descending
             )
             permission
             (
@@ -1209,7 +1209,7 @@ content
             )
             sort by
             (
-                session.date_field   ascending
+                session.date_field   descending
             )
             options
             (
@@ -2359,7 +2359,7 @@ content
     }
     reports configuration
     {
-        Version = 1251000016389166
-        Key     = "a9F3bJEuzJFnuOvUewkrdPE97CsdasJ8v8DAzXXOtxj3T3KSAVQGGPrZOWvHsP9mztDHp0WdmsFbYRRU4Z0GFjUzHfAE7w9q5SRz"
+        Version = 1251000016533029
+        Key     = "uSJsKSMTWQkhpDaX3Ep5TygYhbvzAmkxDp0s7wV6h0mAwxqzZzNKCfHMSkanrmf9Qusb4xKr9U5tOS9X2mE61ar4FkV5ptyCjmDg"
     }
 }
