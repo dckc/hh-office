@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 25-Jun-2011 19:12:39
+ * Generated on : 15-Aug-2011 18:37:07
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -235,10 +235,9 @@ application "Hope Harbor"
             displayname = "Billing Detail"
             show  all  rows  from  visit 
             (
-                client.ID
                 client.Name as "Client"
                 session.date_field as "Date"
-                session as "Session"
+                session.group_name as "Group"
                 attend_n as "Attend"
                 charge as "Charge", display total
                 client_pd as "Client pd", display total
@@ -246,10 +245,15 @@ application "Hope Harbor"
                 bill_date as "Bill date"
                 ins_paid as "Ins Paid $", display total
                 check_date as "Check date"
+                client.ID
             )
             sort by
             (
                 session.date_field   descending
+            )
+            options
+            (
+                display rows = 30
             )
             permission
             (
@@ -368,7 +372,7 @@ content
 <p>Balance: <%=bsum.get("amount_due")%></p> 
 
 <div elName='zc-component' viewLinkName='billing_detail' params='zc_Header=true&client.ID=<%=choice%>'>Loading View...</div>    
-            <%}%>
+                <%}%>
         <%}%>
 
         form  Treatment
@@ -768,7 +772,7 @@ content
                 Therapist
                 (
                     type  =  picklist
-                    values  =  {"Ratliff, Dr. Bascom",   "Maxey, Debra",   "Woody",   "Clemmons, Tamara",   "Hall, Jon",   "Amy",   "Mary C",   "Yang, Ann",   "Lowe, Kelly",   "Fry, Tori",   "Jackson, Cherlisa",   "Hardy, Lauren",   "Delhanty, Will",   "Jessi Lefholz",   "Shelton, Danyele",   "Christa",   "Delehanty, Will",   "Casey, Meghan",   "Lynda Falley",   "Parrett, Shelley",   "Kathryn Dawn",   "Foxworthy, Brian",   "Porter, Pamela",   "McLemore, Alicia",   "Hammond, Chelsea",   "April Craig",   "Susan"}
+                    values  =  {"Ratliff, Dr. Bascom",   "Woody",   "Clemmons, Tamara",   "Hall, Jon",   "A. J. Moreno",   "Amy",   "Mary C",   "Yang, Ann",   "Lowe, Kelly",   "Fry, Tori",   "Jackson, Cherlisa",   "Hardy, Lauren",   "Delhanty, Will",   "Jessi Lefholz",   "Shelton, Danyele",   "Delehanty, Will",   "Casey, Meghan",   "Lynda Falley",   "Parrett, Shelley",   "Kathryn Dawn",   "Foxworthy, Brian",   "Porter, Pamela",   "McLemore, Alicia",   "Hammond, Chelsea",   "April Craig",   "Susan"}
                     width  =  206px
                 )
 
@@ -1177,6 +1181,39 @@ content
             based on Attendance1
         }
 
+        list  Attendance_by_Client
+        {
+            displayname = "Attendance by Client"
+            show  all  rows  from  visit 
+            (
+                session.date_field as "date"
+                session.Group_Label as "Group"
+                client.officer_name as "Officer"
+                attend_n as "Attend", display total
+                charge as "Charge", display total
+                client_pd as "Client Pd", display total
+                ins_paid as "Ins Paid $", display total
+                note as "Note"
+                Due, display total
+                client.Name as "Client"
+                client.ID
+            )
+            group by
+            (
+                client.Name   ascending
+                client.ID   ascending
+                client.officer_name   ascending
+            )
+            sort by
+            (
+                session.date_field   ascending
+            )
+            options
+            (
+                display rows = 50
+            )
+        }
+
         list  Insurance_Clients
         {
             displayname = "Insurance Clients"
@@ -1237,6 +1274,7 @@ content
                     [
                         displayname = "Add session"
                     ]
+                    sortorder  =  ascending
                     width  =  206px
                     on update
                     {
@@ -1335,7 +1373,7 @@ content
                 Due
                 (
                     type  =  formula
-                    value  =  (charge  -  client_pd  -  if((ins_paid  ==  null),0.0,ins_paid))
+                    value  =  (charge  -  client_pd  -  ifnull(ins_paid,0.0))
                 )
 
             }
@@ -1880,11 +1918,12 @@ content
             (
                 client.Name
                 session.date_field as "date"
+                attend_n as "Attend"
                 client_pd as "client pd"
                 ins_paid as "ins paid $"
                 note
-                bill_date as "bill date"
-                check_date as "check date"
+                charge as "Charge"
+                Due
             )
             sort by
             (
@@ -2009,7 +2048,7 @@ address {
 <%if ((who.Ins  !=  null)  &&  (who.Ins  !=  ""))
                 {%>
  <th>Insurance Paid</th>
-                                <%}%>
+                                                <%}%>
 </tr>
 <tr><td> </td><td> </td><td> </td></tr>
 </thead>
@@ -2026,10 +2065,10 @@ address {
 <%if ((who.Ins  !=  null)  &&  (who.Ins  !=  ""))
                     {%>
     <td class="amt"><%=thisapp.fmt.currency(item.ins_paid)%></td>
-                                            <%}%>
+                                                                    <%}%>
 </tr>
                                                                                                                         
-                                                                                                                                                                <%}%>
+                                                                                                                                                                                <%}%>
 </tbody>
 
 <tbody>
@@ -2041,7 +2080,7 @@ address {
 <%if ((who.Ins  !=  null)  &&  (who.Ins  !=  ""))
                 {%>
   <td id="ins" class="amt"><strong><%=bsum.get("ins_paid")%></strong></td>
-                         <%}%>
+                                         <%}%>
 </tr>
 <tr><td>&nbsp;</td></tr>
 <tr>
@@ -2063,7 +2102,7 @@ address {
 
 
 </div>
-                                                                                                                                                        <%}
+                                                                                                                                                                <%}
         }%>
 
         list  fix_visits
@@ -2147,6 +2186,34 @@ content
                                                 <%}
         }%>
 
+        list  Visit_Info
+        {
+            displayname = "Visit Info"
+            show  all  rows  from  visit 
+            (
+                client_pd as "client pd"
+                note
+                bill_date as "bill date"
+                check_date as "check date"
+                ins_paid as "ins paid $"
+                id_dabble
+                session
+                client
+                attend_n as "Attend"
+                charge as "Charge"
+                Due
+                client.Name
+                client.ID
+                session.date_field as "date"
+                session.group_name as "Group"
+            )
+            filters 
+            (
+                bill_date
+                check_date
+            )
+        }
+
     }
 
     functions
@@ -2220,7 +2287,7 @@ content
         {
             gn = session[ID = input.which_session].group_name;
             r = group[Name = gn].rate;
-            return if((r  ==  null),0.0,r);
+            return ifnull(r,0.0);
         }
 
         void fixup.test_if()
@@ -2338,13 +2405,21 @@ content
         map billing_summary(client who)
         {
             client_pd = visit[client == who.ID].sum(client_pd);
+            if (client_pd  ==  null)
+            {
+                client_pd = 0.0;
+            }
             ins_pd = visit[client == who.ID].sum(ins_paid);
-            if (ins_pd  <  0)
+            if ((ins_pd  <  0)  ||  (ins_pd  ==  null))
             {
                 // umm... what's up here?!?
                 ins_pd = 0.0;
             }
             subtot = visit[client == who.ID].sum(charge);
+            if (subtot  ==  null)
+            {
+                subtot = 0.0;
+            }
             amount_due = (subtot  -  client_pd  -  ins_pd);
             return { "who" : who.ID, "attend" : count(visit[(client == who.ID && attend_n == 1)]), "client_pd" : thisapp.fmt.currency(client_pd), "ins_paid" : thisapp.fmt.currency(ins_pd), "subtot" : thisapp.fmt.currency(subtot), "amount_due" : thisapp.fmt.currency(amount_due) };
         }
@@ -2359,7 +2434,7 @@ content
     }
     reports configuration
     {
-        Version = 1251000016533029
-        Key     = "uSJsKSMTWQkhpDaX3Ep5TygYhbvzAmkxDp0s7wV6h0mAwxqzZzNKCfHMSkanrmf9Qusb4xKr9U5tOS9X2mE61ar4FkV5ptyCjmDg"
+        Version = 1251000017883097
+        Key     = "zBp641y7WS4eEAe5hzZpMtuJ1mVmqnUbCaejUNK0RJUKgt67ghBgZkVNP0NrEQn0C9u8QaOfweyuj4QvV44mfCxruROzV436HdWN"
     }
 }
