@@ -48,7 +48,7 @@ join zgroup as g
   on s.group_id = g.id
 join zclient c
   on v.client_id = c.id
-order by g.name, c.name
+order by g.name, c.name, s.session_date
 ");
 
       $datagroups = array();
