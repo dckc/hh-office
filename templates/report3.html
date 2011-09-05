@@ -1,0 +1,43 @@
+<title>Attendance by Group</title>
+
+{* report with n levels of grouping *}
+<table id="{$id}" class="listing {$class}">
+  {section name=group loop=$headings}
+  <thead>
+    {foreach from=$headings[group] item=heading_row}
+    <tr>
+      {foreach from=$heading_row item=heading}
+      <th align="left" width="15%">{$heading}</th>
+      {/foreach}
+    </tr>
+    {/foreach}
+
+    <tr>
+      <th>&#160;</th>
+      {foreach from=$data[0][0] key=k item=heading}
+      <th align="right">{$k}</th>
+      {/foreach}
+    </tr>
+
+  </thead>
+
+  <tbody>
+    {foreach from=$data[group] item=detail}
+    <tr class="listing">
+      <td>&#160;</td>
+      {foreach from=$detail item=datum}
+      <td align="right">{$datum}</td>
+      {/foreach}
+    </tr>
+    {/foreach}
+
+    <tr>
+      <th>&#160;</th>
+      {foreach from=$summary[group] item=datum}
+      <th align="right">{$datum}</th>
+      {/foreach}
+    </tr>
+
+  </tbody>
+  {/section}
+</table>
