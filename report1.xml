@@ -1,15 +1,139 @@
 <!DOCTYPE Report >
-<Report fontSize="9" orientation="landscape">
+<Report fontSize="9" orientation="portrait">
+  <ReportHeader>
+    <Output>
+      <!-- <Image value="'logo.jpg'" type="'jpeg'" width="50" height="50"/>-->
+      <Line/>
+      <Line fontSize="12">
+	<literal width="8"/>
+	<literal>Hope Harbor Attendance by Group</literal>
+      </Line>
+      <HorizontalLine size="4" bgcolor="'white'"/>
+    </Output>
+  </ReportHeader>
+
   <Detail>
+
+    <FieldHeaders>
+      <Output>
+	<HorizontalLine size="1" bgcolor="'black'"/>
+	<Line bgcolor="'0xe5e5e5'">
+	  <literal width="5"/>
+	  <literal width="10" align="right" col="3">Session</literal>
+	  <literal width="1"/>
+	  <literal width="6" align="right" col="4">Attend</literal>
+	  <literal width="1"/>
+	  <literal width="9" align="right" col="5">Charge</literal>
+	  <literal width="1"/>
+	  <literal width="9" align="right" col="6">Client Pd</literal>
+	  <literal width="1"/>
+	  <literal width="9" align="right" col="7">Ins. Pd</literal>
+	  <literal width="1"/>
+	  <literal width="9" align="right" col="8">Due</literal>
+	</Line>
+	<HorizontalLine size="1" bgcolor="'black'"/>
+	<HorizontalLine size="4" bgcolor="'white'"/>
+      </Output>
+    </FieldHeaders>		
+
     <FieldDetails>
       <Output>
 	<Line bgcolor="iif(r.detailcnt%2,'0xe5e5e5','white')">
-	  <field width="30" col="1"  align="left" value="Group" />
+	  <literal width="5"/>
+	  <field width="10" align="right" value="stod(Session)"/>
 	  <literal width="1"/>
-	  <field width="30" col="1"  align="left" value="Client" />
+	  <field width="6" align="right" value="attend_n"/>
 	  <literal width="1"/>
+	  <field width="9" align="right" value="charge"/>
+	  <literal width="1"/>
+	  <field width="9" align="right" value="client_paid"/>
+	  <literal width="1"/>
+	  <field width="9" align="right" value="insurance_paid"/>
+	  <literal width="1"/>
+	  <field width="9" align="right" value="due"/>
 	</Line>
       </Output>
     </FieldDetails>
   </Detail>
+
+  <Breaks>
+    <Break name="per_group" newpage="no" headernewpage="yes">
+      <BreakHeader>
+	<Output>
+	  <HorizontalLine size="3" bgcolor="'white'"/>
+	  <Line fontSize="10" bold="true">
+	    <field value="Group" align="left" col="1"/>
+	  </Line>
+	</Output>
+      </BreakHeader>
+      <BreakFields>
+	<BreakField value="Group"/>
+      </BreakFields>
+    </Break>
+
+    <Break name="per_client" newpage="no" headernewpage="yes">
+      <BreakHeader>
+	<Output>
+	  <HorizontalLine size="2" bgcolor="'white'"/>
+	  <Line bold="true">
+	    <literal width="2"/>
+	    <field value="Client" align="left" col="1"/>
+	  </Line>
+	</Output>
+      </BreakHeader>
+      <BreakFields>
+	<BreakField value="Client"/>
+      </BreakFields>
+      <BreakFooter>
+	<Output>
+	  <HorizontalLine size="2" bgcolor="'white'"/>
+	  <HorizontalLine size="1" bgcolor="'black'"/>
+	  <HorizontalLine size="1" bgcolor="'white'"/>
+	  <Line bold="true">
+	    <literal width="16"/>
+	    <field value="v.attend_tot" width="6" align="right"/>
+	    <literal width="1"/>
+	    <field width="9" align="right" format="'%$.2nd'"
+		   value="v.charge_tot"/>
+	    <literal width="1"/>
+	    <field width="9" align="right" format="'%$.2nd'"
+		   value="v.cpd_tot"/>
+	    <literal width="1"/>
+	    <field width="9" align="right" format="'%$.2nd'"
+		   value="v.ipd_tot"/>
+	    <literal width="1"/>
+	    <field width="9" align="right" format="'%$.2nd'"
+		   value="v.due_tot"/>
+	  </Line>
+	  <HorizontalLine size="4" bgcolor="'white'"/>
+	</Output>
+      </BreakFooter>
+      -->
+    </Break>
+  </Breaks>
+
+  <Variables>
+    <Variable name="attend_tot" value="val(attend_n)"
+	      type="sum" resetonbreak="per_client"/>
+    <Variable name="charge_tot" value="val(charge)"
+	      type="sum" resetonbreak="per_client"/>
+    <Variable name="cpd_tot" value="val(client_paid)"
+	      type="sum" resetonbreak="per_client"/>
+    <Variable name="ipd_tot" value="val(insurance_paid)"
+	      type="sum" resetonbreak="per_client"/>
+    <Variable name="due_tot" value="val(due)"
+	      type="sum" resetonbreak="per_client"/>
+  </Variables>
+
+  <PageFooter>
+    <Output>
+      <HorizontalLine size="4" bgcolor="'white'"/>
+      <Line fontSize="8">
+	<literal>pg. </literal>
+	<field value="r.pageno" />
+        <!-- r.totpages doesn't seem to work as advertised.
+	Perhaps that's a feature: we want streaming. -->
+      </Line>
+    </Output>
+  </PageFooter>
 </Report>

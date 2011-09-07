@@ -13,7 +13,7 @@ def run(report_def="report1.xml",
     myreport.add_query_as(dsn, r'''
 select g.id as group_id, g.name as `Group`
      , c.id as client_id, c.name as `Client`
-     , date_format(s.session_date, '%b %d \'%y') as `Session`
+     , date_format(s.session_date, '%Y-%m-%d') as `Session`
      , attend_n, charge, client_paid
      , insurance_paid, due
 from zvisit as v
