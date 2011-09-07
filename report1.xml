@@ -2,15 +2,28 @@
 <Report fontSize="9" orientation="portrait">
   <ReportHeader>
     <Output>
-      <!-- <Image value="'logo.jpg'" type="'jpeg'" width="50" height="50"/>-->
-      <Line/>
-      <Line fontSize="12">
-	<literal width="8"/>
-	<literal>Hope Harbor Attendance by Group</literal>
+      <Line fontSize="12" bgcolor="'black'" color="'white'">
+	<literal width="2"/>
+	<literal width="30" align="left">Hope Harbor</literal>
       </Line>
-      <HorizontalLine size="4" bgcolor="'white'"/>
     </Output>
   </ReportHeader>
+
+  <PageHeader>
+    <Output>
+      <HorizontalLine size="4" bgcolor="'white'"/>
+      <Line fontSize="11" bgcolor="'0xd0d0d0'" color="'black'">
+	<literal width="2"/>
+	<literal width="40" align="left">Attendance by Group</literal>
+	<literal width="10"/>
+	<field value="stod(m.report_date)" fontSize="8"/>
+	<literal width="10"/>
+	<literal fontSize="8">pg. </literal>
+	<field value="r.pageno" fontSize="8"/>
+      </Line>
+      <HorizontalLine size="2" bgcolor="'white'" />
+    </Output>
+  </PageHeader>
 
   <Detail>
 
@@ -30,6 +43,8 @@
 	  <literal width="9" align="right" col="7">Ins. Pd</literal>
 	  <literal width="1"/>
 	  <literal width="9" align="right" col="8">Due</literal>
+	  <literal width="3"/>
+	  <literal col="9">Note</literal>
 	</Line>
 	<HorizontalLine size="1" bgcolor="'black'"/>
 	<HorizontalLine size="4" bgcolor="'white'"/>
@@ -39,7 +54,9 @@
     <FieldDetails>
       <Output>
 	<Line bgcolor="iif(r.detailcnt%2,'0xe5e5e5','white')">
-	  <literal width="5"/>
+	  <literal width="2"/>
+	  <literal>|</literal>
+	  <literal width="2"/>
 	  <field width="10" align="right" value="stod(Session)"/>
 	  <literal width="1"/>
 	  <field width="6" align="right" value="attend_n"/>
@@ -51,6 +68,8 @@
 	  <field width="9" align="right" value="insurance_paid"/>
 	  <literal width="1"/>
 	  <field width="9" align="right" value="due"/>
+	  <literal width="3"/>
+	  <field value="note"/>
 	</Line>
       </Output>
     </FieldDetails>
@@ -87,7 +106,7 @@
       <BreakFooter>
 	<Output>
 	  <HorizontalLine size="2" bgcolor="'white'"/>
-	  <HorizontalLine size="1" bgcolor="'black'"/>
+	  <HorizontalLine size="1" bgcolor="'black'" indent="2"/>
 	  <HorizontalLine size="1" bgcolor="'white'"/>
 	  <Line bold="true">
 	    <literal width="16"/>
@@ -124,16 +143,4 @@
     <Variable name="due_tot" value="val(due)"
 	      type="sum" resetonbreak="per_client"/>
   </Variables>
-
-  <PageFooter>
-    <Output>
-      <HorizontalLine size="4" bgcolor="'white'"/>
-      <Line fontSize="8">
-	<literal>pg. </literal>
-	<field value="r.pageno" />
-        <!-- r.totpages doesn't seem to work as advertised.
-	Perhaps that's a feature: we want streaming. -->
-      </Line>
-    </Output>
-  </PageFooter>
 </Report>
