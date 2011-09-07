@@ -1,0 +1,15 @@
+<!DOCTYPE Report >
+<Report fontSize="9" orientation="landscape">
+  <Detail>
+    <FieldDetails>
+      <Output>
+	<Line bgcolor="iif(r.detailcnt%2,'0xe5e5e5','white')">
+	  <field width="30" col="1"  align="left" value="Group" />
+	  <literal width="1"/>
+	  <field width="30" col="1"  align="left" value="Client" />
+	  <literal width="1"/>
+	</Line>
+      </Output>
+    </FieldDetails>
+  </Detail>
+</Report>
