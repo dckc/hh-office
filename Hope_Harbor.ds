@@ -1,0 +1,2440 @@
+/*
+ * Author       : hopeharbor
+ * Generated on : 15-Aug-2011 18:37:07
+ * Version      : 3.0
+ */
+application "Hope Harbor"
+{
+    allow html = true
+    secured connection = true
+    date format = "MM/dd/yyyy"
+    time zone = "America/Chicago"
+    section client11
+    {
+        displayname = "Clients"
+        list  client_View
+        {
+            displayname = "Client List"
+            show  all  rows  from  client 
+            (
+                Name
+                DOB
+                File
+                file_opened as "Opened"
+                file_site as "Site"
+                officer_name as "Officer"
+                visits_link as "Billing"
+                Invoice_link1 as "Invoice"
+            )
+            sort by
+            (
+                Name   ascending
+            )
+            options
+            (
+                display rows = 30
+            )
+            permission
+            (
+                add = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+            custom actions
+            (
+                "Link Visits and Sessions"
+                (
+                    function = fixup.link_visits(client)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+                "Update visit counts"
+                (
+                    function = fixup.count_visits(client)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+                "Set up Treatments"
+                (
+                    function = set_up_treatments(client)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+                "Look up Files"
+                (
+                    function = fixup.look_up_file(client)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+            )
+        }
+
+        form  client
+        {
+            displayname  =  "Client Entry"
+            success message  =  "Added Client."
+            field alignment = left
+            
+            column
+            {
+                must  have  Name
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                DOB
+                (
+                    type  =  date
+                    width  =  130px
+                )
+
+                address
+                (
+                    type  =  textarea
+                    height  =  100px
+                    width  =  200px
+                )
+
+                phone
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                officer_name
+                (
+                    displayname  =  "Officer"
+                    type  =  picklist
+                    values  =  officer.Name
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+                File
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                file_site
+                (
+                    displayname  =  "File Site"
+                    type  =  radiobuttons
+                    values  =  {"kck",   "op"}
+                )
+
+                file_opened
+                (
+                    displayname  =  "File Opened"
+                    type  =  date
+                    width  =  130px
+                )
+
+            }
+            column
+            {
+                Ins
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                Note
+                (
+                    type  =  textarea
+                    height  =  100px
+                    width  =  200px
+                )
+
+                Approval
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                DX
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                id_dabble
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                officer_dabble
+                (
+                    type  =  picklist
+                    values  =  officer.id_dabble
+                    displayformat = [ Name ]
+                    width  =  206px
+                )
+
+                visits_link
+                (
+                    type  =  formula
+                    value  =  "<a href='#View:billing_detail?client.ID=" + ID + "'>billing</a>"
+                )
+
+                Invoice_link1
+                (
+                    displayname  =  "Invoice_link"
+                    type  =  formula
+                    value  =  "<a href='#View:Invoice?for_client=" + ID + "'>invoice</a>"
+                )
+
+                visit_count
+                (
+                    displayname  =  "visit count"
+                    type  =  number
+                    width  =  100px
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset Form"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Close Form"
+                    )
+                }
+            }
+        }
+
+        grid  billing_detail
+        {
+            displayname = "Billing Detail"
+            show  all  rows  from  visit 
+            (
+                client.Name as "Client"
+                session.date_field as "Date"
+                session.group_name as "Group"
+                attend_n as "Attend"
+                charge as "Charge", display total
+                client_pd as "Client pd", display total
+                note
+                bill_date as "Bill date"
+                ins_paid as "Ins Paid $", display total
+                check_date as "Check date"
+                client.ID
+            )
+            sort by
+            (
+                session.date_field   descending
+            )
+            options
+            (
+                display rows = 30
+            )
+            permission
+            (
+                add = true
+                duplicate = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
+        list  client_file_list
+        {
+            displayname = "Client File List"
+            show  all  rows  from  client_file 
+            (
+                Name
+                site
+                file_id as "id"
+                DOB
+                Opened
+            )
+            sort by
+            (
+                Name   ascending
+            )
+        }
+
+        form  client_file
+        {
+            displayname  =  "Client File Entry"
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                must  have  Name
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                DOB
+                (
+                    type  =  date
+                    width  =  130px
+                )
+
+            }
+            column
+            {
+                must  have  site
+                (
+                    type  =  radiobuttons
+                    values  =  {"kck",   "op"}
+                )
+
+                must  have  Opened
+                (
+                    type  =  date
+                    width  =  130px
+                )
+
+                must  have  file_id
+                (
+                    displayname  =  "File ID"
+                    type  =  number
+                    width  =  100px
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Submit"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Update"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Cancel"
+                    )
+                }
+            }
+        }
+
+        htmlpage Client_Detail(choice, clue)
+displayname = "Client Detail"
+content
+        <%{%>
+<div elName='zc-component' formLinkName='Client_Search' params='zc_Header=true&zc_SuccMsg=Data Added Sucessfully!&zc_SubmitVal=Submit&zc_ResetVal=Reset'>Loading Form...</div> 
+
+<%if ((input.choice).length()  >  0)
+            {
+                client_id = input.choice.toLong();
+                bsum = thisapp.billing_summary(client [ID == client_id]);%>
+
+<div elName='zc-component' viewLinkName='client_Summary' params='zc_Header=false&ID=<%=choice%>'>Loading View...</div> 
+
+<p>Balance: <%=bsum.get("amount_due")%></p> 
+
+<div elName='zc-component' viewLinkName='billing_detail' params='zc_Header=true&client.ID=<%=choice%>'>Loading View...</div>    
+                <%}%>
+        <%}%>
+
+        form  Treatment
+        {
+            field alignment = left
+            
+            column
+            {
+                must  have  client
+                (
+                    displayname  =  "Client"
+                    type  =  picklist
+                    values  =  client.ID
+                    displayformat = [ Name ]
+                    allow new entries = true
+                    [
+                        displayname = "Client Entry"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+                must  have  Group
+                (
+                    type  =  picklist
+                    values  =  group.Name
+                    displayformat = [ Name + " - " + rate ]
+                    allow new entries = true
+                    [
+                        displayname = "Group Entry"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                    on user input
+                    {
+                        default_rate = group[Name = input.Group].rate;
+                        input.Rate = default_rate;
+                    }
+                )
+
+                must  have  Rate
+                (
+                    type  =  USD
+                    width  =  100px
+                )
+
+                must  have  Start_Date
+                (
+                    displayname  =  "Start Date"
+                    type  =  date
+                    width  =  130px
+                )
+
+                End_Date
+                (
+                    displayname  =  "End Date"
+                    type  =  date
+                    width  =  130px
+                )
+
+            }
+            column
+            {
+                Group_Label
+                (
+                    displayname  =  "Group Label"
+                    type  =  formula
+                    value  =  Group
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Submit"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Update"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Cancel"
+                    )
+                }
+            }
+        }
+
+        list  Treatment_View
+        {
+            displayname = "Treatment View"
+            show  all  rows  from  Treatment 
+            (
+                client as "Client"
+                Group
+                Rate
+                Start_Date as "Start Date"
+                End_Date as "End Date"
+                Group_Label as "Group Label"
+            )
+        }
+
+    }
+
+    section group11
+    {
+        displayname = "Groups"
+        list  group_View
+        {
+            displayname = "Group List"
+            show  all  rows  from  group 
+            (
+                Eval
+                (
+                    width = 40px
+                )
+                Name
+                rate as "Rate"
+                Sessions_link as "Sessions"
+            )
+            sort by
+            (
+                Name   ascending
+            )
+            options
+            (
+                display rows = 30
+            )
+            custom actions
+            (
+                "Link Sessions"
+                (
+                    function = fixup.link_sessions(group)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+                "Reprice Visits"
+                (
+                    function = reprice_visits(group)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+            )
+        }
+
+        form  group
+        {
+            displayname  =  "Group Entry"
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                must  have  unique  Name
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                rate
+                (
+                    type  =  USD
+                    width  =  100px
+                )
+
+                Eval
+                (
+                    type  =  checkbox
+                    initial value  =  false
+                )
+
+            }
+            column
+            {
+                id_dabble
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                Sessions_link
+                (
+                    displayname  =  "Sessions link"
+                    type  =  formula
+                    value  =  ("<a href='#View:session_View?group_name=" + encodeUrl(Name)) + "' />sessions</a>"
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset Form"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Close Form"
+                    )
+                }
+            }
+        }
+
+        form  IDC9
+        {
+            field alignment = left
+            
+            DX
+            (
+                type  =  text
+                width  =  200px
+                on update
+                {
+                    input.Diagnosis = thisapp.icd_diagnosis(input.DX);
+                }
+                on user input
+                {
+                    input.Diagnosis = thisapp.icd_diagnosis(input.DX);
+                }
+            )
+
+            Diagnosis
+            (
+                type  =  text
+                width  =  200px
+            )
+
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Submit"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Update"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Cancel"
+                    )
+                }
+            }
+        }
+
+        list  IDC9_View
+        {
+            displayname = "IDC9 View"
+            show  all  rows  from  IDC9 
+            (
+                DX
+                Diagnosis
+            )
+        }
+
+    }
+
+    section session111
+    {
+        displayname = "Sign-in Sheets"
+        list  session_View
+        {
+            displayname = "Session List"
+            show  all  rows  from  session 
+            (
+                date_field as "Date"
+                Time
+                group_name as "Group"
+                Therapist
+                Sign_in_sheet as "Sign-in sheet"
+                add_visit as "Add Visits"
+            )
+            sort by
+            (
+                date_field   descending
+            )
+            options
+            (
+                display rows = 20
+            )
+            permission
+            (
+                add = true
+                edit = true
+                delete = true
+            )
+        }
+
+        calendar  Session_Calendar
+        {
+            displayname = "Session Calendar"
+            show  all  rows  from  session 
+            (
+                date_field as "date"
+                group_name.Name
+                Sign_in_sheet as "Sign-in sheet"
+                Therapist
+                Time
+            )
+            filters 
+            (
+                Therapist
+            )
+            options
+            (
+                show calendar based on date_field
+            )
+        }
+
+        form  session
+        {
+            displayname  =  "Session Entry"
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                must  have  date_field
+                (
+                    displayname  =  "date"
+                    type  =  date
+                    width  =  130px
+                )
+
+                Time
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                must  have  group_name
+                (
+                    displayname  =  "Group"
+                    type  =  picklist
+                    values  =  group.Name
+                    displayformat = [ Name + " - " + rate ]
+                    allow new entries = true
+                    [
+                        displayname = "Group Entry"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+                rate
+                (
+                    displayname  =  "Rate"
+                    type  =  USD
+                    width  =  100px
+                )
+
+                Therapist
+                (
+                    type  =  picklist
+                    values  =  {"Ratliff, Dr. Bascom",   "Woody",   "Clemmons, Tamara",   "Hall, Jon",   "A. J. Moreno",   "Amy",   "Mary C",   "Yang, Ann",   "Lowe, Kelly",   "Fry, Tori",   "Jackson, Cherlisa",   "Hardy, Lauren",   "Delhanty, Will",   "Jessi Lefholz",   "Shelton, Danyele",   "Delehanty, Will",   "Casey, Meghan",   "Lynda Falley",   "Parrett, Shelley",   "Kathryn Dawn",   "Foxworthy, Brian",   "Porter, Pamela",   "McLemore, Alicia",   "Hammond, Chelsea",   "April Craig",   "Susan"}
+                    width  =  206px
+                )
+
+            }
+            column
+            {
+                id_dabble
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                group_dabble
+                (
+                    type  =  picklist
+                    values  =  group.id_dabble
+                    displayformat = [ Name ]
+                    width  =  206px
+                )
+
+                add_visit
+                (
+                    displayname  =  "add visit"
+                    type  =  formula
+                    value  =  "<a href='#Form:Sign_in_visit?session=" + ID + "'>add visit</a>"
+                )
+
+                Sign_in_sheet
+                (
+                    displayname  =  "Sign-in sheet"
+                    type  =  formula
+                    value  =  "<a href='#View:Sign_in_sheet?session.ID=" + ID + "' >sign-in sheet</a>"
+                )
+
+                Group_Label
+                (
+                    displayname  =  "Group Label"
+                    type  =  formula
+                    value  =  group_name
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    on load
+                    {
+                        hide id_dabble;
+                        hide group_dabble;
+                        disable rate;
+                    }
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                        PreSubmit = "<preoncommit><openurl><type><![CDATA[form]]></type><value><![CDATA[Sign_in_visit]]></value></openurl></preoncommit>"
+                        on success
+                        {
+                            openUrl("#Form:Sign_in_visit?session=" + input.ID, "popup");
+                        }
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset Form"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Close Form"
+                    )
+                }
+            }
+        }
+
+        grid  Sign_in_sheet
+        {
+            displayname = "Sign in sheet"
+            show  all  rows  from  visit 
+            (
+                session.ID
+                session.date_field as "date"
+                session.Group_Label as "Group"
+                client.Name as "Client"
+                attend_n as "Attend"
+                charge as "Charge"
+                client_pd as "Client pd"
+                note
+            )
+            group by
+            (
+                session.Group_Label   ascending
+                session.date_field   ascending
+                session.ID   ascending
+            )
+            permission
+            (
+                add = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
+    }
+
+    section officer11
+    {
+        displayname = "Officers"
+        list  officer_View
+        {
+            displayname = "Officer List"
+            show  all  rows  from  officer 
+            (
+                Name
+                email
+                office_name as "Office"
+            )
+            sort by
+            (
+                Name   ascending
+            )
+            options
+            (
+                display rows = 40
+            )
+            custom actions
+            (
+                "Link Clients"
+                (
+                    function = fixup.link_clients(officer)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+            )
+        }
+
+        list  office_View
+        {
+            displayname = "Office List"
+            show  all  rows  from  office 
+            (
+                Name
+                fax
+                notes
+            )
+            custom actions
+            (
+                "Link Officers"
+                (
+                    function = fixup.link_officers(office)
+                    show action in view header = true
+                    show action for each record = false
+                    success message = ""
+                )
+            )
+        }
+
+        form  officer
+        {
+            displayname  =  "Officer Entry"
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                must  have  unique  Name
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                email
+                (
+                    type  =  email
+                    width  =  200px
+                )
+
+                office_name
+                (
+                    displayname  =  "Office"
+                    type  =  picklist
+                    values  =  office.Name
+                    allow new entries = true
+                    [
+                        displayname = "office"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+            }
+            column
+            {
+                unique  id_dabble
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                office_dabble
+                (
+                    type  =  picklist
+                    values  =  office.id_dabble
+                    displayformat = [ Name ]
+                    width  =  206px
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset Form"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Close Form"
+                    )
+                }
+            }
+        }
+
+        form  office
+        {
+            displayname  =  "Office Entry"
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                must  have  unique  Name
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                fax
+                (
+                    type  =  text
+                    width  =  200px
+                )
+
+                address
+                (
+                    type  =  textarea
+                    height  =  100px
+                    width  =  200px
+                )
+
+            }
+            column
+            {
+                id_dabble
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                notes
+                (
+                    type  =  textarea
+                    height  =  100px
+                    width  =  200px
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset Form"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Close Form"
+                    )
+                }
+            }
+        }
+
+    }
+
+    section Reports
+    {
+        list  attendance
+        {
+            displayname = "Attendance with Officers"
+            show  all  rows  from  visit 
+            (
+                session.date_field as "date"
+                session.Group_Label as "Group"
+                client.officer_name as "Officer"
+                attend_n as "Attend", display total
+                charge as "Charge", display total
+                client_pd as "Client Pd", display total
+                ins_paid as "Ins Paid $", display total
+                note as "Note"
+                Due, display total
+                client.Name as "Client"
+                client.ID
+            )
+            group by
+            (
+                session.Group_Label   ascending
+                client.Name   ascending
+                client.ID   ascending
+                client.officer_name   ascending
+            )
+            sort by
+            (
+                session.date_field   ascending
+            )
+            options
+            (
+                display rows = 50
+            )
+        }
+
+        htmlpage Attendance_pagination_test()
+displayname = "Attendance pagination test"
+print = true
+pdf = true
+content
+        <%{%>
+<div elName='zc-component' viewLinkName='attendance' params='zc_Header=false&amp;zc_Footer=false&amp;zc_SecHeader=false&amp;zc_AddRec=false&amp;zc_EditRec=false&amp;zc_DelRec=false&amp;zc_DuplRec=false&amp;zc_EditBulkRec=false&amp;zc_Filter=false&amp;zc_Search=false&amp;zc_Paging=false&amp;zc_ColMenu=false&amp;zc_Summary=false&amp;zc_RecSelect=false&amp;zc_SaveRec=false'>Loading View...</div>         <%}%>
+
+        list  Attendance1
+        {
+            displayname = "Attendance"
+            show  all  rows  from  visit 
+            (
+                session.date_field as "Date"
+                session.Group_Label as "Group"
+                attend_n as "Attend", display total
+                charge as "Charge", display total
+                client_pd as "Client pd", display total
+                ins_paid as "Ins Paid $"
+                Due
+                note as "Note"
+                bill_date as "Bill Date"
+                check_date as "Check Date"
+                client.Name as "Client"
+                client.officer_name as "Officer"
+            )
+            filters 
+            (
+                bill_date
+                check_date
+            )
+            sort by
+            (
+                session.date_field   descending
+                session.Group_Label   ascending
+            )
+        }
+
+        report Attendance_by_Group_and_Client
+        {
+            displayname = "Attendance by Group and Client"
+            type = PivotTable
+            based on Attendance1
+        }
+
+        list  Attendance_by_Client
+        {
+            displayname = "Attendance by Client"
+            show  all  rows  from  visit 
+            (
+                session.date_field as "date"
+                session.Group_Label as "Group"
+                client.officer_name as "Officer"
+                attend_n as "Attend", display total
+                charge as "Charge", display total
+                client_pd as "Client Pd", display total
+                ins_paid as "Ins Paid $", display total
+                note as "Note"
+                Due, display total
+                client.Name as "Client"
+                client.ID
+            )
+            group by
+            (
+                client.Name   ascending
+                client.ID   ascending
+                client.officer_name   ascending
+            )
+            sort by
+            (
+                session.date_field   ascending
+            )
+            options
+            (
+                display rows = 50
+            )
+        }
+
+        list  Insurance_Clients
+        {
+            displayname = "Insurance Clients"
+            show  all  rows  from  visit [((client.Ins is not null) && client.Ins != "")]
+            (
+                client.Name as "Client"
+                client.File
+                client.Ins
+                session.date_field as "Date"
+                session.Group_Label as "Group"
+                attend_n as "Attend", display total
+                charge as "Charge", display total
+                client_pd as "client pd", display total
+                bill_date as "Bill date"
+                check_date as "Check date"
+                ins_paid as "Ins Paid $", display total
+                Due, display total
+                note as "Note"
+            )
+            filters 
+            (
+                bill_date
+                check_date
+            )
+            group by
+            (
+                client.Name   ascending
+                client.File   ascending
+                client.Ins   ascending
+            )
+            sort by
+            (
+                session.date_field   descending
+            )
+            options
+            (
+                display rows = 20
+            )
+        }
+
+    }
+
+    section Utility
+    {
+        hide = true
+        form  visit
+        {
+            field alignment = left
+            
+            column
+            {
+                session
+                (
+                    type  =  picklist
+                    values  =  session.ID
+                    displayformat = [ Group_Label + " - " + date_field ]
+                    allow new entries = true
+                    [
+                        displayname = "Add session"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                    on update
+                    {
+                        input.charge = group[Name = input.session.group_name].rate;
+                    }
+                )
+
+                client
+                (
+                    type  =  picklist
+                    values  =  client.ID
+                    displayformat = [ Name ]
+                    allow new entries = true
+                    [
+                        displayname = "Add client"
+                    ]
+                    width  =  206px
+                )
+
+                must  have  attend_n
+                (
+                    displayname  =  "Attend"
+                    type  =  number
+                    initial value  =  1
+                    maxchar  =  1
+                    tooltip  =  "1 if attended\n0 for other entries"
+                    width  =  100px
+                )
+
+                client_pd
+                (
+                    displayname  =  "client pd"
+                    type  =  USD
+                    width  =  100px
+                )
+
+                note
+                (
+                    type  =  textarea
+                    height  =  100px
+                    width  =  200px
+                )
+
+                bill_date
+                (
+                    displayname  =  "bill date"
+                    type  =  date
+                    width  =  130px
+                )
+
+                check_date
+                (
+                    displayname  =  "check date"
+                    type  =  date
+                    width  =  130px
+                )
+
+                ins_paid
+                (
+                    displayname  =  "ins paid $"
+                    type  =  USD
+                    width  =  100px
+                )
+
+            }
+            column
+            {
+                id_dabble
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                session_dabble
+                (
+                    type  =  picklist
+                    values  =  session.id_dabble
+                    width  =  206px
+                )
+
+                client_dabble
+                (
+                    type  =  picklist
+                    values  =  client.id_dabble
+                    displayformat = [ Name ]
+                    width  =  206px
+                )
+
+                charge
+                (
+                    displayname  =  "Charge"
+                    type  =  USD
+                    width  =  100px
+                )
+
+                Due
+                (
+                    type  =  formula
+                    value  =  (charge  -  client_pd  -  ifnull(ins_paid,0.0))
+                )
+
+            }
+            actions
+            {
+                on add
+                {
+                    Submit
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Reset
+                    (
+                        type  =  reset
+                        displayname  =  "Reset Form"
+                    )
+                }
+                on edit
+                {
+                    Update
+                    (
+                        type  =  submit
+                        displayname  =  "Save Changes"
+                    )
+                    Cancel
+                    (
+                        type  =  cancel
+                        displayname  =  "Close Form"
+                    )
+                }
+            }
+        }
+
+        form  Sign_in_visit
+        {
+            displayname  =  "Sign in visit"
+            store data in zc = false
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                session
+                (
+                    displayname  =  "Session"
+                    type  =  picklist
+                    values  =  session.ID
+                    displayformat = [ " - " + date_field ]
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+                must  have  Client
+                (
+                    type  =  picklist
+                    values  =  client.ID
+                    displayformat = [ Name ]
+                    allow new entries = true
+                    [
+                        displayname = "client"
+                    ]
+                    sortorder  =  ascending
+                    width  =  206px
+                )
+
+                must  have  Client_pd
+                (
+                    displayname  =  "Client pd"
+                    type  =  USD
+                    width  =  100px
+                )
+
+                Note
+                (
+                    type  =  textarea
+                    height  =  100px
+                    width  =  200px
+                )
+
+            }
+            column
+            {
+                must  have  attend_n
+                (
+                    displayname  =  "Attend"
+                    type  =  number
+                    initial value  =  1
+                    maxchar  =  1
+                    width  =  100px
+                )
+
+                charge
+                (
+                    displayname  =  "Charge"
+                    type  =  USD
+                    width  =  100px
+                )
+
+            }
+            actions
+            {
+                on load
+                {
+                    disable session;
+                    gn = session[ID = input.session].group_name;
+                    input.charge = group[Name = gn].rate;
+                }
+                add
+                (
+                    type  =  button
+                    displayname  =  "Save and Add Another"
+                    on click
+                    {
+                        insert into visit
+                        [
+                            Added_User = zoho.loginuser
+                            attend_n = input.attend_n
+                            client = input.Client
+                            client_pd = input.Client_pd
+                            note = input.Note
+                            session = input.session
+                            charge = input.charge
+                        ]
+                        openUrl("#Form:Sign_in_visit?session=" + input.session, "Popup window");
+                    }
+                )
+                Save_and_Close
+                (
+                    type  =  submit
+                    displayname  =  "Save and Close"
+                    on click
+                    {
+                        insert into visit
+                        [
+                            Added_User = zoho.loginuser
+                            attend_n = input.attend_n
+                            client = input.Client
+                            client_pd = input.Client_pd
+                            note = input.Note
+                            session = input.session
+                            charge = input.charge
+                        ]
+                        openUrl("#Script:page.close", "same window");
+                    }
+                )
+            }
+        }
+
+        summary  officer_Summary
+        {
+            displayname = "officer Summary"
+            show  all  rows  from  officer 
+            (
+                Name
+                email
+            )
+            permission
+            (
+                add = true
+                duplicate = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
+        summary  client_Summary
+        {
+            displayname = "client Summary"
+            show  all  rows  from  client 
+            (
+                Name
+                Ins
+                Approval
+                DX
+                Note
+                address
+                phone
+                DOB
+                officer_name as "Officer"
+                visits_link as "Visits"
+                Invoice_link1 as "Invoice_link"
+                ID
+                File
+                file_site as "File Site"
+                file_opened as "File Opened"
+            )
+            filters 
+            (
+                DOB
+                file_site
+            )
+            permission
+            (
+                add = true
+                duplicate = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
+        summary  client_Summary1
+        {
+            displayname = "client Summary"
+            show  all  rows  from  client 
+            (
+                Name
+                Ins
+                Approval
+                DX
+                Note
+                address
+                phone
+                DOB
+            )
+            filters 
+            (
+                DOB
+            )
+        }
+
+        summary  office_Summary1
+        {
+            displayname = "office Summary"
+            show  all  rows  from  office 
+            (
+                Name
+                fax
+                address
+                notes
+            )
+        }
+
+        summary  session_Summary
+        {
+            displayname = "session Summary"
+            show  all  rows  from  session 
+            (
+                date_field as "date"
+                Therapist
+                Time
+                group_name as "Group Name"
+                (
+                    view = group_Summary
+                )
+                rate as "Rate"
+                add_visit as "add visit"
+                Sign_in_sheet as "Sign-in sheet"
+                Group_Label as "Group Label"
+            )
+            filters 
+            (
+                Therapist
+            )
+        }
+
+        summary  group_Summary
+        {
+            displayname = "group Summary"
+            show  all  rows  from  group 
+            (
+                Name
+                rate
+                Eval
+                Sessions_link as "Sessions link"
+            )
+        }
+
+        form  Client_Search
+        {
+            displayname  =  "Client Search"
+            store data in zc = false
+            field alignment = left
+            
+            choice
+            (
+                displayname  =  "Pick Client"
+                type  =  picklist
+                values  =  client.ID
+                displayformat = [ Name ]
+                sortorder  =  ascending
+                width  =  206px
+            )
+
+            clue
+            (
+                displayname  =  "Search by name"
+                type  =  text
+                width  =  200px
+            )
+
+            actions
+            {
+                Show_Details
+                (
+                    type  =  submit
+                    displayname  =  "Show Details"
+                    on click
+                    {
+                        if (input.choice  !=  null)
+                        {
+                            openUrl("#View:Client_Detail?choice=" + input.choice, "same window");
+                        }
+                        else
+                        {
+                            openUrl("#View:Client_Detail?clue=" + input.clue, "same window");
+                        }
+                    }
+                )
+            }
+        }
+
+    }
+
+    section Testing
+    {
+        grid  Client_Entry
+        {
+            displayname = "Client Bulk Edit"
+            show  all  rows  from  client 
+            (
+                Name
+                address
+                Note
+                DX
+                Ins
+                Approval
+                phone
+                DOB
+            )
+            filters 
+            (
+                DOB
+            )
+            permission
+            (
+                add = true
+                duplicate = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
+        form  Clear_Forms
+        {
+            displayname  =  "Clear Forms"
+            store data in zc = false
+            success message  =  "Data Added Successfully!"
+            field alignment = left
+            
+            column
+            {
+                delete_all_visits
+                (
+                    displayname  =  "Delete all visits?"
+                    type  =  checkbox
+                    initial value  =  false
+                )
+
+                visits
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                delete_all_sessions
+                (
+                    displayname  =  "Delete all sessions?"
+                    type  =  checkbox
+                    initial value  =  false
+                )
+
+                sessions
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                delete_all_clients
+                (
+                    displayname  =  "Delete all clients?"
+                    type  =  checkbox
+                    initial value  =  false
+                )
+
+                clients
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                delete_empty_clients
+                (
+                    displayname  =  "Delete client with no visits?"
+                    type  =  checkbox
+                    initial value  =  false
+                    tooltip  =  "be sure to update visit counts first"
+                )
+
+                empty_clients
+                (
+                    displayname  =  "Empty clients"
+                    type  =  number
+                    width  =  100px
+                )
+
+            }
+            column
+            {
+                delete_all_officers
+                (
+                    displayname  =  "Delete all officers?"
+                    type  =  checkbox
+                    initial value  =  false
+                )
+
+                officers
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                delete_all_offices
+                (
+                    displayname  =  "Delete all offices?"
+                    type  =  checkbox
+                    initial value  =  false
+                )
+
+                offices
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+                delete_all_groups
+                (
+                    displayname  =  "Delete all groups?"
+                    type  =  checkbox
+                    initial value  =  false
+                )
+
+                groups
+                (
+                    type  =  number
+                    width  =  100px
+                )
+
+            }
+            actions
+            {
+                on load
+                {
+                    input.visits = count(visit[ID != 0]);
+                    disable visits;
+                    input.sessions = count(session[ID != 0]);
+                    disable sessions;
+                    input.clients = count(client[ID != 0]);
+                    disable clients;
+                    input.officers = count(officer[ID != 0]);
+                    disable officers;
+                    input.offices = count(office[ID != 0]);
+                    disable offices;
+                    input.groups = count(group[ID != 0]);
+                    disable groups;
+                    input.empty_clients = count(client[((visit_count is not null) && visit_count == 0)]);
+                    disable empty_clients;
+                }
+                Delete_All
+                (
+                    type  =  submit
+                    displayname  =  "Delete Selected"
+                    tooltip  =  "\n"
+                    on click
+                    {
+                        if (input.delete_all_visits)
+                        {
+                            delete from visit[ ID != 0 ];
+                        }
+                        if (input.delete_all_sessions)
+                        {
+                            delete from session[ ID != 0 ];
+                        }
+                        if (input.delete_all_clients)
+                        {
+                            delete from client[ ID != 0 ];
+                        }
+                        if (input.delete_all_officers)
+                        {
+                            delete from officer[ ID != 0 ];
+                        }
+                        if (input.delete_all_offices)
+                        {
+                            delete from office[ ID != 0 ];
+                        }
+                        if (input.delete_all_groups)
+                        {
+                            delete from group[ ID != 0 ];
+                        }
+                        if (input.delete_empty_clients)
+                        {
+                            delete from client[ visit_count == 0 ];
+                        }
+                    }
+                )
+                Reset
+                (
+                    type  =  reset
+                    displayname  =  "Reset"
+                )
+            }
+        }
+
+        htmlpage HTML_PDF_Test()
+displayname = "HTML PDF Test"
+print = true
+pdf = true
+content
+        <%{%>
+<table>
+<thead><th>Name</th><th>Fax</th></thead>
+<tbody>
+ <%for each office in office sort by  Name 
+            {%>
+   <tr>
+    <td><%=office.Name%></td>
+    <td><%=office.fax%></td>
+    <td><%=office.ID%></td>
+   </tr>
+                        <%}%>
+</tbody>
+</table>
+        <%}%>
+
+        list  Attendance_Flat
+        {
+            displayname = "Attendance Flat"
+            show  all  rows  from  visit 
+            (
+                client.Name
+                session.date_field as "date"
+                attend_n as "Attend"
+                client_pd as "client pd"
+                ins_paid as "ins paid $"
+                note
+                charge as "Charge"
+                Due
+            )
+            sort by
+            (
+                client.Name   ascending
+                session.date_field   descending
+            )
+        }
+
+        htmlpage Invoice(for_client)
+print = true
+pdf = true
+content
+        <%{
+            for each who in client  [ID == input.for_client.toLong()]
+            {
+                bsum = thisapp.billing_summary(client [ID == who.ID]);%>
+<style type="text/css">
+.body { font-size: 10pt }
+
+div.letterhead {
+ border-style: solid;
+ padding: 0.5em;
+ margin: 0;
+ }
+
+h1 {
+ float: right; font-family: sans; font-style: italic
+ }
+
+h2 {
+ font-family: sans;
+ font-weight: normal;
+ }
+
+
+.logo { float: left }
+
+table.fields {
+ margin-top: 2em;
+ margin-bottom: 2em;
+ margin-left: 2em;
+}
+
+.error { color: red }
+
+@media print {
+ input { border: none }
+}
+
+thead { display: table-header-group; }
+tfoot { display: table-footer-group; }
+
+table.fields tbody tr th {
+ text-align: left;
+ padding-right: 3em;
+ }
+
+table.rows  {
+ border: 1px solid gray;
+ margin-left: 2em;
+ width: 80%;
+ }
+
+table.rows th, table.rows td { padding: 0 0.5em;
+  border-bottom: 1px solid #DDD;
+  border-right: 1px solid gray;
+}
+
+th { font-weight: normal }
+
+.amt { text-align: right }
+
+th.tot {
+ text-align: left;
+ font-weight: bold;
+ }
+
+
+address {
+ text-align: center;
+ font-size: smaller;
+ font-family: serif;
+ font-style: normal;
+ margin-top: 4em;
+ float: bottom;
+ }
+
+</style>
+<div class="body">
+<div class="letterhead">
+ <h1>Invoice</h1>
+ <div class="hcard">
+ <!-- TODO span class="logo">/\</span -->
+ <h2 class="org">Associates at Hope Harbor</h2>
+ <span class="fn">Dr. Bascom Ratliff, DSW</span> *
+ <span>Mary Connolly, BA</span> <!-- hcard agent? hm. -->
+ <br clear="all" />
+ </div>
+</div>
+
+<table class="fields">
+
+<tbody>
+<tr><th>Date:</th><td id="date"><%=zoho.currentdate%></td></tr>
+<tr>
+  <th>Client Name:</th>
+  <td><%=who.Name%>
+  </td>
+</tr>
+<tr><th>Amount Due:</th><td id="due1" class="amt_"><%=bsum.get("amount_due")%></td></tr>
+</tbody>
+</table>
+
+
+<table class="rows">
+<thead>
+<tr>
+ <th>Service Date</th>
+ <th>Description</th>
+ <th>Amount Billed</th>
+ <th>Client Paid</th>
+<%if ((who.Ins  !=  null)  &&  (who.Ins  !=  ""))
+                {%>
+ <th>Insurance Paid</th>
+                                                <%}%>
+</tr>
+<tr><td> </td><td> </td><td> </td></tr>
+</thead>
+
+<tbody id="fill">
+<%for each item in visit  [client == who.ID]
+                {
+                    its_session  =  session  [ID == item.session];%>
+<tr>
+    <td><%=its_session.date_field%></td>
+    <td><%=its_session.group_name%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.charge)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.client_pd)%></td>
+<%if ((who.Ins  !=  null)  &&  (who.Ins  !=  ""))
+                    {%>
+    <td class="amt"><%=thisapp.fmt.currency(item.ins_paid)%></td>
+                                                                    <%}%>
+</tr>
+                                                                                                                        
+                                                                                                                                                                                <%}%>
+</tbody>
+
+<tbody>
+<tr><td> </td><td> </td><td> </td></tr>
+<tr>
+  <th class="tot">SUBTOTAL</th><td> </td>
+  <td id="subtot" class="amt"><strong><%=bsum.get("subtot")%></strong></td>
+  <td id="pd" class="amt"><strong><%=bsum.get("client_pd")%></strong></td>
+<%if ((who.Ins  !=  null)  &&  (who.Ins  !=  ""))
+                {%>
+  <td id="ins" class="amt"><strong><%=bsum.get("ins_paid")%></strong></td>
+                                         <%}%>
+</tr>
+<tr><td>&nbsp;</td></tr>
+<tr>
+  <th class="tot">Amount Due:</th>
+  <td id="due" class="amt"><strong><%=bsum.get("amount_due")%></strong></td>
+</tr>
+</tbody>
+</table>
+
+
+<address>
+  <!-- TODO: hcard again -->
+  Mailing: P.O. Box 26374, Shawnee Mission, KS 66225 *
+  <a href="http://www.hopeharborkc.com/">www.hopeharborkc.com</a><br />
+  Office: 913-710-5744 / Fax 913-681-5949<br />
+  Location 1: 10201 W. 127<sup>th</sup> St. (Grace Fellowship church)<br />
+  Location 2: 3730 Metropolitan Ave, KC KS 66106 (United Methodist Church)
+</address>
+
+
+</div>
+                                                                                                                                                                <%}
+        }%>
+
+        list  fix_visits
+        {
+            displayname = "fix visits"
+            show  all  rows  from  visit 
+            (
+                client_pd as "client pd"
+                note
+                ins_paid as "ins paid $"
+                session
+                client
+                attend_n as "Attend"
+                charge as "Charge"
+                session.Group_Label as "Group Label"
+            )
+            options
+            (
+                display rows = 100
+            )
+            permission
+            (
+                add = true
+                duplicate = true
+                edit = true
+                bulk edit = true
+                delete = true
+            )
+        }
+
+        htmlpage billing_table(for_client)
+displayname = "billing table"
+content
+        <%{
+            for each who in client  [ID == input.for_client.toLong()]
+            {
+                bsum = thisapp.billing_summary(client [ID == who.ID]);%>
+
+<table class="rows">
+<thead>
+<tr>
+ <th>Service Date</th>
+ <th>Description</th>
+ <th>Amount Billed</th>
+ <th>Client Paid</th>
+ <th>Insurance Paid</th>
+</tr>
+<tr><td> </td><td> </td><td> </td></tr>
+</thead>
+
+<tbody id="fill">
+<%for each item in visit  [client == who.ID]
+                {
+                    its_session  =  session  [ID == item.session];%>
+<tr>
+    <td><%=its_session.date_field%></td>
+    <td><%=its_session.group_name%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.charge)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.client_pd)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(item.ins_paid)%></td>
+</tr>
+                                                                                                                        
+                                                                                                                                                                                                <%}%>
+</tbody>
+
+<tbody>
+<tr><td> </td><td> </td><td> </td></tr>
+<tr>
+  <th class="tot">SUBTOTAL</th><td> </td>
+  <td id="subtot" class="amt"><strong><%=bsum.get("subtot")%></strong></td>
+  <td id="pd" class="amt"><strong><%=bsum.get("client_pd")%></strong></td>
+  <td id="ins" class="amt"><strong><%=bsum.get("ins_paid")%></strong></td>
+</tr>
+<tr><td>&nbsp;</td></tr>
+<tr>
+  <th class="tot">Amount Due:</th>
+  <td id="due" class="amt"><strong><%=bsum.get("amount_due")%></strong></td>
+</tr>
+</tbody>
+</table>
+                                                <%}
+        }%>
+
+        list  Visit_Info
+        {
+            displayname = "Visit Info"
+            show  all  rows  from  visit 
+            (
+                client_pd as "client pd"
+                note
+                bill_date as "bill date"
+                check_date as "check date"
+                ins_paid as "ins paid $"
+                id_dabble
+                session
+                client
+                attend_n as "Attend"
+                charge as "Charge"
+                Due
+                client.Name
+                client.ID
+                session.date_field as "date"
+                session.group_name as "Group"
+            )
+            filters 
+            (
+                bill_date
+                check_date
+            )
+        }
+
+    }
+
+    functions
+    {
+        int fixup.link_sessions(group g)
+        {
+            qty = count(session[(group_dabble == g.id_dabble && (group_name is null))]);
+            if (qty  >  0)
+            {
+                for each linked_session in session  [(group_dabble == g.id_dabble && (group_name is null))] range from 1 to 1000
+                {
+                    linked_session.group_name = g.Name;
+                }
+                info g.Name + ": " + qty;
+            }
+            return qty;
+        }
+
+        int fixup.link_officers(office where)
+        {
+            qty = count(officer[(office_dabble == where.id_dabble && (office_name is null))]);
+            if (qty  >  0)
+            {
+                for each who in officer  [(office_dabble == where.id_dabble && (office_name is null))] sort by  Name  range from 1 to 1000
+                {
+                    who.office_name = where.Name;
+                }
+                info where.Name + ": " + qty;
+            }
+            return qty;
+        }
+
+        int fixup.link_clients(officer target)
+        {
+            qty = count(client[(officer_dabble == target.id_dabble && (officer_name is null))]);
+            if (qty  >  0)
+            {
+                for each src in client  [(officer_dabble == target.id_dabble && (officer_name is null))]
+                {
+                    src.officer_name = target.Name;
+                }
+                info ((target.Name) + ": ") + qty;
+            }
+            return qty;
+        }
+
+        int fixup.link_visits(client who)
+        {
+            qty = count(visit[(client_dabble == who.id_dabble && ((client is null) || (session is null)))]);
+            if (qty  >  0)
+            {
+                for each linked_visit in visit  [(client_dabble == who.id_dabble && ((client is null) || (session is null)))]
+                {
+                    linked_session = session[id_dabble = linked_visit.session_dabble].ID;
+                    linked_visit.session = linked_session;
+                    linked_visit.client = who.ID;
+                }
+                info who.Name + ": " + qty;
+            }
+            return qty;
+        }
+
+        int fixup.count_visits(client who)
+        {
+            qty = count(visit[client = who.ID]);
+            who.visit_count = qty;
+            return qty;
+        }
+
+        float session_rate(int which_session)
+        {
+            gn = session[ID = input.which_session].group_name;
+            r = group[Name = gn].rate;
+            return ifnull(r,0.0);
+        }
+
+        void fixup.test_if()
+        {
+            attend = false;
+            n = if(attend,1,0);
+            info n;
+        }
+
+        string fmt.currency(float amt)
+        {
+            if (input.amt  ==  null)
+            {
+                input.amt = 0.0;
+            }
+            // ack: Yoge (Moderator) on 13-Sep-2010 09:32 AM
+            // http://forums.zoho.com/topic/amount-display
+            formatted_number = (input.amt.toString()).replaceAll(("(?<!\.\d)(?<=\d)(?=(?:\d\d\d)+\b)"),",");
+            // trailing 0
+            if ((formatted_number).replaceAll("(\.\d)$","")  !=  formatted_number)
+            {
+                formatted_number = formatted_number + "0";
+            }
+            return formatted_number;
+        }
+
+        string icd_diagnosis(string code)
+        {
+            addr = "http://datasets.caregraf.org/icd9/sparql?query=PREFIX+icd%3A+%3Chttp%3A%2F%2Fdatasets.caregraf.org%2Ficd9%2F%3E+SELECT+%3Fs+%3Ftxt+WHERE+{+%3Fs+icd%3Acode_number+%22" + input.code + "%22%3B+icd%3Adiagnosis+%3Ftxt+}&output=xml";
+            ans = getUrl(addr,false);
+            txt = ans.get("responseText");
+            return txt.toXML().executeXPath("//*[@name=\"txt\"]/*/text()").toString();
+        }
+
+        void set_up_treatments(client who)
+        {
+            rates = map();
+            dates = map();
+            for each v in visit  [client == who.ID]
+            {
+                its_session  =  session  [ID == v.session];
+                its_group  =  group  [Name == its_session.group_name];
+                gn = its_group.Name;
+                rates.put(gn, its_group.rate);
+                session_date = its_session.date_field;
+                if (if((dates.get(gn)  ==  null),true,(session_date  <  (dates.get(gn)).toDate())))
+                {
+                    dates.put(gn, session_date.toString());
+                }
+                //info ((dates.get(gn)) + gn) + rates.get(gn);
+            }
+            for each gn in rates.keys()
+            {
+                if (count(Treatment[(client == who.ID && Group == gn)])  ==  0)
+                {
+                    t = insert into Treatment
+                    [
+	                    Added_User = zoho.loginuser
+	                    client = who.ID
+	                    Group = gn
+	                    Rate = (rates.get(gn)).toDecimal()
+	                    Start_Date = (dates.get(gn)).toDate()
+                    ];
+                    info "added treatment for: " + who.Name + " " + gn;
+                }
+            }
+        }
+
+        void fixup.look_up_file(client who)
+        {
+            qty = count(client_file[Name == who.Name]);
+            if (qty  ==  1)
+            {
+                for each f in client_file  [Name == who.Name]
+                {
+                    who.File = f.file_id;
+                    who.file_site = f.site;
+                    who.file_opened = f.Opened;
+                    if (who.DOB  ==  null)
+                    {
+                        who.DOB = f.DOB;
+                    }
+                }
+            }
+        }
+
+        void reprice_visits(group choice)
+        {
+            qs = 0;
+            qv = 0;
+            for each s in session  [(group_name == choice.Name && Modified_Time < choice.Modified_Time)]
+            {
+                if (qv  <  700)
+                {
+                    for each v in visit  [(session == s.ID && Modified_Time < choice.Modified_Time)]
+                    {
+                        v.charge = choice.rate;
+                        qv = (qv  +  1);
+                    }
+                    // reset modified time
+                    s.group_name = choice.Name;
+                    qs = (qs  +  1);
+                }
+                else
+                {
+                    info "more to do for: " + choice.Name;
+                }
+            }
+            if (qv  >  0)
+            {
+                info choice.Name + " sessions: " + qs + " visits: " + qv;
+            }
+        }
+
+        map billing_summary(client who)
+        {
+            client_pd = visit[client == who.ID].sum(client_pd);
+            if (client_pd  ==  null)
+            {
+                client_pd = 0.0;
+            }
+            ins_pd = visit[client == who.ID].sum(ins_paid);
+            if ((ins_pd  <  0)  ||  (ins_pd  ==  null))
+            {
+                // umm... what's up here?!?
+                ins_pd = 0.0;
+            }
+            subtot = visit[client == who.ID].sum(charge);
+            if (subtot  ==  null)
+            {
+                subtot = 0.0;
+            }
+            amount_due = (subtot  -  client_pd  -  ins_pd);
+            return { "who" : who.ID, "attend" : count(visit[(client == who.ID && attend_n == 1)]), "client_pd" : thisapp.fmt.currency(client_pd), "ins_paid" : thisapp.fmt.currency(ins_pd), "subtot" : thisapp.fmt.currency(subtot), "amount_due" : thisapp.fmt.currency(amount_due) };
+        }
+
+    }
+
+    customize
+    {
+        layout = "drop down menu"
+        base theme = "headerimage"
+        color = "light green"
+    }
+    reports configuration
+    {
+        Version = 1251000017883097
+        Key     = "zBp641y7WS4eEAe5hzZpMtuJ1mVmqnUbCaejUNK0RJUKgt67ghBgZkVNP0NrEQn0C9u8QaOfweyuj4QvV44mfCxruROzV436HdWN"
+    }
+}
