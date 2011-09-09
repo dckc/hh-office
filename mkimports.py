@@ -5,6 +5,7 @@ from contextlib import contextmanager
 
 sql=  r"""LOAD DATA LOCAL INFILE  '%s'
           INTO TABLE  `%s`
+          CHARACTER SET binary
           FIELDS TERMINATED BY  ','
           ENCLOSED BY  '"'
           ESCAPED BY  '\\'
@@ -18,6 +19,11 @@ def import_all(conn, d,
                               'Modified_User',
                               'Added_User_IP_Address',
                               'Modified_User_IP_Address')):
+    with transaction(conn) as do:
+        do.execute('drop database if exists hh_office');
+        do.execute('create database hh_office'
+                   ' character set utf8'
+                   ' collate utf8_bin');
     for fn in sorted(os.listdir(d)):
         if fn.endswith('.csv'):
             n = fn[:-len('.csv')]
@@ -26,6 +32,7 @@ def import_all(conn, d,
                       for colname in r.next()]
 
             with transaction(conn) as do:
+                do.execute('use hh_office')
                 do.execute(create_ddl(n, schema))
             print "created: ", n, schema
 
@@ -37,12 +44,12 @@ def import_all(conn, d,
                                                                
             print "inserted %d rows." % len(rows)
 
-            if n.startswith('zcfrm'):
+            if n.startswith('zcfrm') and False:
                 for col in extra_columns:
                     with transaction(conn) as do:
                         do.execute('alter table %s drop %s' % (n, col))
 
-            print "dropped extra columns"
+                print "dropped extra columns"
             print
 
 
@@ -53,9 +60,9 @@ def fix_cell(txt):
         return txt.replace('zccomma', ',').replace('zcnewline', '\n')
 
 
-def mysql_connect(user='hopeharborkc', p='satsep3', db='hh_office'):
+def mysql_connect(user='hopeharborkc', p='satsep3'):
     import MySQLdb # http://mysql-python.sourceforge.net/MySQLdb.html#mysqldb
-    return MySQLdb.connect(user=user, passwd=p, db=db)
+    return MySQLdb.connect(user=user, passwd=p)
 
 
 def create_ddl(table_name, cols):
@@ -70,12 +77,14 @@ def create_ddl(table_name, cols):
        orders_link text)
 
     '''
-    return 'create table %s (pkey int auto_increment primary key,\n   %s)' % (
+    return 'create table %s (%s,\n   %s)\n%s' % (
         table_name,
+        'pkey int auto_increment primary key',
         ',\n   '.join(['%s %s' % (
             n, 'text' if ('note' in n.lower() or '_link' in n
                           or n == 'Approval') else 'varchar(80)')
-                       for n in cols]) )
+                       for n in cols]),
+        'character set utf8 collate utf8_bin')
 
 
 def insert_dml(table_name, cols):
