@@ -1,4 +1,4 @@
-# Convert database schema from HTML to SQL via OWL
+# @@Convert database schema from HTML to SQL via OWL
 #
 # 1. make
 #    to load unlinked data
@@ -17,6 +17,10 @@ DB=/tmp/dz.db
 BAK=../hh-dabble-kaput/Dabble-2011-05-16-130809
 CLAIMS=../hh-dabble-kaput/claim-spreadsheets
 U=dconnolly@hopeharborkc.com
+
+
+amt_due_skel.xml: amt_due_skel.html reportspec.xsl
+	$(XSLTPROC) --novalid --output $@ reportspec.xsl amt_due_skel.html
 
 check: att_cur_norm.csv att_zoho_norm.csv
 	$(DIFF) -u att_cur_norm.csv att_zoho_norm.csv | $(PAGER)

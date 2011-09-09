@@ -9,10 +9,10 @@ h2.PageHeader { background: #d0d0d0; font-size: 11pt }
 
 /* hmm... table { width: 100% } */
 
-thead.FieldHeaders tr th {
+table.Detail thead tr th {
  border-top: 2px solid black;
  border-bottom: 2px solid black
 }
 
-tbody.FieldDetails tr:nth-child(even) {background: #e5e5e5}
-tbody.FieldDetails tr:nth-child(odd) {background: white}
+table.Detail tbody tr:nth-child(even) {background: #e5e5e5}
+table.Detail tbody tr:nth-child(odd) {background: white}

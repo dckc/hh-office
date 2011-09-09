@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<Report xmlns:h="http://www.w3.org/1999/xhtml" fontSize="9pt" orientation="portrait">
+  <ReportHeader>
+    <Output>
+      <Line fontSize="12" bgcolor="'black'" color="'white'">
+        <literal width="2"/>
+        <literal width="11">Hope Harbor</literal>
+      </Line>
+    </Output>
+  </ReportHeader>
+  <PageHeader>
+    <Output>
+      <HorizontalLine size="4" bgcolor="'white'"/>
+      <Line fontSize="11" bgcolor="'0xd0d0d0'" color="'black'">
+        <literal width="2"/>
+        <literal width="20">Amount Due by Client</literal>
+        <literal width="20"/>
+        <literal width="10"/>
+        <field width="10" value="stod(m.report_date)"/>
+        <literal width="10"/>
+        <literal width="4">pg. </literal>
+        <field width="2" value="r.pageno"/>
+      </Line>
+      <HorizontalLine size="2" bgcolor="'white'"/>
+    </Output>
+  </PageHeader>
+  <Detail>
+    <FieldHeaders>
+      <Output>
+        <HorizontalLine size="1" bgcolor="'black'"/>
+        <Line bgcolor="'0xe5e5e5'" bold="true">
+          <literal width="1"/>
+          <literal width="10" align="center">Earliest</literal>
+          <literal width="1"/>
+          <literal width="10" align="center">Latest</literal>
+          <literal width="1"/>
+          <literal width="30" align="center">Client</literal>
+          <literal width="1"/>
+          <literal width="9" align="right">Charges</literal>
+          <literal width="1"/>
+          <literal width="9" align="right">Client pd</literal>
+          <literal width="1"/>
+          <literal width="9" align="right">Ins. Pd</literal>
+          <literal width="1"/>
+          <literal width="9" align="right">Due</literal>
+        </Line>
+        <HorizontalLine size="1" bgcolor="'black'"/>
+        <HorizontalLine size="4" bgcolor="'white'"/>
+      </Output>
+    </FieldHeaders>
+    <FieldDetails>
+      <Output>
+        <Line bgcolor="iif(r.detailcnt%2,'0xe5e5e5','white')">
+          <literal width="1"/>
+          <field width="10" value="stod(earliest)" align="right"/>
+          <literal width="1"/>
+          <field width="10" value="stod(latest)" align="right"/>
+          <literal width="1"/>
+          <field width="30" value="client_name" align="left"/>
+          <literal width="1"/>
+          <field width="9" value="charges" align="right"/>
+          <literal width="1"/>
+          <field width="9" value="client_paid" align="right"/>
+          <literal width="1"/>
+          <field width="9" value="insurance_paid" align="right"/>
+          <literal width="1"/>
+          <field width="9" value="due" align="right"/>
+        </Line>
+      </Output>
+    </FieldDetails>
+  </Detail>
+</Report>
