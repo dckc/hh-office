@@ -1,0 +1,18 @@
+body.rlib { font-family: monospace }
+body.medium-print {  font-size: 10pt }
+body.portrait { width: 8in }
+
+h1.ReportHeader { font-size: 12pt }
+h2.PageHeader { background: #d0d0d0; font-size: 11pt }
+
+.reversed { color: white; background: black }
+
+/* hmm... table { width: 100% } */
+
+thead.FieldHeaders tr th {
+ border-top: 2px solid black;
+ border-bottom: 2px solid black
+}
+
+tbody.FieldDetails tr:nth-child(even) {background: #e5e5e5}
+tbody.FieldDetails tr:nth-child(odd) {background: white}
