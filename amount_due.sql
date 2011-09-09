@@ -14,7 +14,7 @@ join Visit as v on v.client_id = c.id
 join Session as s on v.session_id = s.id
 -- where c.name = 'Adams, Luke' -- not like 'Fiehler%' -- KLUDGE: work around encoding error
 group by c.id
-) as report order by due desc
+) as report order by due desc, client_name
 
 -- http://www.bluebox.net/news/2009/07/mysql_encoding
 -- show variables like 'char%'; 
