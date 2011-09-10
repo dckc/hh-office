@@ -21,7 +21,7 @@ def import_all(conn, d,
                               'Modified_User_IP_Address')):
     with transaction(conn) as do:
         do.execute('drop database if exists hh_office');
-        do.execute('create database hh_office'
+        do.execute('create database zc'
                    ' character set utf8'
                    ' collate utf8_bin');
     for fn in sorted(os.listdir(d)):
@@ -32,7 +32,7 @@ def import_all(conn, d,
                       for colname in r.next()]
 
             with transaction(conn) as do:
-                do.execute('use hh_office')
+                do.execute('use zc')
                 do.execute(create_ddl(n, schema))
             print "created: ", n, schema
 
