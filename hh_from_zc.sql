@@ -50,6 +50,8 @@ select
 from zc.Client zc
 left join Officer ho on ho.id_zoho = zc.Officer_id_zoho;
 
+create index client_id_zoho on Client(id_zoho);
+create index session_id_zoho on Session(id_zoho);
 
 insert into Visit (
        Session_id
@@ -76,4 +78,4 @@ select s.id as Session_id
      , v.id_zoho as id_zoho, v.id_dabble
 from zc.Visit v
 join Client c on v.Client_id_zoho = c.id_zoho
-join "Session" s on v.Session_id_zoho = s.id_zoho;
+join `Session` s on v.Session_id_zoho = s.id_zoho;

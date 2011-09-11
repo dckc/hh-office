@@ -78,6 +78,7 @@ order by zc.zcfrm_client.Name;
 create unique index session_primkey on zc.zcfrm_session (primkey);
 create unique index client_primkey on zc.zcfrm_client (primkey);
 create unique index visit_primkey on zc.zcfrm_visit (primkey);
+create index zrvs on zc.zcrel_visit_session (t_765721000000011230_PK);
 
 create or replace view zc.Visit as
 select s.primkey as Session_id_zoho
