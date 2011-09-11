@@ -5,64 +5,79 @@
 SET sql_mode='ANSI_QUOTES';
 use zc;
 
-create table Therapist (
+create table zc.Therapist (
   id int not null auto_increment primary key,
   name varchar(80) not null
 ) as
 select distinct null as id, therapist as name
-from zcfrm_session
+from zc.zcfrm_session
 where therapist is not null;
 
-create index Therapist_name on Therapist (name);
+create index Therapist_name on zc.Therapist (name);
 
-create or replace view "Group" as
+create or replace view zc."Group" as
 select Name as name, 0+rate as rate, 0 + eval as evaluation
      , primkey as id_zoho, id_dabble
-from zcfrm_group;
+from zc.zcfrm_group;
 
 -- drop table session;
-create or replace view `Session` as
+create or replace view zc.`Session` as
 select str_to_date(s.date_field, '%Y-%m-%d') as session_date
      , t.id as Therapist_id
      , s.Time as time
      , g.pkey as Group_id
      , s.primkey as id_zoho
      , s.id_dabble
-from zcrel_session_group_name as sRg
-join zcfrm_session as s
+from zc.zcrel_session_group_name as sRg
+join zc.zcfrm_session as s
 on s.primkey = sRg.t_765721000000012056_PK
-join zcfrm_group as g
+join zc.zcfrm_group as g
 on g.primkey = sRg.t_765721000000011546_PK
-join Therapist t
+left join Therapist t
 on t.name = s.Therapist;
+
+/* TODO: Test that these match somehow.
+ * In oracle, I could signal test failure with 1/0, but mysql just returns null.
+ */
+select (select count(*) from zc.zcfrm_session) as form_count,
+       (select count(*) from zc.zcrel_session_group_name
+        where t_765721000000011546_PK is null) as null_group_count,
+       (select count(*) from zc.zcfrm_session
+        where Therapist is null) as null_therapist_count,
+       (select count(*) from zc.zcrel_session_group_name) as rel_count,
+       (select count(*) from zc.Session) as c1;
 
 create or replace view Officer as
 select Name as name, email, primkey as id_zoho, id_dabble
-from zcfrm_officer;
+from zc.zcfrm_officer;
 
 -- ugh. encoding problem: Fiehler, Tanner (ADV - $15/session; must bring â‰¥ $20/week to attend)
 
-create or replace view Client as
+create or replace view zc.Client as
 select c.Name as name, Ins as insurance, Approval as approval, DX, Note as note
-     , address, phone, DOB, File as file, file_site, file_opened, o.pkey as Officer_id
+     , address, phone, DOB, File as file, file_site, file_opened, o.primkey as Officer_id_zoho
      , c.primkey as id_zoho, c.id_dabble
-from zcfrm_client as c
-left join zcrel_client_officer_name as cRo
+from zc.zcfrm_client as c
+left join zc.zcrel_client_officer_name as cRo
   on cRo.t_765721000000011616_PK = c.primkey
-left join zcfrm_officer as o
+left join zc.zcfrm_officer as o
   on cRo.t_765721000000011780_PK = o.primkey;
 
+select
+   (select count(*) from zc.zcfrm_client) as c_in
+ , (select count(*) from zc.Client) as c_out;
+
 /* got all of them?
-select * from zcfrm_client
+select * from zc.zcfrm_client
 left join Client
-on zcfrm_client.pkey = Client.id
+on zc.zcfrm_client.pkey = Client.id
 where Client.id = null
-order by zcfrm_client.Name;
+order by zc.zcfrm_client.Name;
 */
 
-create unique index session_primkey on zcfrm_session (primkey);
-create unique index client_primkey on zcfrm_client (primkey);
-create unique index visit_primkey on zcfrm_visit (primkey);
+create unique index session_primkey on zc.zcfrm_session (primkey);
+create unique index client_primkey on zc.zcfrm_client (primkey);
+create unique index visit_primkey on zc.zcfrm_visit (primkey);
 
 create or replace view Visit as
 select s.pkey as Session_id
@@ -76,14 +91,14 @@ select s.pkey as Session_id
      , str_to_date(v.bill_date, '%Y-%m-%d') as bill_date
      , str_to_date(v.check_date, '%Y-%m-%d') as check_date
      , v.primkey as id_zoho, v.id_dabble
-from zcrel_visit_client as vRc
-join zcfrm_visit as v
+from zc.zcrel_visit_client as vRc
+join zc.zcfrm_visit as v
   on v.primkey = vRc.t_765721000000011230_PK
-join zcfrm_client as c
+join zc.zcfrm_client as c
   on c.primkey = vRc.t_765721000000011616_PK
-join zcrel_visit_session as vRs
+join zc.zcrel_visit_session as vRs
   on v.primkey = vRs.t_765721000000011230_PK
-join zcfrm_session as s
+join zc.zcfrm_session as s
   on s.primkey = t_765721000000012056_PK;
 
 
