@@ -25,7 +25,7 @@ create or replace view zc.`Session` as
 select str_to_date(s.date_field, '%Y-%m-%d') as session_date
      , t.id as Therapist_id
      , s.Time as time
-     , g.pkey as Group_id
+     , g.primkey as Group_id_zoho
      , s.primkey as id_zoho
      , s.id_dabble
 from zc.zcrel_session_group_name as sRg
@@ -79,9 +79,9 @@ create unique index session_primkey on zc.zcfrm_session (primkey);
 create unique index client_primkey on zc.zcfrm_client (primkey);
 create unique index visit_primkey on zc.zcfrm_visit (primkey);
 
-create or replace view Visit as
-select s.pkey as Session_id
-     , c.pkey as Client_id
+create or replace view zc.Visit as
+select s.primkey as Session_id_zoho
+     , c.primkey as Client_id_zoho
      , cast(attend_n as unsigned integer) as attend_n
      , convert(charge, decimal(6, 2)) as charge
      , convert(client_pd, decimal(6, 2)) as client_paid
