@@ -1,5 +1,5 @@
 <?
-class tables_Meeting {
+class tables_Session {
   function getTitle(&$record){
     return $record->strval('session_date');
   }

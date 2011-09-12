@@ -5,16 +5,6 @@
 SET sql_mode='ANSI_QUOTES';
 use zc;
 
-create table zc.Therapist (
-  id int not null auto_increment primary key,
-  name varchar(80) not null
-) as
-select distinct null as id, therapist as name
-from zc.zcfrm_session
-where therapist is not null;
-
-create index Therapist_name on zc.Therapist (name);
-
 create or replace view zc."Group" as
 select Name as name, 0+rate as rate, 0 + eval as evaluation
      , primkey as id_zoho, id_dabble
@@ -23,7 +13,7 @@ from zc.zcfrm_group;
 -- drop table session;
 create or replace view zc.`Session` as
 select str_to_date(s.date_field, '%Y-%m-%d') as session_date
-     , t.id as Therapist_id
+     , s.Therapist as Therapist_name
      , s.Time as time
      , g.primkey as Group_id_zoho
      , s.primkey as id_zoho
@@ -32,9 +22,7 @@ from zc.zcrel_session_group_name as sRg
 join zc.zcfrm_session as s
 on s.primkey = sRg.t_765721000000012056_PK
 join zc.zcfrm_group as g
-on g.primkey = sRg.t_765721000000011546_PK
-left join Therapist t
-on t.name = s.Therapist;
+on g.primkey = sRg.t_765721000000011546_PK;
 
 /* TODO: Test that these match somehow.
  * In oracle, I could signal test failure with 1/0, but mysql just returns null.

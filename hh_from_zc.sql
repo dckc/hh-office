@@ -24,13 +24,14 @@ insert into "Session" (
 )
 select null
      , session_date
-     , Therapist_id
+     , t.id
      , time
-     , Group_id_zoho
+     , g.id
      , s.id_zoho
      , s.id_dabble
 from zc.Session s
-join "Group" g on g.id_zoho = s.Group_id_zoho;
+join "Group" g on g.id_zoho = s.Group_id_zoho
+left join Therapist t on t.name = s.Therapist_name;
 
 insert into Officer (
  name, email, id_zoho, id_dabble
