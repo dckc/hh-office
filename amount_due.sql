@@ -1,8 +1,12 @@
 /*************
  * Amount due report
  */
-select * from (
-select min(s.session_date) as earliest
+
+use hh_office;
+
+create or replace view Client_Balances as
+select c.id
+     , min(s.session_date) as earliest
      , max(s.session_date) as latest
      , c.name as client_name
      , sum(v.charge) as charges
@@ -10,11 +14,12 @@ select min(s.session_date) as earliest
      , sum(v.insurance_paid) as insurance_paid
      , sum(v.due) as due
 from Client as c
-join Visit as v on v.client_id = c.id
-join Session as s on v.session_id = s.id
--- where c.name = 'Adams, Luke' -- not like 'Fiehler%' -- KLUDGE: work around encoding error
-group by c.id
-) as report order by due desc, client_name
+join Visit as v on v.Client_id = c.id
+join `Session` as s on v.Session_id = s.id
+group by c.id;
+
+select * from Client_Balances
+order by due desc, client_name;
 
 -- http://www.bluebox.net/news/2009/07/mysql_encoding
 -- show variables like 'char%'; 
