@@ -212,6 +212,31 @@ DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_bin;
 
 
+-- -----------------------------------------------------
+-- Placeholder table for view `hh_office`.`Client_Balances`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hh_office`.`Client_Balances` (`id` INT, `earliest` INT, `latest` INT, `client_name` INT, `charges` INT, `client_paid` INT, `insurance_paid` INT, `due` INT);
+
+-- -----------------------------------------------------
+-- View `hh_office`.`Client_Balances`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `hh_office`.`Client_Balances`;
+USE `hh_office`;
+CREATE  OR REPLACE VIEW `hh_office`.`Client_Balances` as
+select c.id
+     , min(s.session_date) as earliest
+     , max(s.session_date) as latest
+     , c.name as client_name
+     , sum(v.charge) as charges
+     , sum(v.client_paid) as client_paid
+     , sum(v.insurance_paid) as insurance_paid
+     , sum(v.due) as due
+from Client as c
+join Visit as v on v.Client_id = c.id
+join `Session` as s on v.Session_id = s.id
+group by c.id;
+;
+
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
