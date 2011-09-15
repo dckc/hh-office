@@ -1,6 +1,6 @@
 /*
  * Author       : hopeharbor
- * Generated on : 15-Aug-2011 18:37:07
+ * Generated on : 25-May-2011 11:40:23
  * Version      : 3.0
  */
 application "Hope Harbor"
@@ -19,12 +19,10 @@ application "Hope Harbor"
             (
                 Name
                 DOB
-                File
-                file_opened as "Opened"
-                file_site as "Site"
                 officer_name as "Officer"
                 visits_link as "Billing"
                 Invoice_link1 as "Invoice"
+                visit_count as "visit count"
             )
             sort by
             (
@@ -57,16 +55,9 @@ application "Hope Harbor"
                     show action for each record = false
                     success message = ""
                 )
-                "Set up Treatments"
+                "Fix Visits"
                 (
-                    function = set_up_treatments(client)
-                    show action in view header = true
-                    show action for each record = false
-                    success message = ""
-                )
-                "Look up Files"
-                (
-                    function = fixup.look_up_file(client)
+                    function = fixup.fix_visits(client)
                     show action in view header = true
                     show action for each record = false
                     success message = ""
@@ -114,26 +105,6 @@ application "Hope Harbor"
                     values  =  officer.Name
                     sortorder  =  ascending
                     width  =  206px
-                )
-
-                File
-                (
-                    type  =  number
-                    width  =  100px
-                )
-
-                file_site
-                (
-                    displayname  =  "File Site"
-                    type  =  radiobuttons
-                    values  =  {"kck",   "op"}
-                )
-
-                file_opened
-                (
-                    displayname  =  "File Opened"
-                    type  =  date
-                    width  =  130px
                 )
 
             }
@@ -236,20 +207,27 @@ application "Hope Harbor"
             show  all  rows  from  visit 
             (
                 client.Name as "Client"
-                session.date_field as "Date"
+                session.date_field as "date"
                 session.group_name as "Group"
-                attend_n as "Attend"
-                charge as "Charge", display total
-                client_pd as "Client pd", display total
+                (
+                    view = group_Summary
+                )
+                attend_n as "Attend", display total
+                client_pd as "client pd", display total
+                ins_paid as "ins paid $", display total
                 note
-                bill_date as "Bill date"
-                ins_paid as "Ins Paid $", display total
-                check_date as "Check date"
+                bill_date as "bill date"
+                check_date as "check date"
                 client.ID
+            )
+            group by
+            (
+                client.Name   ascending
+                client.ID   ascending
             )
             sort by
             (
-                session.date_field   descending
+                session.date_field   ascending
             )
             options
             (
@@ -363,131 +341,28 @@ content
 <div elName='zc-component' formLinkName='Client_Search' params='zc_Header=true&zc_SuccMsg=Data Added Sucessfully!&zc_SubmitVal=Submit&zc_ResetVal=Reset'>Loading Form...</div> 
 
 <%if ((input.choice).length()  >  0)
-            {
-                client_id = input.choice.toLong();
-                bsum = thisapp.billing_summary(client [ID == client_id]);%>
+            {%>
 
 <div elName='zc-component' viewLinkName='client_Summary' params='zc_Header=false&ID=<%=choice%>'>Loading View...</div> 
 
-<p>Balance: <%=bsum.get("amount_due")%></p> 
+<div elName='zc-component' viewLinkName='billing_table' params='for_client=<%=choice%>'>Loading View...</div> 
 
-<div elName='zc-component' viewLinkName='billing_detail' params='zc_Header=true&client.ID=<%=choice%>'>Loading View...</div>    
-                <%}%>
+
+<div elName='zc-component' viewLinkName='billing_detail' params='zc_Header=true&client.ID=<%=choice%>'>Loading View...</div>                                 <%}%>
+
+<%if ((input.clue).length()  >  0)
+            {%>
+  <ul>
+<%for each who in client  [Name.contains(input.clue)]
+                {%>
+<li><a href='#View:Client_Detail?choice=<%=who.ID%>'><%=who.Name%></a></li>
+                            <%}%>
+
+  </ul>
+
+                    <%}%>
+
         <%}%>
-
-        form  Treatment
-        {
-            field alignment = left
-            
-            column
-            {
-                must  have  client
-                (
-                    displayname  =  "Client"
-                    type  =  picklist
-                    values  =  client.ID
-                    displayformat = [ Name ]
-                    allow new entries = true
-                    [
-                        displayname = "Client Entry"
-                    ]
-                    sortorder  =  ascending
-                    width  =  206px
-                )
-
-                must  have  Group
-                (
-                    type  =  picklist
-                    values  =  group.Name
-                    displayformat = [ Name + " - " + rate ]
-                    allow new entries = true
-                    [
-                        displayname = "Group Entry"
-                    ]
-                    sortorder  =  ascending
-                    width  =  206px
-                    on user input
-                    {
-                        default_rate = group[Name = input.Group].rate;
-                        input.Rate = default_rate;
-                    }
-                )
-
-                must  have  Rate
-                (
-                    type  =  USD
-                    width  =  100px
-                )
-
-                must  have  Start_Date
-                (
-                    displayname  =  "Start Date"
-                    type  =  date
-                    width  =  130px
-                )
-
-                End_Date
-                (
-                    displayname  =  "End Date"
-                    type  =  date
-                    width  =  130px
-                )
-
-            }
-            column
-            {
-                Group_Label
-                (
-                    displayname  =  "Group Label"
-                    type  =  formula
-                    value  =  Group
-                )
-
-            }
-            actions
-            {
-                on add
-                {
-                    Submit
-                    (
-                        type  =  submit
-                        displayname  =  "Submit"
-                    )
-                    Reset
-                    (
-                        type  =  reset
-                        displayname  =  "Reset"
-                    )
-                }
-                on edit
-                {
-                    Update
-                    (
-                        type  =  submit
-                        displayname  =  "Update"
-                    )
-                    Cancel
-                    (
-                        type  =  cancel
-                        displayname  =  "Cancel"
-                    )
-                }
-            }
-        }
-
-        list  Treatment_View
-        {
-            displayname = "Treatment View"
-            show  all  rows  from  Treatment 
-            (
-                client as "Client"
-                Group
-                Rate
-                Start_Date as "Start Date"
-                End_Date as "End Date"
-                Group_Label as "Group Label"
-            )
-        }
 
     }
 
@@ -504,7 +379,7 @@ content
                     width = 40px
                 )
                 Name
-                rate as "Rate"
+                rate
                 Sessions_link as "Sessions"
             )
             sort by
@@ -520,13 +395,6 @@ content
                 "Link Sessions"
                 (
                     function = fixup.link_sessions(group)
-                    show action in view header = true
-                    show action for each record = false
-                    success message = ""
-                )
-                "Reprice Visits"
-                (
-                    function = reprice_visits(group)
                     show action in view header = true
                     show action for each record = false
                     success message = ""
@@ -557,7 +425,7 @@ content
                 Eval
                 (
                     type  =  checkbox
-                    initial value  =  false
+                    defaultvalue  =  false
                 )
 
             }
@@ -573,7 +441,7 @@ content
                 (
                     displayname  =  "Sessions link"
                     type  =  formula
-                    value  =  ("<a href='#View:session_View?group_name=" + encodeUrl(Name)) + "' />sessions</a>"
+                    value  =  ("<a href='#View:session_View?group_name=" + encodeUrl(Name)) + "/>sessions</a>"
                 )
 
             }
@@ -608,71 +476,6 @@ content
             }
         }
 
-        form  IDC9
-        {
-            field alignment = left
-            
-            DX
-            (
-                type  =  text
-                width  =  200px
-                on update
-                {
-                    input.Diagnosis = thisapp.icd_diagnosis(input.DX);
-                }
-                on user input
-                {
-                    input.Diagnosis = thisapp.icd_diagnosis(input.DX);
-                }
-            )
-
-            Diagnosis
-            (
-                type  =  text
-                width  =  200px
-            )
-
-            actions
-            {
-                on add
-                {
-                    Submit
-                    (
-                        type  =  submit
-                        displayname  =  "Submit"
-                    )
-                    Reset
-                    (
-                        type  =  reset
-                        displayname  =  "Reset"
-                    )
-                }
-                on edit
-                {
-                    Update
-                    (
-                        type  =  submit
-                        displayname  =  "Update"
-                    )
-                    Cancel
-                    (
-                        type  =  cancel
-                        displayname  =  "Cancel"
-                    )
-                }
-            }
-        }
-
-        list  IDC9_View
-        {
-            displayname = "IDC9 View"
-            show  all  rows  from  IDC9 
-            (
-                DX
-                Diagnosis
-            )
-        }
-
     }
 
     section session111
@@ -698,12 +501,6 @@ content
             (
                 display rows = 20
             )
-            permission
-            (
-                add = true
-                edit = true
-                delete = true
-            )
         }
 
         calendar  Session_Calendar
@@ -712,10 +509,6 @@ content
             show  all  rows  from  session 
             (
                 date_field as "date"
-                group_name.Name
-                Sign_in_sheet as "Sign-in sheet"
-                Therapist
-                Time
             )
             filters 
             (
@@ -772,7 +565,7 @@ content
                 Therapist
                 (
                     type  =  picklist
-                    values  =  {"Ratliff, Dr. Bascom",   "Woody",   "Clemmons, Tamara",   "Hall, Jon",   "A. J. Moreno",   "Amy",   "Mary C",   "Yang, Ann",   "Lowe, Kelly",   "Fry, Tori",   "Jackson, Cherlisa",   "Hardy, Lauren",   "Delhanty, Will",   "Jessi Lefholz",   "Shelton, Danyele",   "Delehanty, Will",   "Casey, Meghan",   "Lynda Falley",   "Parrett, Shelley",   "Kathryn Dawn",   "Foxworthy, Brian",   "Porter, Pamela",   "McLemore, Alicia",   "Hammond, Chelsea",   "April Craig",   "Susan"}
+                    values  =  {"Ratliff, Dr. Bascom",   "Maxey, Debra",   "Woody",   "Clemmons, Tamara",   "Hall, Jon",   "Amy",   "Mary C",   "Yang, Ann",   "Lowe, Kelly",   "Fry, Tori",   "Jackson, Cherlisa",   "Hardy, Lauren",   "Delhanty, Will",   "Jessi Lefholz",   "Shelton, Danyele",   "Christa",   "Delehanty, Will",   "Casey, Meghan",   "Lynda Falley",   "Parrett, Shelley",   "Kathryn Dawn",   "Foxworthy, Brian",   "Porter, Pamela",   "McLemore, Alicia",   "Hammond, Chelsea",   "April Craig",   "Susan"}
                     width  =  206px
                 )
 
@@ -805,13 +598,6 @@ content
                     displayname  =  "Sign-in sheet"
                     type  =  formula
                     value  =  "<a href='#View:Sign_in_sheet?session.ID=" + ID + "' >sign-in sheet</a>"
-                )
-
-                Group_Label
-                (
-                    displayname  =  "Group Label"
-                    type  =  formula
-                    value  =  group_name
                 )
 
             }
@@ -864,18 +650,10 @@ content
             (
                 session.ID
                 session.date_field as "date"
-                session.Group_Label as "Group"
-                client.Name as "Client"
-                attend_n as "Attend"
-                charge as "Charge"
-                client_pd as "Client pd"
+                client
+                Attend
+                client_pd as "client pd"
                 note
-            )
-            group by
-            (
-                session.Group_Label   ascending
-                session.date_field   ascending
-                session.ID   ascending
             )
             permission
             (
@@ -1108,22 +886,21 @@ content
             show  all  rows  from  visit 
             (
                 session.date_field as "date"
-                session.Group_Label as "Group"
-                client.officer_name as "Officer"
                 attend_n as "Attend", display total
-                charge as "Charge", display total
                 client_pd as "Client Pd", display total
                 ins_paid as "Ins Paid $", display total
                 note as "Note"
-                Due, display total
-                client.Name as "Client"
-                client.ID
+                client as "Client"
+                client.officer_name as "Officer"
+                session.group_name as "Group"
+                (
+                    view = group_Summary
+                )
             )
             group by
             (
-                session.Group_Label   ascending
-                client.Name   ascending
-                client.ID   ascending
+                session.group_name   ascending
+                client   ascending
                 client.officer_name   ascending
             )
             sort by
@@ -1144,116 +921,6 @@ content
         <%{%>
 <div elName='zc-component' viewLinkName='attendance' params='zc_Header=false&amp;zc_Footer=false&amp;zc_SecHeader=false&amp;zc_AddRec=false&amp;zc_EditRec=false&amp;zc_DelRec=false&amp;zc_DuplRec=false&amp;zc_EditBulkRec=false&amp;zc_Filter=false&amp;zc_Search=false&amp;zc_Paging=false&amp;zc_ColMenu=false&amp;zc_Summary=false&amp;zc_RecSelect=false&amp;zc_SaveRec=false'>Loading View...</div>         <%}%>
 
-        list  Attendance1
-        {
-            displayname = "Attendance"
-            show  all  rows  from  visit 
-            (
-                session.date_field as "Date"
-                session.Group_Label as "Group"
-                attend_n as "Attend", display total
-                charge as "Charge", display total
-                client_pd as "Client pd", display total
-                ins_paid as "Ins Paid $"
-                Due
-                note as "Note"
-                bill_date as "Bill Date"
-                check_date as "Check Date"
-                client.Name as "Client"
-                client.officer_name as "Officer"
-            )
-            filters 
-            (
-                bill_date
-                check_date
-            )
-            sort by
-            (
-                session.date_field   descending
-                session.Group_Label   ascending
-            )
-        }
-
-        report Attendance_by_Group_and_Client
-        {
-            displayname = "Attendance by Group and Client"
-            type = PivotTable
-            based on Attendance1
-        }
-
-        list  Attendance_by_Client
-        {
-            displayname = "Attendance by Client"
-            show  all  rows  from  visit 
-            (
-                session.date_field as "date"
-                session.Group_Label as "Group"
-                client.officer_name as "Officer"
-                attend_n as "Attend", display total
-                charge as "Charge", display total
-                client_pd as "Client Pd", display total
-                ins_paid as "Ins Paid $", display total
-                note as "Note"
-                Due, display total
-                client.Name as "Client"
-                client.ID
-            )
-            group by
-            (
-                client.Name   ascending
-                client.ID   ascending
-                client.officer_name   ascending
-            )
-            sort by
-            (
-                session.date_field   ascending
-            )
-            options
-            (
-                display rows = 50
-            )
-        }
-
-        list  Insurance_Clients
-        {
-            displayname = "Insurance Clients"
-            show  all  rows  from  visit [((client.Ins is not null) && client.Ins != "")]
-            (
-                client.Name as "Client"
-                client.File
-                client.Ins
-                session.date_field as "Date"
-                session.Group_Label as "Group"
-                attend_n as "Attend", display total
-                charge as "Charge", display total
-                client_pd as "client pd", display total
-                bill_date as "Bill date"
-                check_date as "Check date"
-                ins_paid as "Ins Paid $", display total
-                Due, display total
-                note as "Note"
-            )
-            filters 
-            (
-                bill_date
-                check_date
-            )
-            group by
-            (
-                client.Name   ascending
-                client.File   ascending
-                client.Ins   ascending
-            )
-            sort by
-            (
-                session.date_field   descending
-            )
-            options
-            (
-                display rows = 20
-            )
-        }
-
     }
 
     section Utility
@@ -1269,17 +936,12 @@ content
                 (
                     type  =  picklist
                     values  =  session.ID
-                    displayformat = [ Group_Label + " - " + date_field ]
+                    displayformat = [ " - " + date_field ]
                     allow new entries = true
                     [
                         displayname = "Add session"
                     ]
-                    sortorder  =  ascending
                     width  =  206px
-                    on update
-                    {
-                        input.charge = group[Name = input.session.group_name].rate;
-                    }
                 )
 
                 client
@@ -1294,11 +956,17 @@ content
                     width  =  206px
                 )
 
+                Attend
+                (
+                    type  =  checkbox
+                    defaultvalue  =  true
+                )
+
                 must  have  attend_n
                 (
                     displayname  =  "Attend"
                     type  =  number
-                    initial value  =  1
+                    defaultvalue  =  1
                     maxchar  =  1
                     tooltip  =  "1 if attended\n0 for other entries"
                     width  =  100px
@@ -1363,17 +1031,10 @@ content
                     width  =  206px
                 )
 
-                charge
-                (
-                    displayname  =  "Charge"
-                    type  =  USD
-                    width  =  100px
-                )
-
-                Due
+                Group
                 (
                     type  =  formula
-                    value  =  (charge  -  client_pd  -  ifnull(ins_paid,0.0))
+                    value  =  session
                 )
 
             }
@@ -1381,6 +1042,12 @@ content
             {
                 on add
                 {
+                    on load
+                    {
+                        hide id_dabble;
+                        hide session_dabble;
+                        hide client_dabble;
+                    }
                     Submit
                     (
                         type  =  submit
@@ -1447,6 +1114,18 @@ content
                     width  =  100px
                 )
 
+            }
+            column
+            {
+                must  have  attend_n
+                (
+                    displayname  =  "Attend"
+                    type  =  number
+                    defaultvalue  =  1
+                    maxchar  =  1
+                    width  =  100px
+                )
+
                 Note
                 (
                     type  =  textarea
@@ -1455,32 +1134,11 @@ content
                 )
 
             }
-            column
-            {
-                must  have  attend_n
-                (
-                    displayname  =  "Attend"
-                    type  =  number
-                    initial value  =  1
-                    maxchar  =  1
-                    width  =  100px
-                )
-
-                charge
-                (
-                    displayname  =  "Charge"
-                    type  =  USD
-                    width  =  100px
-                )
-
-            }
             actions
             {
                 on load
                 {
                     disable session;
-                    gn = session[ID = input.session].group_name;
-                    input.charge = group[Name = gn].rate;
                 }
                 add
                 (
@@ -1496,7 +1154,6 @@ content
                             client_pd = input.Client_pd
                             note = input.Note
                             session = input.session
-                            charge = input.charge
                         ]
                         openUrl("#Form:Sign_in_visit?session=" + input.session, "Popup window");
                     }
@@ -1515,7 +1172,6 @@ content
                             client_pd = input.Client_pd
                             note = input.Note
                             session = input.session
-                            charge = input.charge
                         ]
                         openUrl("#Script:page.close", "same window");
                     }
@@ -1558,14 +1214,10 @@ content
                 visits_link as "Visits"
                 Invoice_link1 as "Invoice_link"
                 ID
-                File
-                file_site as "File Site"
-                file_opened as "File Opened"
             )
             filters 
             (
                 DOB
-                file_site
             )
             permission
             (
@@ -1618,13 +1270,9 @@ content
                 Therapist
                 Time
                 group_name as "Group Name"
-                (
-                    view = group_Summary
-                )
                 rate as "Rate"
                 add_visit as "add visit"
                 Sign_in_sheet as "Sign-in sheet"
-                Group_Label as "Group Label"
             )
             filters 
             (
@@ -1733,7 +1381,7 @@ content
                 (
                     displayname  =  "Delete all visits?"
                     type  =  checkbox
-                    initial value  =  false
+                    defaultvalue  =  false
                 )
 
                 visits
@@ -1746,7 +1394,7 @@ content
                 (
                     displayname  =  "Delete all sessions?"
                     type  =  checkbox
-                    initial value  =  false
+                    defaultvalue  =  false
                 )
 
                 sessions
@@ -1759,7 +1407,7 @@ content
                 (
                     displayname  =  "Delete all clients?"
                     type  =  checkbox
-                    initial value  =  false
+                    defaultvalue  =  false
                 )
 
                 clients
@@ -1772,7 +1420,7 @@ content
                 (
                     displayname  =  "Delete client with no visits?"
                     type  =  checkbox
-                    initial value  =  false
+                    defaultvalue  =  false
                     tooltip  =  "be sure to update visit counts first"
                 )
 
@@ -1790,7 +1438,7 @@ content
                 (
                     displayname  =  "Delete all officers?"
                     type  =  checkbox
-                    initial value  =  false
+                    defaultvalue  =  false
                 )
 
                 officers
@@ -1803,7 +1451,7 @@ content
                 (
                     displayname  =  "Delete all offices?"
                     type  =  checkbox
-                    initial value  =  false
+                    defaultvalue  =  false
                 )
 
                 offices
@@ -1816,7 +1464,7 @@ content
                 (
                     displayname  =  "Delete all groups?"
                     type  =  checkbox
-                    initial value  =  false
+                    defaultvalue  =  false
                 )
 
                 groups
@@ -1918,12 +1566,12 @@ content
             (
                 client.Name
                 session.date_field as "date"
-                attend_n as "Attend"
+                Attend
                 client_pd as "client pd"
                 ins_paid as "ins paid $"
                 note
-                charge as "Charge"
-                Due
+                bill_date as "bill date"
+                check_date as "check date"
             )
             sort by
             (
@@ -1939,7 +1587,21 @@ content
         <%{
             for each who in client  [ID == input.for_client.toLong()]
             {
-                bsum = thisapp.billing_summary(client [ID == who.ID]);%>
+                subtot = 0.0;
+                for each item in visit  [(client == who.ID && attend_n == 1)]
+                {
+                    its_session  =  session  [ID = item.session];
+                    group_rate = group[Name == its_session.group_name].rate;
+                    subtot = (subtot  +  group_rate);
+                }
+                client_pd = visit[client == who.ID].sum(client_pd);
+                ins_pd = visit[client == who.ID].sum(ins_paid);
+                if (ins_pd  <  0)
+                {
+                    // umm... what's up here?!?
+                    ins_pd = 0.0;
+                }
+                amount_due = (subtot  -  client_pd  -  ins_pd);%>
 <style type="text/css">
 .body { font-size: 10pt }
 
@@ -2033,7 +1695,7 @@ address {
   <td><%=who.Name%>
   </td>
 </tr>
-<tr><th>Amount Due:</th><td id="due1" class="amt_"><%=bsum.get("amount_due")%></td></tr>
+<tr><th>Amount Due:</th><td id="due1" class="amt_"><%=thisapp.fmt.currency(amount_due)%></td></tr>
 </tbody>
 </table>
 
@@ -2045,47 +1707,39 @@ address {
  <th>Description</th>
  <th>Amount Billed</th>
  <th>Client Paid</th>
-<%if ((who.Ins  !=  null)  &&  (who.Ins  !=  ""))
-                {%>
  <th>Insurance Paid</th>
-                                                <%}%>
 </tr>
 <tr><td> </td><td> </td><td> </td></tr>
 </thead>
 
 <tbody id="fill">
-<%for each item in visit  [client == who.ID]
+<%for each item in visit  [(client == who.ID && attend_n == 1)]
                 {
-                    its_session  =  session  [ID == item.session];%>
+                    its_session  =  session  [ID == item.session];
+                    group_rate = group[Name == its_session.group_name].rate;%>
 <tr>
     <td><%=its_session.date_field%></td>
     <td><%=its_session.group_name%></td>
-    <td class="amt"><%=thisapp.fmt.currency(item.charge)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(group_rate)%></td>
     <td class="amt"><%=thisapp.fmt.currency(item.client_pd)%></td>
-<%if ((who.Ins  !=  null)  &&  (who.Ins  !=  ""))
-                    {%>
     <td class="amt"><%=thisapp.fmt.currency(item.ins_paid)%></td>
-                                                                    <%}%>
 </tr>
                                                                                                                         
-                                                                                                                                                                                <%}%>
+                                                                                                                        <%}%>
 </tbody>
 
 <tbody>
 <tr><td> </td><td> </td><td> </td></tr>
 <tr>
   <th class="tot">SUBTOTAL</th><td> </td>
-  <td id="subtot" class="amt"><strong><%=bsum.get("subtot")%></strong></td>
-  <td id="pd" class="amt"><strong><%=bsum.get("client_pd")%></strong></td>
-<%if ((who.Ins  !=  null)  &&  (who.Ins  !=  ""))
-                {%>
-  <td id="ins" class="amt"><strong><%=bsum.get("ins_paid")%></strong></td>
-                                         <%}%>
+  <td id="subtot" class="amt"><strong><%=thisapp.fmt.currency(subtot)%></strong></td>
+  <td id="pd" class="amt"><strong><%=thisapp.fmt.currency(client_pd)%></strong></td>
+  <td id="ins" class="amt"><strong><%=thisapp.fmt.currency(ins_pd)%></strong></td>
 </tr>
 <tr><td>&nbsp;</td></tr>
 <tr>
   <th class="tot">Amount Due:</th>
-  <td id="due" class="amt"><strong><%=bsum.get("amount_due")%></strong></td>
+  <td id="due" class="amt"><strong><%=thisapp.fmt.currency(amount_due)%></strong></td>
 </tr>
 </tbody>
 </table>
@@ -2102,7 +1756,7 @@ address {
 
 
 </div>
-                                                                                                                                                                <%}
+                                                                                                                                    <%}
         }%>
 
         list  fix_visits
@@ -2115,9 +1769,8 @@ address {
                 ins_paid as "ins paid $"
                 session
                 client
+                Attend as "A t/f"
                 attend_n as "Attend"
-                charge as "Charge"
-                session.Group_Label as "Group Label"
             )
             options
             (
@@ -2156,16 +1809,17 @@ content
 <tbody id="fill">
 <%for each item in visit  [client == who.ID]
                 {
-                    its_session  =  session  [ID == item.session];%>
+                    its_session  =  session  [ID == item.session];
+                    group_rate = group[Name == its_session.group_name].rate;%>
 <tr>
     <td><%=its_session.date_field%></td>
     <td><%=its_session.group_name%></td>
-    <td class="amt"><%=thisapp.fmt.currency(item.charge)%></td>
+    <td class="amt"><%=thisapp.fmt.currency(group_rate)%></td>
     <td class="amt"><%=thisapp.fmt.currency(item.client_pd)%></td>
     <td class="amt"><%=thisapp.fmt.currency(item.ins_paid)%></td>
 </tr>
                                                                                                                         
-                                                                                                                                                                                                <%}%>
+                                                                                                                                                                                <%}%>
 </tbody>
 
 <tbody>
@@ -2176,43 +1830,14 @@ content
   <td id="pd" class="amt"><strong><%=bsum.get("client_pd")%></strong></td>
   <td id="ins" class="amt"><strong><%=bsum.get("ins_paid")%></strong></td>
 </tr>
-<tr><td>&nbsp;</td></tr>
 <tr>
-  <th class="tot">Amount Due:</th>
+  <th class="tot">Amount Due:</th><td> </td>
   <td id="due" class="amt"><strong><%=bsum.get("amount_due")%></strong></td>
 </tr>
 </tbody>
 </table>
-                                                <%}
+                                        <%}
         }%>
-
-        list  Visit_Info
-        {
-            displayname = "Visit Info"
-            show  all  rows  from  visit 
-            (
-                client_pd as "client pd"
-                note
-                bill_date as "bill date"
-                check_date as "check date"
-                ins_paid as "ins paid $"
-                id_dabble
-                session
-                client
-                attend_n as "Attend"
-                charge as "Charge"
-                Due
-                client.Name
-                client.ID
-                session.date_field as "date"
-                session.group_name as "Group"
-            )
-            filters 
-            (
-                bill_date
-                check_date
-            )
-        }
 
     }
 
@@ -2287,7 +1912,22 @@ content
         {
             gn = session[ID = input.which_session].group_name;
             r = group[Name = gn].rate;
-            return ifnull(r,0.0);
+            return if((r  ==  null),0.0,r);
+        }
+
+        int fixup.fix_visits(client who)
+        {
+            qty = count(visit[(client == who.ID && ((attend_n is null) || (client_pd is null)))]);
+            if (qty  >  0)
+            {
+                for each raw_visit in visit  [(client == who.ID && ((attend_n is null) || (client_pd is null)))]
+                {
+                    raw_visit.attend_n = if(raw_visit.Attend,1,0);
+                    raw_visit.client_pd = if((raw_visit.client_pd  ==  null),0.0,raw_visit.client_pd);
+                }
+                info who.Name + ": " + qty;
+            }
+            return qty;
         }
 
         void fixup.test_if()
@@ -2314,111 +1954,21 @@ content
             return formatted_number;
         }
 
-        string icd_diagnosis(string code)
-        {
-            addr = "http://datasets.caregraf.org/icd9/sparql?query=PREFIX+icd%3A+%3Chttp%3A%2F%2Fdatasets.caregraf.org%2Ficd9%2F%3E+SELECT+%3Fs+%3Ftxt+WHERE+{+%3Fs+icd%3Acode_number+%22" + input.code + "%22%3B+icd%3Adiagnosis+%3Ftxt+}&output=xml";
-            ans = getUrl(addr,false);
-            txt = ans.get("responseText");
-            return txt.toXML().executeXPath("//*[@name=\"txt\"]/*/text()").toString();
-        }
-
-        void set_up_treatments(client who)
-        {
-            rates = map();
-            dates = map();
-            for each v in visit  [client == who.ID]
-            {
-                its_session  =  session  [ID == v.session];
-                its_group  =  group  [Name == its_session.group_name];
-                gn = its_group.Name;
-                rates.put(gn, its_group.rate);
-                session_date = its_session.date_field;
-                if (if((dates.get(gn)  ==  null),true,(session_date  <  (dates.get(gn)).toDate())))
-                {
-                    dates.put(gn, session_date.toString());
-                }
-                //info ((dates.get(gn)) + gn) + rates.get(gn);
-            }
-            for each gn in rates.keys()
-            {
-                if (count(Treatment[(client == who.ID && Group == gn)])  ==  0)
-                {
-                    t = insert into Treatment
-                    [
-	                    Added_User = zoho.loginuser
-	                    client = who.ID
-	                    Group = gn
-	                    Rate = (rates.get(gn)).toDecimal()
-	                    Start_Date = (dates.get(gn)).toDate()
-                    ];
-                    info "added treatment for: " + who.Name + " " + gn;
-                }
-            }
-        }
-
-        void fixup.look_up_file(client who)
-        {
-            qty = count(client_file[Name == who.Name]);
-            if (qty  ==  1)
-            {
-                for each f in client_file  [Name == who.Name]
-                {
-                    who.File = f.file_id;
-                    who.file_site = f.site;
-                    who.file_opened = f.Opened;
-                    if (who.DOB  ==  null)
-                    {
-                        who.DOB = f.DOB;
-                    }
-                }
-            }
-        }
-
-        void reprice_visits(group choice)
-        {
-            qs = 0;
-            qv = 0;
-            for each s in session  [(group_name == choice.Name && Modified_Time < choice.Modified_Time)]
-            {
-                if (qv  <  700)
-                {
-                    for each v in visit  [(session == s.ID && Modified_Time < choice.Modified_Time)]
-                    {
-                        v.charge = choice.rate;
-                        qv = (qv  +  1);
-                    }
-                    // reset modified time
-                    s.group_name = choice.Name;
-                    qs = (qs  +  1);
-                }
-                else
-                {
-                    info "more to do for: " + choice.Name;
-                }
-            }
-            if (qv  >  0)
-            {
-                info choice.Name + " sessions: " + qs + " visits: " + qv;
-            }
-        }
-
         map billing_summary(client who)
         {
             client_pd = visit[client == who.ID].sum(client_pd);
-            if (client_pd  ==  null)
-            {
-                client_pd = 0.0;
-            }
             ins_pd = visit[client == who.ID].sum(ins_paid);
-            if ((ins_pd  <  0)  ||  (ins_pd  ==  null))
+            if (ins_pd  <  0)
             {
                 // umm... what's up here?!?
                 ins_pd = 0.0;
             }
-            subtot = visit[client == who.ID].sum(charge);
-            if (subtot  ==  null)
+            subtot = 0.0;
+            for each item in visit  [(client == who.ID && attend_n == 1)]
             {
-                subtot = 0.0;
+                its_session  =  session  [ID = item.session];
+                group_rate = group[Name == its_session.group_name].rate;
+                subtot = (subtot  +  group_rate);
             }
             amount_due = (subtot  -  client_pd  -  ins_pd);
             return { "who" : who.ID, "attend" : count(visit[(client == who.ID && attend_n == 1)]), "client_pd" : thisapp.fmt.currency(client_pd), "ins_paid" : thisapp.fmt.currency(ins_pd), "subtot" : thisapp.fmt.currency(subtot), "amount_due" : thisapp.fmt.currency(amount_due) };
@@ -2431,10 +1981,5 @@ content
         layout = "drop down menu"
         base theme = "headerimage"
         color = "light green"
-    }
-    reports configuration
-    {
-        Version = 1251000017883097
-        Key     = "zBp641y7WS4eEAe5hzZpMtuJ1mVmqnUbCaejUNK0RJUKgt67ghBgZkVNP0NrEQn0C9u8QaOfweyuj4QvV44mfCxruROzV436HdWN"
     }
 }
