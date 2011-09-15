@@ -1,11 +1,7 @@
-<!DOCTYPE html> <!-- -*- nxml -*- -->
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <title>Hope Harbor Clients Database</title>
-<style type="text/css">
-.required { font-weight: bold }
-tbody tr:first-child td { font-weight: bold }
-</style>
 </head>
 <body>
 
@@ -14,125 +10,15 @@ tbody tr:first-child td { font-weight: bold }
 <p>see also: <a href="Makefile">Makefile</a></p>
 
 <table border='1'>
-<thead>
+<tbody>
  <tr>
   <th>Table</th>
   <th>Field</th>
   <th>Datatype</th>
   <th>ref</th>
-  <th>Example</th>
-  <th>Design Issues</th>
- </tr>
-</thead>
-
-<tbody>
- <tr>
-  <td>Client</td>
-  <td>id</td>
-  <td>int</td>
-  <td></td>
-  <td>1</td>
- </tr>
- <tr>
-  <td></td>
-  <td class="required">name</td>
-  <td>text</td>
-  <td></td>
-  <td>Doe, John</td>
- </tr>
- <tr>
-  <td></td>
-  <td>insurance</td>
-  <td>text</td>
-  <td></td>
-  <td>lorem ipsum...</td>
- </tr>
- <tr>
-  <td></td>
-  <td>approval</td>
-  <td>text</td>
-  <td></td>
-  <td>lorem ipsum...</td>
- </tr>
- <tr>
-  <td></td>
-  <td>DX</td>
-  <td>text</td>
-  <td></td>
-  <td>??...</td>
- </tr>
- <tr>
-  <td></td>
-  <td>note</td>
-  <td>text</td>
-  <td></td>
-  <td>lorem ipsum...</td>
- </tr>
- <tr>
-  <td></td>
-  <td>officer_id</td>
-  <td>int</td>
-  <td>Officer</td>
- </tr>
- <tr>
-  <td></td>
-  <td>DOB</td>
-  <td>date</td>
- </tr>
- <tr>
-  <td></td>
-  <td>address</td>
-  <td>text</td>
- </tr>
- <tr>
-  <td></td>
-  <td>phone</td>
-  <td>text</td>
- </tr>
- <tr>
-   <td></td>
-   <td>file</td>
-   <td>varchar(20)</td>
- </tr>
- <tr>
-   <td></td>
-   <td>file_site</td>
-   <td>varchar(10)</td>
-   <td></td>
-   <td></td>
-   <td>enum?</td>
- </tr>
- <tr>
-   <td></td>
-   <td>file_opened</td>
-   <td>date</td>
+  <th>Description</th>
  </tr>
 </tbody>
-
-<tbody>
- <tr>
-  <td>Officer</td>
-  <td>id</td>
-  <td>int</td>
- </tr>
- <tr>
-  <td></td>
-  <td class="required">name</td>
-  <td>text</td>
- </tr>
- <tr>
-  <td></td>
-  <td>email</td>
-  <td>text</td>
- </tr>
- <tr>
-  <td></td>
-  <td>office</td>
-  <td>int</td>
-  <td>offices</td>
- </tr>
-</tbody>
-
 <tbody>
  <tr>
   <td>offices</td>
@@ -163,6 +49,30 @@ tbody tr:first-child td { font-weight: bold }
 
 <tbody>
  <tr>
+  <td>officers</td>
+  <td>id</td>
+  <td>int</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>name</td>
+  <td>text</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>email</td>
+  <td>text</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>office</td>
+  <td>int</td>
+  <td>offices</td>
+ </tr>
+</tbody>
+
+<tbody>
+ <tr>
   <td>batches</td>
   <td>id</td>
   <td>int</td>
@@ -171,6 +81,66 @@ tbody tr:first-child td { font-weight: bold }
   <td></td>
   <td>name</td>
   <td>text</td>
+ </tr>
+</tbody>
+
+<tbody>
+ <tr>
+  <td>clients</td>
+  <td>id</td>
+  <td>int</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>name</td>
+  <td>text</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>ins</td>
+  <td>text</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>approval</td>
+  <td>text</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>DX</td>
+  <td>text</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>note</td>
+  <td>text</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>officer</td>
+  <td>int</td>
+  <td>officers</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>DOB</td>
+  <td>date</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>address</td>
+  <td>text</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>phone</td>
+  <td>text</td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>batch</td>
+  <td>int</td>
+  <td>batches</td>
  </tr>
 </tbody>
 
