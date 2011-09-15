@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> <!-- -*- nxml -*- -->
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title>Hope Harbor Amount Due Report Skeleton</title>
@@ -12,7 +12,7 @@
 	>Amount Due by Client</span>
   <span class="literal blank">_________0_________0</span>
   <span class="literal blank">_________0</span>
-  <span class="field" title="stod(m.report_date)">mm/dd/yyyy</span>
+  <span class="field" title="date()">mm/dd/yyyy</span>
   <span class="literal blank">_________0</span>
   <span class="literal">pg. </span>
   <span class="field" title="r.pageno">##</span>
@@ -86,6 +86,16 @@
     </tr>
   </tbody>
 </table>
+
+<hr />
+
+<div>
+<h2>Query</h2>
+<pre><code class="query">
+select * from hh_office.Client_Balances
+order by due desc, client_name;
+</code></pre>
+</div>
 
 </body>
 </html>

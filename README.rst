@@ -32,12 +32,25 @@ TODO
 
 Unmet requirements:
 
-* link pdf report
-  * set up cgi
+ * link pdf report
+   * link cgi
+ * compute Visit.due in a field
+ * exclude inactive clients for performance?
+ * default Visit.charge from Group.rate::
+
+  class tables_individual {
+
+  function Entity_ID__default(){
+
+per http://xataface.com/forum/viewtopic.php?t=5236#25458
+
 
 Near term goals:
 
  * permissions: view-only vs. edit
+http://xataface.com/wiki/permissions.ini_file
+ * format money fields better in the list view
+http://stackoverflow.com/questions/4995979/php-currency-formatting-trailing-zeros
 
 Eventual goals:
 
