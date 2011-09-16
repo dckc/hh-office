@@ -97,6 +97,18 @@
   <!-- continue with details -->
   <xsl:apply-templates select="h:tbody" />
 
+  <xsl:if test='.//h:tfoot'>
+    <Variables>
+      <xsl:for-each select=".//h:tfoot/h:tr">
+	<xsl:variable name='resetonbreak' select='@class'/>
+	<xsl:for-each select='h:td[@class="sum"]'>
+	  <Variable type='sum' resetonbreak='{$resetonbreak}'
+		    name='{@title}_sum' value='val({@title})'/>
+	</xsl:for-each>
+      </xsl:for-each>
+    </Variables>
+  </xsl:if>
+
 </xsl:template>
 
 <xsl:template match="h:table[@class='Detail']">
