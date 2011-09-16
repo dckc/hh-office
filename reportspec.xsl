@@ -32,7 +32,7 @@
       <!-- todo: trigger black/white on class="reversed" -->
       <Line fontSize="12" bgcolor="'black'" color="'white'">
 	<literal width="2"/>
-	<literal width="{string-length(text())}">
+	<literal width="{string-length(text())}" align="left">
 	  <xsl:value-of select="text()" />
 	</literal>
       </Line>
@@ -69,6 +69,35 @@
   <field width="{string-length(text())}" value="{@title}"/>
 </xsl:template>
 
+
+<xsl:template match="h:table[@class='Breaks']">
+  <Breaks>
+    <xsl:for-each select='h:thead/h:tr'>
+      <!-- todo: control page breaking from HTML skeleton -->
+      <Break name="{@id}" newpage="no" headernewpage="yes">
+	<BreakHeader>
+	  <Output>
+	    <HorizontalLine size="3" bgcolor="'white'"/>
+	    <!-- todo: fontSize, bold from HTML skeleton -->
+	    <Line fontSize="10" bold="true">
+	      <xsl:apply-templates mode="Line" />
+	    </Line>
+	  </Output>
+	</BreakHeader>
+	<BreakFields>
+	  <xsl:for-each select='h:th[contains(@class, "field")]'>
+	    <BreakField value="{@id}"/>
+	  </xsl:for-each>
+	</BreakFields>
+	<!-- TODO: BreakFooter @@-->
+      </Break>
+    </xsl:for-each>
+  </Breaks>
+
+  <!-- continue with details -->
+  <xsl:apply-templates select="h:tbody" />
+
+</xsl:template>
 
 <xsl:template match="h:table[@class='Detail']">
   <Detail>
@@ -153,8 +182,13 @@
   </xsl:choose>
 </xsl:template>
 
+<xsl:template match='h:div[.//*[@class="query"]]'>
+  <!-- chomp -->
+</xsl:template>
+
 <xsl:template match="h:title | h:link | h:head 
-                   | h:body | h:thead | h:tbody | h:tr | h:td">
+                   | h:body | h:thead | h:tbody | h:tr | h:td
+		   | h:hr">
   <xsl:apply-templates />
 </xsl:template>
 

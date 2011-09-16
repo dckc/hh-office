@@ -1,6 +1,7 @@
-select g.id as group_id, g.name as `Group`
-     , c.id as client_id, c.name as `Client`
-     , date_format(s.session_date, '%Y-%m-%d') as `Session`
+create or replace view Attendance_by_Group as
+select g.id as group_id, g.name as group_name
+     , c.id as client_id, c.name as client_name
+     , date_format(s.session_date, '%Y-%m-%d') as session_date
      , attend_n, charge, client_paid
      , insurance_paid, due
      , v.note

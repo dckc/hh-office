@@ -1,0 +1,83 @@
+<!DOCTYPE html> <!-- -*- nxml -*- -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Hope Harbor Attendance by Group Skeleton</title>
+<link rel="stylesheet" href="office.css" />
+</head>
+
+<body class="rlib medium-print portrait">
+<h1 class="ReportHeader reversed">Hope Harbor</h1>
+<h2 class="PageHeader">
+  <span class="literal"
+	>Attendance by Group</span>
+  <span class="literal blank">0.........0.........0.........0</span>
+  <span class="field" title="date()">mm/dd/yyyy</span>
+  <span class="literal blank">          </span>
+  <span class="literal">pg. </span>
+  <span class="field" title="r.pageno">##</span>
+</h2>
+
+<table class="Breaks">
+<thead>
+  <tr id="per_group">
+    <th id="group_id" title="group_name" align="left" class="field"
+	>Group X..0.........0.........0</th>
+  </tr>
+  <tr id="per_client">
+    <th class="literal blank">  </th>
+    <th id="client_id" title="client_name" align="left" class="field"
+	>Lastname, Firstname ________9_</th>
+  </tr>
+</thead>
+<tbody><tr><td>
+
+
+<table class="Detail">
+  <thead>
+    <tr>
+      <th align="right">Session</th>
+      <th align="right">Attend</th>
+      <th align="right">Charge</th>
+      <th align="right">Client Pd</th>
+      <th align="right">Ins. Pd</th>
+      <th align="right">Due</th>
+      <th align="left">Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <!-- todo: literal | in detail row -->
+      <td title="stod(session_date)" align="right"
+	  >&#160;&#160;|&#160;&#160;01/01/2011</td>
+      <td title="attend_n" align="right"
+	  > 1,000</td>
+      <td title="charge" align="right"
+	  > 1,000.00</td>
+      <td title="client_paid" align="right"
+	  > 1,000.00</td>
+      <td title="insurance_paid" align="right"
+	  > 1,000.00</td>
+      <td title="due" align="right"
+	  > 1,000.00</td>
+      <!-- todo: more space before note -->
+      <td title="note" align="left"
+	  >...........................<!--
+      todo: handle multi-line notes --></td>
+    </tr>
+  </tbody>
+</table>
+
+</td></tr></tbody></table>
+
+<hr />
+
+<div>
+<h2>Query</h2>
+<pre><code class="query">
+select * from hh_office.Attendance_by_Group
+order by group_name, client_name, session_date
+</code></pre>
+</div>
+
+</body>
+</html>
