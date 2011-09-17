@@ -13,9 +13,12 @@ import csv
 import ConfigParser
 from contextlib import contextmanager
 
+import MySQLdb   #@@@
+
 # http://pypi.python.org/pypi/SQLAlchemy/0.7.2
 # b84a26ae2e5de6f518d7069b29bf8f72
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import create_engine, MetaData, Table, Column
+from sqlalchemy import TEXT, VARCHAR, INTEGER
 from sqlalchemy.schema import CreateTable
 
 import hh_data1 as hh
@@ -31,10 +34,35 @@ def main(argv):
         de = create_engine('sqlite:///%s' % sqdb)
         xe = xataface_engine()
         import_dabble(de, xe)
+    elif '--diagram' in argv:
+        outf = argv[2]
+        xe = xataface_engine()
+        schema_diagram(xe, outf)
     else:
         print >> sys.stderr, __doc__
         exit(1)
     
+
+def schema_diagram(xe, outf):
+    from sqlalchemy import MetaData
+    from sqlalchemy_schemadisplay import create_schema_graph
+
+    metadata=MetaData()
+    metadata.reflect(bind=xe)
+    for tn, t in metadata.tables.iteritems():
+        print "@@table: ", t
+        for fk in t.foreign_keys:
+            print "@@fk:", fk
+
+    # create the pydot graph
+    graph = create_schema_graph(metadata=metadata,
+                                show_datatypes=False, # too big
+                                show_indexes=False, # ditto for indexes
+                                rankdir='LR',
+                                concentrate=False # Don't join relation lines
+                                )
+    graph.write_svg(outf)
+
 
 def import_dabble(dabble, xata, dabble_schema='dabbledb',
                   tables=('offices', 'officers'
@@ -46,8 +74,10 @@ def import_dabble(dabble, xata, dabble_schema='dabbledb',
     for tn, t in list(meta.tables.iteritems()):
         print CreateTable(t, on='mysql')
 
-    print "creating: ", meta.tables.keys()
     xata.execute('use %s' % dabble_schema)
+    print "dropping: ", meta.tables.keys()
+    meta.drop_all(bind=xata)
+    print "creating: ", meta.tables.keys()
     meta.create_all(bind=xata)
 
     raise RuntimeError, '@@now copy the records...'
@@ -100,7 +130,7 @@ def xataface_engine(ini='conf.ini', section='_database'):
 
     .. todo: separate this integration test from unit/function tests.
 
-      >>> mysql_connection() is None
+      >>> xataface_engine() is None
       False
 
     '''
@@ -127,7 +157,7 @@ def xataface_connection(ini='conf.ini', section='_database'):
 
     .. todo: separate this integration test from unit/function tests.
 
-      >>> mysql_connection() is None
+      >>> xataface_connection() is None
       False
 
     '''
@@ -142,35 +172,48 @@ def xataface_connection(ini='conf.ini', section='_database'):
                            opt('password'), opt('name'))
 
 
+
+def with_cols(meta, tn, cols, *extra):
+    cols = [Column('pkey', INTEGER(), primary_key=True)] + [
+        Column(n,
+               TEXT() if ('note' in n.lower() or '_link' in n
+                          or n == 'Approval') else VARCHAR(80))
+        for n in cols]
+    return Table(tn, meta,
+                 *(tuple(cols) + extra))
+
+
 def create_ddl(table_name, cols):
-    '''
-    >>> print create_ddl('products', ['id', 'size', 'color',
+    r'''
+    >>> ddl = create_ddl('products', ['id', 'size', 'color',
     ...                               'note', 'orders_link'])
-    create table products (pkey int auto_increment primary key,
-       id varchar(80),
-       size varchar(80),
-       color varchar(80),
-       note text,
-       orders_link text)
+    >>> print ddl  #doctest: +NORMALIZE_WHITESPACE
+    CREATE TABLE products (
+    	pkey INTEGER NOT NULL, 
+    	id VARCHAR(80), 
+    	size VARCHAR(80), 
+    	color VARCHAR(80), 
+    	note TEXT, 
+    	orders_link TEXT, 
+    	PRIMARY KEY (pkey)
+    )
+
 
     '''
-    return 'create table %s (%s,\n   %s)\n%s' % (
-        table_name,
-        'pkey int auto_increment primary key',
-        ',\n   '.join(['%s %s' % (
-            n, 'text' if ('note' in n.lower() or '_link' in n
-                          or n == 'Approval') else 'varchar(80)')
-                       for n in cols]),
-        'character set utf8 collate utf8_bin')
+    t = with_cols(MetaData(), table_name, cols)
+    return str(CreateTable(t))
 
 
 def insert_dml(table_name, cols):
     r'''
-      >>> insert_dml('products', ('id', 'size', 'color'))
-      'insert into products values (%s, %s, %s, %s)'
+      >>> dml = insert_dml('products', ('id', 'size', 'color'))
+      >>> dml #doctest: +NORMALIZE_WHITESPACE
+      'INSERT INTO products (pkey, id, size, color)
+       VALUES (:pkey, :id, :size, :color)'
+
     '''
-    return 'insert into %s values (%s)' % (
-        table_name, ', '.join(["%s"] + ["%s" for _ in cols]))
+    t = with_cols(MetaData(), table_name, cols)
+    return str(t.insert())
 
 
 def load_data_dummy():
