@@ -1,29 +1,65 @@
+'''Import data from Zoho CSV backups
+
+Usage:
+
+ 1. set up conf.ini per xataface conventions
+ % python mkimports.py --zoho dir-of-csv-files/
+ % python mkimports.py --dabble dir-of-csv-files/
+ 
+'''
 
 import os
 import csv
+import ConfigParser
 from contextlib import contextmanager
 
-sql=  r"""LOAD DATA LOCAL INFILE  '%s'
-          INTO TABLE  `%s`
-          CHARACTER SET binary
-          FIELDS TERMINATED BY  ','
-          ENCLOSED BY  '"'
-          ESCAPED BY  '\\'
-          LINES TERMINATED BY  '\n' """
+# http://pypi.python.org/pypi/SQLAlchemy/0.7.2
+# b84a26ae2e5de6f518d7069b29bf8f72
+from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.schema import CreateTable
 
-#" '
-         
-def import_all(conn, d,
-               extra_columns=('Added_User',
-                              'Added_Time',
-                              'Modified_User',
-                              'Added_User_IP_Address',
-                              'Modified_User_IP_Address')):
+import hh_data1 as hh
+
+
+def main(argv):
+    if '--zoho' in argv:
+        d = argv[2]
+        c = xataface_connection()
+        import_zoho(c, d)
+    elif '--dabble' in argv:
+        sqdb = argv[2]
+        de = create_engine('sqlite:///%s' % sqdb)
+        xe = xataface_engine()
+        import_dabble(de, xe)
+    else:
+        print >> sys.stderr, __doc__
+        exit(1)
+    
+
+def import_dabble(dabble, xata, dabble_schema='dabbledb',
+                  tables=('offices', 'officers'
+                          'batches', 'clients',
+                          'groups', 'sessions', 'visits')
+                  ):
+    meta = hh.meta
+
+    for tn, t in list(meta.tables.iteritems()):
+        print CreateTable(t, on='mysql')
+
+    print "creating: ", meta.tables.keys()
+    xata.execute('use %s' % dabble_schema)
+    meta.create_all(bind=xata)
+
+    raise RuntimeError, '@@now copy the records...'
+
+
+def import_zoho(conn, d):
     with transaction(conn) as do:
-        do.execute('drop database if exists hh_office');
+        do.execute('drop database if exists zc');
         do.execute('create database zc'
                    ' character set utf8'
                    ' collate utf8_bin');
+
     for fn in sorted(os.listdir(d)):
         if fn.endswith('.csv'):
             n = fn[:-len('.csv')]
@@ -44,12 +80,6 @@ def import_all(conn, d,
                                                                
             print "inserted %d rows." % len(rows)
 
-            if n.startswith('zcfrm') and False:
-                for col in extra_columns:
-                    with transaction(conn) as do:
-                        do.execute('alter table %s drop %s' % (n, col))
-
-                print "dropped extra columns"
             print
 
 
@@ -60,9 +90,56 @@ def fix_cell(txt):
         return txt.replace('zccomma', ',').replace('zcnewline', '\n')
 
 
-def mysql_connect(user='hopeharborkc', p='satsep3'):
-    import MySQLdb # http://mysql-python.sourceforge.net/MySQLdb.html#mysqldb
-    return MySQLdb.connect(user=user, passwd=p)
+def xataface_engine(ini='conf.ini', section='_database'):
+    '''Make sqlalchemy engine following xataface conventions.
+
+    @param ini: `conf.ini`, per `xataface docs`__
+    @param section: `_database`, per xataface
+
+    __ http://xataface.com/wiki/conf.ini_file
+
+    .. todo: separate this integration test from unit/function tests.
+
+      >>> mysql_connection() is None
+      False
+
+    '''
+    opts = ConfigParser.SafeConfigParser()
+    opts.read(ini)
+
+    def opt(n):
+        v = opts.get(section, n)
+        return v[1:-1]  # strip ""s
+
+    # per http://www.sqlalchemy.org/docs/dialects/mysql.html#module-sqlalchemy.dialects.mysql.mysqldb
+    return create_engine('mysql+mysqldb://%s:%s@%s/%s' % (
+        opt('user'), opt('password'), opt('host'), opt('name'))
+                         , pool_recycle=3600)
+
+
+def xataface_connection(ini='conf.ini', section='_database'):
+    '''Open mysql connection following xataface conventions.
+
+    @param ini: `conf.ini`, per `xataface docs`__
+    @param section: `_database`, per xataface
+
+    __ http://xataface.com/wiki/conf.ini_file
+
+    .. todo: separate this integration test from unit/function tests.
+
+      >>> mysql_connection() is None
+      False
+
+    '''
+    opts = ConfigParser.SafeConfigParser()
+    opts.read(ini)
+
+    def opt(n):
+        v = opts.get(section, n)
+        return v[1:-1]  # strip ""s
+
+    return MySQLdb.connect(opt('host'), opt('user'),
+                           opt('password'), opt('name'))
 
 
 def create_ddl(table_name, cols):
@@ -96,6 +173,19 @@ def insert_dml(table_name, cols):
         table_name, ', '.join(["%s"] + ["%s" for _ in cols]))
 
 
+def load_data_dummy():
+    sql=  r"""LOAD DATA LOCAL INFILE  '%s'
+              INTO TABLE  `%s`
+              CHARACTER SET binary
+              FIELDS TERMINATED BY  ','
+              ENCLOSED BY  '"'
+              ESCAPED BY  '\\'
+              LINES TERMINATED BY  '\n' """
+
+    #" '
+
+
+
 @contextmanager
 def transaction(conn):
     '''Return an Oracle database cursor manager.
@@ -116,7 +206,5 @@ def transaction(conn):
 
 if __name__ == '__main__':
     import sys
-    d = sys.argv[1]
-    c = mysql_connect()
-    import_all(c, d)
+    main(sys.argv)
 
