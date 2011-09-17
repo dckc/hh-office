@@ -73,8 +73,11 @@
 <xsl:template match="h:table[@class='Breaks']">
   <Breaks>
     <xsl:for-each select='h:thead/h:tr'>
+      <xsl:variable name='break_name' select="@id" />
+
       <!-- todo: control page breaking from HTML skeleton -->
-      <Break name="{@id}" newpage="no" headernewpage="yes">
+      <Break name="{$break_name}" newpage="no" headernewpage="yes">
+
 	<BreakHeader>
 	  <Output>
 	    <HorizontalLine size="3" bgcolor="'white'"/>
@@ -84,12 +87,44 @@
 	    </Line>
 	  </Output>
 	</BreakHeader>
+
 	<BreakFields>
 	  <xsl:for-each select='h:th[contains(@class, "field")]'>
 	    <BreakField value="{@id}"/>
 	  </xsl:for-each>
 	</BreakFields>
-	<!-- TODO: BreakFooter @@-->
+
+	<xsl:for-each select='../..//h:tfoot/h:tr[@class=$break_name]'>
+	  <BreakFooter>
+	    <Output>
+	      <HorizontalLine size="2" bgcolor="'white'"/>
+	      <HorizontalLine size="1" bgcolor="'black'" indent="2"/>
+	      <HorizontalLine size="1" bgcolor="'white'"/>
+	      <Line bold="true">
+		<xsl:for-each select='h:td'>
+		  <xsl:choose>
+		    <xsl:when test='contains(@class, "sum")'>
+		      <field width='{string-length(text())}'
+			     value="v.{@title}_sum"
+			     align="right">
+			<xsl:if test='contains(@class, "money")'>
+			  <xsl:attribute name="format">
+			    <xsl:text>'%$.2nd'</xsl:text>
+			  </xsl:attribute>
+			</xsl:if>
+		      </field>
+		      <literal width="1"/>
+		    </xsl:when>
+		    <xsl:otherwise>
+		      <literal width='{string-length(text())}' />
+		    </xsl:otherwise>
+		  </xsl:choose>
+		</xsl:for-each>
+	      </Line>
+	      <HorizontalLine size="4" bgcolor="'white'"/>
+	    </Output>
+	  </BreakFooter>
+	</xsl:for-each>
       </Break>
     </xsl:for-each>
   </Breaks>
@@ -101,7 +136,7 @@
     <Variables>
       <xsl:for-each select=".//h:tfoot/h:tr">
 	<xsl:variable name='resetonbreak' select='@class'/>
-	<xsl:for-each select='h:td[@class="sum"]'>
+	<xsl:for-each select='h:td[contains(@class, "sum")]'>
 	  <Variable type='sum' resetonbreak='{$resetonbreak}'
 		    name='{@title}_sum' value='val({@title})'/>
 	</xsl:for-each>
