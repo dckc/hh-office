@@ -24,19 +24,22 @@ offices = Table('offices', meta,
                 Column('name', T_NAME),
                 Column('fax', T_PHONE),
                 Column('address', TEXT()),
-                Column('notes', TEXT())
+                Column('notes', TEXT()),
+                mysql_engine='InnoDB'
                 )
 
 officers = Table('officers', meta,
                  Column('id', INTEGER(), primary_key=True),
                  Column('name', T_NAME),
                  Column('email', T_NAME),
-                 Column('office', INTEGER(), ForeignKey('offices.id'))
+                 Column('office', INTEGER(), ForeignKey('offices.id')),
+                 mysql_engine='InnoDB'
                  )
 
 batches = Table('batches', meta,
                 Column('id', INTEGER(), primary_key=True),
                 Column('name', T_NAME),
+                mysql_engine='InnoDB'
  );
 
 clients = Table('clients', meta,
@@ -50,14 +53,16 @@ clients = Table('clients', meta,
                 Column('DOB', DATE()),
                 Column('address', TEXT()),
                 Column('phone', T_PHONE),
-                Column('batch', INTEGER(), ForeignKey('batches.id'))
+                Column('batch', INTEGER(), ForeignKey('batches.id')),
+                mysql_engine='InnoDB'
                 )
 
 groups = Table('groups', meta,
                Column('id', INTEGER(), primary_key=True),
                Column('name', T_NAME),
                Column('rate', T_MONEY),
-               Column('Eval', BOOLEAN())
+               Column('Eval', BOOLEAN()),
+               mysql_engine='InnoDB'
                )
 
 sessions = Table('sessions', meta,
@@ -66,7 +71,8 @@ sessions = Table('sessions', meta,
                  Column('group_id', INTEGER(), ForeignKey('groups.id'),
                         nullable=False),
                  Column('time', T_CODE),
-                 Column('therapist', T_NAME)
+                 Column('therapist', T_NAME),
+                 mysql_engine='InnoDB'
                  )
 
 visits = Table('visits', meta,
@@ -80,7 +86,8 @@ visits = Table('visits', meta,
                Column('note', TEXT()),
                Column('bill_date', DATE()),
                Column('check_date', DATE()),
-               Column('ins_paid', T_MONEY)
+               Column('ins_paid', T_MONEY),
+               mysql_engine='InnoDB'
                )
 
 
