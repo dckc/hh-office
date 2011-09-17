@@ -324,10 +324,10 @@ def import_csv(trx, fn, table, create=True, colsize=500):
 def _create_ddl(table, colnames, colsize):
     '''
     >>> _create_ddl('item', ('id', 'size', 'price'), 50)
-    'create table "item" ("id" varchar2(50), "size" varchar2(50), "price" varchar2(50))'
+    'create table "item" ("id" varchar(50), "size" varchar(50), "price" varchar(50))'
     '''
     return 'create table "%s" (%s)' % (
-        table, ', '.join(['"%s" varchar2(%d)' % (n, colsize)
+        table, ', '.join(['"%s" varchar(%d)' % (n, colsize)
                           for n in colnames]))
 
 
