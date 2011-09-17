@@ -7,7 +7,7 @@ DABBLE_RESTORE_DB=/tmp/dz.db
 
 hh_data1.py: $(DABBLE_RESTORE_DB)
 	$(SQLAUTOCODE) sqlite:///$(DABBLE_RESTORE_DB) --noindex -o $@ \
-		--noindex --generic-types --declarative
+		--noindex --generic-types
 
 # obsolete: this is done at run-time by print_report
 amt_due_skel.xml: amt_due_skel.html reportspec.xsl
