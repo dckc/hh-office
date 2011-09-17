@@ -21,15 +21,21 @@
 <thead>
   <tr id="per_group">
     <th id="group_id" title="group_name" align="left" class="field"
+        colspan="2"
 	>Group X..0.........0.........0</th>
   </tr>
   <tr id="per_client">
     <th class="literal blank">  </th>
     <th id="client_id" title="client_name" align="left" class="field"
 	>Lastname, Firstname ________9_</th>
+    <th class="literal blank">..........................</th>
+    <th class="field" title="iif(officer_name>'', 'Officer: ', '')"
+	>Officer: </th>
+    <th id="client_id" title="officer_name" align="left" class="field"
+	>Officer             ________9_</th>
   </tr>
 </thead>
-<tbody><tr><td>
+<tbody><tr><td colspan="9">
 
 
 <table class="Detail">
@@ -41,13 +47,13 @@
       <th align="right">Client Pd</th>
       <th align="right">Ins. Pd</th>
       <th align="right">Due</th>
-      <th align="left">Note</th>
+      <th align="left">  Note</th>
     </tr>
   </thead>
 
   <tfoot>
     <tr class="per_client">
-      <td>...... mm/dd/yyyy<!-- placeholder for session date in footer --></td>
+      <td>......&#160;mm/dd/yyyy<!-- placeholder for session date in footer --></td>
       <td title="attend_n" class="sum" align="right"
 	  > 1,000</td>
       <td title="charge" class="sum money" align="right"
@@ -78,7 +84,7 @@
 	  > 1,000.00</td>
       <!-- todo: more space before note -->
       <td title="note" align="left"
-	  >...........................<!--
+	  >....................................<!--
       todo: handle multi-line notes --></td>
     </tr>
   </tbody>

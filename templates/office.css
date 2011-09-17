@@ -7,6 +7,13 @@ h2.PageHeader { background: #d0d0d0; font-size: 11pt }
 
 .reversed { color: white; background: black }
 
+.Breaks tfoot { font-weight: bold }
+.field { font-style: italic }
+.Detail tbody tr td { font-style: italic }
+.Breaks tfoot tr td { font-style: italic }
+
+.money { color: green }
+
 /* hmm... table { width: 100% } */
 
 table.Detail thead tr th {
