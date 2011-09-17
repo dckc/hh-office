@@ -31,7 +31,7 @@ CREATE TABLE clients (
 CREATE TABLE groups (
   id INTEGER PRIMARY KEY 
  ,   name TEXT 
- ,   rate NUMBER 
+ ,   rate NUMERIC 
  ,   Eval INTEGER 
  );
 CREATE TABLE sessions (
@@ -46,9 +46,9 @@ CREATE TABLE visits (
  ,   session INTEGER 
  ,   client INTEGER 
  ,   attend INTEGER 
- ,   client_pd NUMBER 
+ ,   client_pd NUMERIC 
  ,   note TEXT 
  ,   bill_date DATE 
  ,   check_date DATE 
- ,   ins_paid NUMBER 
+ ,   ins_paid NUMERIC 
  );
