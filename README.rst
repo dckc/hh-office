@@ -32,6 +32,12 @@ TODO
 
 Unmet requirements:
 
+ * optimize entering sign-in sheets
+   * reduce clutter; make it obvious how to make a new session
+    * reduce mouse work
+       * choosing clients
+       * how to Save the sign-in sheet with the keyboard?
+       * tabbing between fields in general
  * link pdf report
    * link cgi
    * access control for printed reports

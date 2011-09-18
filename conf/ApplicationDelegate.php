@@ -31,5 +31,10 @@ class conf_ApplicationDelegate {
       return Dataface_PermissionsTool::NO_ACCESS();
     }
   }
+
+  function block__custom_stylesheets2() {
+    echo '<link rel="stylesheet" href="./midwest.css" />';
+  }
+
 }
 ?>

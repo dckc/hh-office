@@ -1,0 +1,18 @@
+/* Midwest style... counter-act some plone-isms. */
+body {
+  font-size: 80%
+}
+
+#portal-siteactions li a {
+  text-transform: none !important
+}
+#portal-globalnav li a {
+  text-transform: none !important
+}
+.contentViews li a {
+  text-transform: none !important
+}
+
+.portlet h5 {
+  text-transform: none !important
+}
