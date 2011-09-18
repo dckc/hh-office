@@ -36,5 +36,13 @@ class conf_ApplicationDelegate {
     echo '<link rel="stylesheet" href="./midwest.css" />';
   }
 
+
+  function beforeHandleRequest(){
+    $query =& Dataface_Application::getInstance()->getQuery();
+    if ( !$_POST and $query['-table'] == 'Session'
+	 and !isset($query['-sort']) ){
+        $query['-sort'] = 'session_date desc';
+    }
+  }
 }
 ?>

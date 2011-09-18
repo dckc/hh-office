@@ -55,6 +55,9 @@ per http://xataface.com/forum/viewtopic.php?t=5236#25458
 code clean-up:
   - rename Attendance_by_Group view, since it works for by client too
 
+data cleanup:
+  - be more rigorous about time? time interval? start/end time?
+
 Near term goals:
 
  * permissions: view-only vs. edit
