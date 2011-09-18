@@ -21,14 +21,14 @@ from sqlalchemy import create_engine, MetaData, Table, Column
 from sqlalchemy import TEXT, VARCHAR, INTEGER
 from sqlalchemy.schema import CreateTable
 
-import hh_data1 as hh
+import hh_data1 as hh  # misnomer? should be dabble?
 
 
 def main(argv):
     if '--zoho' in argv:
         d = argv[2]
-        c = xataface_connection()
-        import_zoho(c, d)
+        xe = xataface_engine()
+        import_zoho(xe, d)
     elif '--dabble' in argv:
         sqdb = argv[2]
         de = create_engine('sqlite:///%s' % sqdb)
@@ -83,8 +83,10 @@ def import_dabble(dabble, xata, dabble_schema='dabbledb',
     raise RuntimeError, '@@now copy the records...'
 
 
-def import_zoho(conn, d):
-    with transaction(conn) as do:
+def import_zoho(ze, d):
+    zcmeta = MetaData(ze)
+
+    with transaction(ze) as do:
         do.execute('drop database if exists zc');
         do.execute('create database zc'
                    ' character set utf8'
@@ -96,17 +98,22 @@ def import_zoho(conn, d):
             r = csv.reader(open(os.path.join(d, fn)))
             schema = [colname + '_' if colname.lower() == 'group' else colname
                       for colname in r.next()]
+            t = with_cols(zcmeta, n, schema,
+                          mysql_engine='InnoDB',
+                          schema='zc')
 
-            with transaction(conn) as do:
-                do.execute('use zc')
-                do.execute(create_ddl(n, schema))
+            with transaction(ze) as do:
+                t.create(bind=ze)
+
             print "created: ", n, schema
 
-            rows = [[None] + [fix_cell(txt) for txt in row]
+            rows = [dict(dict(zip(schema, [fix_cell(txt) for txt in row])),
+                         pkey=None)
                     for row in r]
 
-            with transaction(conn) as do:
-                do.executemany(insert_dml(n, schema), rows)
+            print "@@rows: ", rows[:3]
+            with transaction(ze) as do:
+                do.execute(t.insert(n, schema), rows)
                                                                
             print "inserted %d rows." % len(rows)
 
@@ -173,14 +180,13 @@ def xataface_connection(ini='conf.ini', section='_database'):
 
 
 
-def with_cols(meta, tn, cols, *extra):
+def with_cols(meta, tn, cols, **kw):
     cols = [Column('pkey', INTEGER(), primary_key=True)] + [
         Column(n,
                TEXT() if ('note' in n.lower() or '_link' in n
                           or n == 'Approval') else VARCHAR(80))
         for n in cols]
-    return Table(tn, meta,
-                 *(tuple(cols) + extra))
+    return Table(tn, meta, *tuple(cols), **kw)
 
 
 def create_ddl(table_name, cols):
@@ -230,21 +236,25 @@ def load_data_dummy():
 
 
 @contextmanager
-def transaction(conn):
-    '''Return an Oracle database cursor manager.
+def transaction(e):
+    '''Return a sqlalchemy transaction manager.
 
-    :param conn: an Oracle connection
+    see `Using Transactions`__
+    __ http://www.sqlalchemy.org/docs/core/connections.html#using-transactions
+
+    :param e: an engine
     '''
-    c = conn.cursor()
+    conn = e.connect()
+    trx = conn.begin()
     try:
-        yield c
+        yield conn
     except IOError:
-        conn.rollback()
+        trx.rollback()
         raise
     else:
-        conn.commit()
+        trx.commit()
     finally:
-        c.close()
+        conn.close()
 
 
 if __name__ == '__main__':
