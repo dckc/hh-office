@@ -68,7 +68,7 @@ join (
   group by c.id
   ) t
 on t.id == c.id
-where julianday('now') - julianday(t.last_seen) < 60
+where julianday('2011-05-18') - julianday(t.last_seen) < 60
 ;
 
 create table current_visits as

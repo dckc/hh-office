@@ -82,9 +82,29 @@ select s.id as Session_id
      , v.note
      , v.bill_date
      , v.check_date
-     , v.id_zoho as id_zoho, v.id_dabble
+     , v.id_zoho, v.id_dabble
 from zc.Visit v
 join Client c on v.Client_id_zoho = c.id_zoho
 join `Session` s on v.Session_id_zoho = s.id_zoho
 order by s.session_date, c.name;
 
+/* I'm not seeing a client name for some visits. What's up?
+select
+(select count(*) from zc.Visit) as zc_visits,
+(select count(*) from hh_office.Visit) as hh_visits;
+
+
+select *
+from Visit v
+left join Client c on v.Client_id = c.id
+where c.id is null
+-- and v.id_dabble is not null
+;
+
+select *
+from zc.Visit v
+left join zc.Client c on v.Client_id_zoho = c.id_zoho
+where c.id_zoho is null
+-- and v.id_dabble is not null
+;
+ */
