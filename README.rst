@@ -43,6 +43,7 @@ Unmet requirements:
    * access control for printed reports
  * compute Visit.due in a field
  * exclude inactive clients for performance?
+ * default Visit.client_paid to 0.00
  * default Visit.charge from Group.rate::
 
   class tables_individual {
