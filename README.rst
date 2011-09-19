@@ -32,7 +32,12 @@ TODO
 
 Unmet requirements:
 
+ * restore from Zoho, DabbleDB backups
+
  * optimize entering sign-in sheets
+   * therapist order (Sep 17 testing)
+   * clients case sensitive
+   * pick client w keyboard
    * reduce clutter; make it obvious how to make a new session
     * reduce mouse work
        * choosing clients

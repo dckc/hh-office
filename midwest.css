@@ -16,3 +16,6 @@ body {
 .portlet h5 {
   text-transform: none !important
 }
+
+.money { text-align: right }
+.qty { text-align: right }
