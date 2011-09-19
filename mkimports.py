@@ -93,31 +93,27 @@ def import_zoho(ze, d):
                    ' collate utf8_bin');
 
     for fn in sorted(os.listdir(d)):
-        if fn.endswith('.csv'):
-            n = fn[:-len('.csv')]
-            r = csv.reader(open(os.path.join(d, fn)))
-            schema = [colname + '_' if colname.lower() == 'group' else colname
-                      for colname in r.next()]
-            t = with_cols(zcmeta, n, schema,
-                          mysql_engine='InnoDB',
-                          schema='zc')
+        if not fn.endswith('.csv'):
+            continue
+        n = fn[:-len('.csv')]
+        r = csv.reader(open(os.path.join(d, fn)))
+        schema = r.next()
+        t = with_cols(zcmeta, n, schema,
+                      mysql_engine='InnoDB',
+                      schema='zc')
 
-            with transaction(ze) as do:
-                t.create(bind=ze)
+        with transaction(ze) as do:
+            t.create(bind=ze)
 
             print "created: ", n, schema
 
-            rows = [dict(dict(zip(schema, [fix_cell(txt) for txt in row])),
-                         pkey=None)
+            rows = [dict(zip(schema, [fix_cell(txt) for txt in row]))
                     for row in r]
+            if rows:
+                do.execute(t.insert(), rows)
+                print "inserted %d rows." % len(rows)
 
-            print "@@rows: ", rows[:3]
-            with transaction(ze) as do:
-                do.execute(t.insert(n, schema), rows)
-                                                               
-            print "inserted %d rows." % len(rows)
-
-            print
+        print
 
 
 def fix_cell(txt):
