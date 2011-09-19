@@ -13,27 +13,22 @@ import csv
 import ConfigParser
 from contextlib import contextmanager
 
-import MySQLdb   #@@@
-
 # http://pypi.python.org/pypi/SQLAlchemy/0.7.2
 # b84a26ae2e5de6f518d7069b29bf8f72
 from sqlalchemy import create_engine, MetaData, Table, Column
 from sqlalchemy import TEXT, VARCHAR, INTEGER
 from sqlalchemy.schema import CreateTable
 
-import hh_data1 as hh  # misnomer? should be dabble?
-
 
 def main(argv):
     if '--zoho' in argv:
         d = argv[2]
         xe = xataface_engine()
-        import_zoho(xe, d)
+        import_csvdir(xe, d, 'zc', zoho_fixup)
     elif '--dabble' in argv:
-        sqdb = argv[2]
-        de = create_engine('sqlite:///%s' % sqdb)
+        d = argv[2]
         xe = xataface_engine()
-        import_dabble(de, xe)
+        import_csvdir(xe, d, 'dabbledb', dabble_fixup)
     elif '--diagram' in argv:
         outf = argv[2]
         xe = xataface_engine()
@@ -64,33 +59,14 @@ def schema_diagram(xe, outf):
     graph.write_svg(outf)
 
 
-def import_dabble(dabble, xata, dabble_schema='dabbledb',
-                  tables=('offices', 'officers'
-                          'batches', 'clients',
-                          'groups', 'sessions', 'visits')
-                  ):
-    meta = hh.meta
+def import_csvdir(engine, d, db, fixup):
+    meta = MetaData(engine)
 
-    for tn, t in list(meta.tables.iteritems()):
-        print CreateTable(t, on='mysql')
-
-    xata.execute('use %s' % dabble_schema)
-    print "dropping: ", meta.tables.keys()
-    meta.drop_all(bind=xata)
-    print "creating: ", meta.tables.keys()
-    meta.create_all(bind=xata)
-
-    raise RuntimeError, '@@now copy the records...'
-
-
-def import_zoho(ze, d):
-    zcmeta = MetaData(ze)
-
-    with transaction(ze) as do:
-        do.execute('drop database if exists zc');
-        do.execute('create database zc'
+    with transaction(engine) as do:
+        do.execute('drop database if exists %s' % db);
+        do.execute('create database %s'
                    ' character set utf8'
-                   ' collate utf8_bin');
+                   ' collate utf8_bin' % db);
 
     for fn in sorted(os.listdir(d)):
         if not fn.endswith('.csv'):
@@ -98,22 +74,34 @@ def import_zoho(ze, d):
         n = fn[:-len('.csv')]
         r = csv.reader(open(os.path.join(d, fn)))
         schema = r.next()
-        t = with_cols(zcmeta, n, schema,
-                      mysql_engine='InnoDB',
-                      schema='zc')
+        t = with_cols(meta, n, schema,
+                      schema=db)
 
-        with transaction(ze) as do:
-            t.create(bind=ze)
+        with transaction(engine) as do:
+            t.create(bind=engine)
 
-            print "created: ", n, schema
+            print "created: ", n, schema, CreateTable(t, bind=engine)
+            import sys
+            sys.stdout.flush()
 
-            rows = [dict(zip(schema, [fix_cell(txt) for txt in row]))
-                    for row in r]
+            rows = fixup(schema, r)
             if rows:
                 do.execute(t.insert(), rows)
                 print "inserted %d rows." % len(rows)
 
         print
+
+
+def dabble_fixup(schema, r):
+    '''oops... I guess I could just use LOAD DATA INFILE for dabble.
+    '''
+    return [dict(zip(schema, row))
+            for row in r]
+
+
+def zoho_fixup(schema, r):
+    return [dict(zip(schema, [fix_cell(txt) for txt in row]))
+            for row in r]
 
 
 def fix_cell(txt):
@@ -145,90 +133,18 @@ def xataface_engine(ini='conf.ini', section='_database'):
         return v[1:-1]  # strip ""s
 
     # per http://www.sqlalchemy.org/docs/dialects/mysql.html#module-sqlalchemy.dialects.mysql.mysqldb
-    return create_engine('mysql+mysqldb://%s:%s@%s/%s' % (
+    return create_engine('mysql+mysqldb://%s:%s@%s/%s?charset=utf8' % (
         opt('user'), opt('password'), opt('host'), opt('name'))
                          , pool_recycle=3600)
 
 
-def xataface_connection(ini='conf.ini', section='_database'):
-    '''Open mysql connection following xataface conventions.
-
-    @param ini: `conf.ini`, per `xataface docs`__
-    @param section: `_database`, per xataface
-
-    __ http://xataface.com/wiki/conf.ini_file
-
-    .. todo: separate this integration test from unit/function tests.
-
-      >>> xataface_connection() is None
-      False
-
-    '''
-    opts = ConfigParser.SafeConfigParser()
-    opts.read(ini)
-
-    def opt(n):
-        v = opts.get(section, n)
-        return v[1:-1]  # strip ""s
-
-    return MySQLdb.connect(opt('host'), opt('user'),
-                           opt('password'), opt('name'))
-
-
-
-def with_cols(meta, tn, cols, **kw):
+def with_cols(meta, tn, cols, field_size=80, **kw):
     cols = [Column('pkey', INTEGER(), primary_key=True)] + [
         Column(n,
                TEXT() if ('note' in n.lower() or '_link' in n
-                          or n == 'Approval') else VARCHAR(80))
+                          or n == 'Approval') else VARCHAR(field_size))
         for n in cols]
     return Table(tn, meta, *tuple(cols), **kw)
-
-
-def create_ddl(table_name, cols):
-    r'''
-    >>> ddl = create_ddl('products', ['id', 'size', 'color',
-    ...                               'note', 'orders_link'])
-    >>> print ddl  #doctest: +NORMALIZE_WHITESPACE
-    CREATE TABLE products (
-    	pkey INTEGER NOT NULL, 
-    	id VARCHAR(80), 
-    	size VARCHAR(80), 
-    	color VARCHAR(80), 
-    	note TEXT, 
-    	orders_link TEXT, 
-    	PRIMARY KEY (pkey)
-    )
-
-
-    '''
-    t = with_cols(MetaData(), table_name, cols)
-    return str(CreateTable(t))
-
-
-def insert_dml(table_name, cols):
-    r'''
-      >>> dml = insert_dml('products', ('id', 'size', 'color'))
-      >>> dml #doctest: +NORMALIZE_WHITESPACE
-      'INSERT INTO products (pkey, id, size, color)
-       VALUES (:pkey, :id, :size, :color)'
-
-    '''
-    t = with_cols(MetaData(), table_name, cols)
-    return str(t.insert())
-
-
-def load_data_dummy():
-    sql=  r"""LOAD DATA LOCAL INFILE  '%s'
-              INTO TABLE  `%s`
-              CHARACTER SET binary
-              FIELDS TERMINATED BY  ','
-              ENCLOSED BY  '"'
-              ESCAPED BY  '\\'
-              LINES TERMINATED BY  '\n' """
-
-    #" '
-
 
 
 @contextmanager
