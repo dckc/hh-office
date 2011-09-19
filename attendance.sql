@@ -1,10 +1,12 @@
 use hh_office;
 
-create or replace view Attendance_by_Group as
+drop view Attendance_by_Group;
+
+create or replace view Attendance as
 select v.id
      , g.id as group_id, g.name as group_name
      , c.id as client_id, c.name as client_name, o.name as officer_name
-     , date_format(s.session_date, '%Y-%m-%d') as session_date
+     , s.id as session_id, date_format(s.session_date, '%Y-%m-%d') as session_date
      , attend_n, charge, client_paid
      , insurance_paid, due
      , v.note
