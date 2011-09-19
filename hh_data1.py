@@ -90,16 +90,14 @@ visits = Table('visits', meta,
                mysql_engine='InnoDB'
                )
 
-
+from sqlalchemy.dialects.mysql import TEXT
 Progressnote =  Table('Progressnote', meta,
-    Column(u'ID', VARCHAR(length=500), primary_key=False),
-            Column(u'CLIENT', VARCHAR(length=500), primary_key=False),
-            Column(u'SESSION_DATE', VARCHAR(length=500), primary_key=False),
-            Column(u'SESSION_DURATION', VARCHAR(length=500), primary_key=False),
-            Column(u'NOTES', VARCHAR(length=500), primary_key=False),
-            Column(u'SIGNED_BY', VARCHAR(length=500), primary_key=False),
-            Column(u'SIGNED_ON', VARCHAR(length=500), primary_key=False),
-    
-    
+    Column(u'ID', INTEGER(), primary_key=True),
+            Column(u'client', INTEGER(), ForeignKey("clients.id")),
+            Column(u'session date', T_CODE),
+            Column(u'session duration', T_CODE),
+            Column(u'notes', TEXT(charset='utf8')),
+            Column(u'signed_by', T_NAME),
+            Column(u'signed_on', T_CODE)
     )
 
