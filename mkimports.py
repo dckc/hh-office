@@ -18,20 +18,23 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine, MetaData, Table, Column
 from sqlalchemy import TEXT, VARCHAR, INTEGER
 from sqlalchemy.schema import CreateTable
+from sqlalchemy.engine.url import URL
 
 
 def main(argv):
     if '--zoho' in argv:
         d = argv[2]
-        xe = xataface_engine()
+        xe = create_engine(xataface_url(ini, section))
         import_csvdir(xe, d, 'zc', zoho_fixup)
     elif '--dabble' in argv:
         d = argv[2]
-        xe = xataface_engine()
+        xe = create_engine(xataface_url(ini, section))
         import_csvdir(xe, d, 'dabbledb', dabble_fixup)
+    elif '--connurl' in argv:
+        print xataface_url()
     elif '--diagram' in argv:
         outf = argv[2]
-        xe = xataface_engine()
+        xe = create_engine(xataface_url(ini, section))
         schema_diagram(xe, outf)
     else:
         print >> sys.stderr, __doc__
@@ -111,18 +114,16 @@ def fix_cell(txt):
         return txt.replace('zccomma', ',').replace('zcnewline', '\n')
 
 
-def xataface_engine(ini='conf.ini', section='_database'):
-    '''Make sqlalchemy engine following xataface conventions.
+def xataface_url(ini='conf.ini', section='_database', driver='mysql+mysqldb'):
+    '''Make sqlalchemy connection string URL following xataface conventions.
 
     @param ini: `conf.ini`, per `xataface docs`__
     @param section: `_database`, per xataface
 
     __ http://xataface.com/wiki/conf.ini_file
 
-    .. todo: separate this integration test from unit/function tests.
-
-      >>> xataface_engine() is None
-      False
+      >>> xataface_url().database
+      'hh_office'
 
     '''
     opts = ConfigParser.SafeConfigParser()
@@ -132,10 +133,8 @@ def xataface_engine(ini='conf.ini', section='_database'):
         v = opts.get(section, n)
         return v[1:-1]  # strip ""s
 
-    # per http://www.sqlalchemy.org/docs/dialects/mysql.html#module-sqlalchemy.dialects.mysql.mysqldb
-    return create_engine('mysql+mysqldb://%s:%s@%s/%s?charset=utf8' % (
-        opt('user'), opt('password'), opt('host'), opt('name'))
-                         , pool_recycle=3600)
+    return URL(driver, opt('user'), opt('password'),
+               host=opt('host'), database=opt('name'))
 
 
 def with_cols(meta, tn, cols, field_size=80, **kw):

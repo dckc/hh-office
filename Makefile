@@ -5,6 +5,10 @@ SQLAUTOCODE=sqlautocode
 
 DABBLE_RESTORE_DB=/tmp/dz.db
 
+hh_data2.py: $(DABBLE_RESTORE_DB)
+	$(SQLAUTOCODE) `python mkimports.py --connurl` -o $@ \
+		--generic-types
+
 hh_data1.py: $(DABBLE_RESTORE_DB)
 	$(SQLAUTOCODE) sqlite:///$(DABBLE_RESTORE_DB) --noindex -o $@ \
 		--noindex --generic-types
