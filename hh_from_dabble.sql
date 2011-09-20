@@ -78,60 +78,34 @@ having count(*) > 1
 
 /********* **********/
 
+create index dab on hh_office.Client (id_dabble);
+create index dab on hh_office.`Session` (id_dabble);
+create index visit_match on hh_office.Visit (Session_id, Client_id);
+create index visit_match on dabbledb.Visit (`session`, client);
+
 select count(*)
 from hh_office.Visit
 where id_dabble is not null;
 
-select count(*)
+insert into hh.Visit (
+  id_dabble, Session_id, Client_id, attend_n, client_paid
+, note, bill_date, check_date, insurance_paid)
+select 0+dv.id as id_dabble, hs.id as Session_id, hc.id as Client_id
+     , 0+attend as attend_n
+     , 0+substr(`client pd`, length('USD $.')) as client_paid
+     , dv.note
+     , case when `bill date` > ''
+       then STR_TO_DATE(`bill date`,'%m/%d/%Y')
+       else null end as bill_date
+     , case when `check date` > ''
+       then STR_TO_DATE(`check date`,'%m/%d/%Y')
+       else null end as check_date
+     , case when `ins paid $` > ''
+       then 0+substr(`ins paid $`, length('USD $.'))
+       else null end as insurance_paid
 from dabbledb.Visit dv
-left join hh_office.Visit hv on hv.id_dabble = dv.id
-where hv.id_dabble is null;
-
-
-insert into visits
-select 0+id, 0+session, 0+client
-     , case when attend > 0 then 'true' else 'false' end
-     , 0+substr(client_pd, length('USD $.'))
-     , note
-     , case when bill_date > '' then
-       substr(bill_date, 7, 4) || '-' ||
-       substr(bill_date, 1, 2) || '-' ||
-       substr(bill_date, 4, 2)
-       else null end
-     , case when check_date > '' then
-       substr(check_date, 7, 4) || '-' ||
-       substr(check_date, 1, 2) || '-' ||
-       substr(check_date, 4, 2)
-       else null end
-     , case when "INS_PAID_$" > ''
-       then 0+substr("INS_PAID_$", length('USD $.'))
-       else null end
-from Visit
-where session > '' and client > '';
-
-create table current_clients as
-select c.* from clients c
-join (
-  select max(s.date) last_seen, c.id
-  from clients c
-  join visits v on v.client = c.id
-  join sessions s on v.session = s.id
-  group by c.id
-  ) t
-on t.id == c.id
-where julianday('2011-05-18') - julianday(t.last_seen) < 60
-;
-
-create table current_visits as
-select v.*
-from visits v
-join current_clients cc
-  on v.client = cc.id
-;
-
-create table current_sessions as
-select s.*
-from sessions s
-join (select distinct session from current_visits) v
-  on v.session = s.id
-;
+left join hh_office.Session hs on dv.session = hs.id_dabble
+left join hh_office.Client hc on dv.client = hc.id_dabble
+left join hh_office.Visit hv on hv.Session_id = hs.id and hv.Client_id = hc.id
+where dv.session > '' and dv.client > ''
+and hv.id is null;
