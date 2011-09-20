@@ -1,3 +1,4 @@
+PYTHON=python
 DIFF=diff
 # see devtools target below
 XSLTPROC=xsltproc
@@ -5,7 +6,11 @@ SQLAUTOCODE=sqlautocode
 
 DABBLE_RESTORE_DB=/tmp/dz.db
 
-hh_data2.py: $(DABBLE_RESTORE_DB)
+hh_data2.sql: hh_data2.py
+	$(PYTHON) hh_data2.py >$@
+
+# This was for bootstrapping; it's no longer used.
+hh_data2.py:
 	$(SQLAUTOCODE) `python mkimports.py --connurl` -o $@ \
 		--generic-types
 
