@@ -2,26 +2,43 @@ SET sql_mode='ANSI_QUOTES';
 use hh_office;
 
 truncate table Therapist;
-truncate table "Group";
-truncate table "Session";
-truncate table "Officer";
-truncate table "Client";
-truncate table "Visit";
+truncate table `Group`;
+truncate table `Session`;
+truncate table Office;
+truncate table Officer;
+truncate table Client;
+truncate table Visit;
 
 insert into Therapist (id, name)
-select null, name
-from zc.Therapist
-order by name;
+select distinct null, Therapist_name
+from zc.Session
+where Therapist_name > ''
+order by Therapist_name;
 
-insert into "Group" (
+insert into `Group` (
   id, name, rate, evaluation,
   id_zoho, id_dabble )
-select null, name, rate, evaluation
-     , id_zoho, id_dabble
-from zc."Group"
+select null, name, rate, Eval
+     , primkey, id_dabble
+from zc.zcfrm_group
 order by name;
 
-insert into "Session" (
+-- drop table session;
+create or replace view zc.`Session` as
+select str_to_date(s.date_field, '%Y-%m-%d') as session_date
+     , s.Therapist as Therapist_name
+     , s.Time as time
+     , g.primkey as Group_id_zoho
+     , s.primkey as id_zoho
+     , s.id_dabble
+from zc.zcrel_session_group_name as sRg
+join zc.zcfrm_session as s
+on s.primkey = sRg.t_765721000000012056_PK
+join zc.zcfrm_group as g
+on g.primkey = sRg.t_765721000000011546_PK;
+
+
+insert into `Session` (
  id, session_date, Therapist_id, time, Group_id,
  id_zoho, id_dabble
 )
@@ -32,17 +49,36 @@ select null
      , g.id
      , s.id_zoho
      , s.id_dabble
-from zc.Session s
-join "Group" g on g.id_zoho = s.Group_id_zoho
+from zc.`Session` s
+join `Group` g on g.id_zoho = s.Group_id_zoho
 left join Therapist t on t.name = s.Therapist_name
 order by session_date, g.name;
 
-insert into Officer (
- name, email, id_zoho, id_dabble
-)
-select name, email, id_zoho, id_dabble
-from zc.Officer
+
+insert into Office (
+  id, name, address, fax, notes
+, id_zoho, id_dabble)
+select null
+     , name, address, fax, notes
+     , primkey as id_zoho, id_dabble
+from zc.zcfrm_office
 order by name;
+
+create or replace view zc.Officer as
+select zo.Name as name, email, zof.primkey as Office_id_zoho, zo.primkey as id_zoho, zo.id_dabble
+from zc.zcfrm_officer zo
+left join zc.zcrel_officer_office_name oro
+  on oro.t_765721000000011780_PK = zo.primkey
+left join zc.zcfrm_office zof on oro.t_765721000000011877_PK = zof.primkey;
+
+insert into Officer (
+ name, email, Office_id, id_zoho, id_dabble
+)
+select zo.name, zo.email, hof.id as office_id, zo.id_zoho, zo.id_dabble
+from zc.Officer zo
+left join Office hof on zo.Office_id_zoho = hof.id_zoho
+order by name;
+
 
 insert into Client (
        name, insurance, approval, DX, note

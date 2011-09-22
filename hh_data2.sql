@@ -8,20 +8,22 @@ CREATE TABLE users (
 
  ;
 
-CREATE TABLE `Therapist` (
+CREATE TABLE `Office` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
+	address VARCHAR(120), 
+	fax VARCHAR(120), 
+	notes TEXT, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB
 
  ;
 
-CREATE TABLE `Officer` (
+CREATE TABLE `Therapist` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
-	email VARCHAR(120), 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB
 
@@ -36,6 +38,19 @@ CREATE TABLE `Group` (
 	id_dabble VARCHAR(40), 
 	PRIMARY KEY (id), 
 	CHECK (evaluation IN (0, 1))
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Officer` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	email VARCHAR(120), 
+	`Office_id` INTEGER, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(`Office_id`) REFERENCES `Office` (id)
 )ENGINE=InnoDB
 
  ;

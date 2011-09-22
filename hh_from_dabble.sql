@@ -87,11 +87,12 @@ select count(*)
 from hh_office.Visit
 where id_dabble is not null;
 
-insert into hh.Visit (
-  id_dabble, Session_id, Client_id, attend_n, client_paid
+insert into hh_office.Visit (
+  id_dabble, Session_id, Client_id, attend_n, charge, client_paid
 , note, bill_date, check_date, insurance_paid)
 select 0+dv.id as id_dabble, hs.id as Session_id, hc.id as Client_id
      , 0+attend as attend_n
+     , 0+substr(dg.rate, length('USD $.')) as charge
      , 0+substr(`client pd`, length('USD $.')) as client_paid
      , dv.note
      , case when `bill date` > ''
@@ -104,8 +105,10 @@ select 0+dv.id as id_dabble, hs.id as Session_id, hc.id as Client_id
        then 0+substr(`ins paid $`, length('USD $.'))
        else null end as insurance_paid
 from dabbledb.Visit dv
+join dabbledb.`Session` ds on dv.session = ds.id
+join dabbledb.`Group` dg on ds.group = dg.id
 left join hh_office.Session hs on dv.session = hs.id_dabble
 left join hh_office.Client hc on dv.client = hc.id_dabble
 left join hh_office.Visit hv on hv.Session_id = hs.id and hv.Client_id = hc.id
 where dv.session > '' and dv.client > ''
-and hv.id is null;
+and hc.id is null or hs.id is null;

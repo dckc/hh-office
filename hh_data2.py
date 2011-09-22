@@ -47,10 +47,23 @@ Group =  Table('Group', metadata,
                )
 
 
+Office = Table('Office', metadata,
+               Column(u'id', INTEGER(), primary_key=True, nullable=False),
+               Column(u'name', TextLine, nullable=False),
+               Column(u'address', TextLine),
+               Column(u'fax', TextLine),
+               Column(u'notes', TEXT()),
+               Column(u'id_zoho', TextCode),
+               Column(u'id_dabble', TextCode),
+               mysql_engine='InnoDB'
+               )
+
+
 Officer = Table('Officer', metadata,
                 Column(u'id', INTEGER(), primary_key=True, nullable=False),
                 Column(u'name', TextLine, nullable=False),
                 Column(u'email', TextLine),
+                Column(u'Office_id', INTEGER(), ForeignKey('Office.id')),
                 Column(u'id_zoho', TextCode),
                 Column(u'id_dabble', TextCode),
                 mysql_engine='InnoDB'
