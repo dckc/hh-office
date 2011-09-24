@@ -32,6 +32,9 @@ def main(argv):
         import_csvdir(xe, d, 'dabbledb', dabble_fixup)
     elif '--connurl' in argv:
         print xataface_url()
+    elif '--run' in argv:
+        scriptfn = argv[2]
+        print run_script(scriptfn)
     elif '--diagram' in argv:
         outf = argv[2]
         xe = create_engine(xataface_url(ini, section))
@@ -114,15 +117,15 @@ def fix_cell(txt):
         return txt.replace('zccomma', ',').replace('zcnewline', '\n')
 
 
-def xataface_url(ini='conf.ini', section='_database', driver='mysql+mysqldb'):
-    '''Make sqlalchemy connection string URL following xataface conventions.
+def xataface_params(ini='conf.ini', section='_database'):
+    '''Get msyql connection parameters following xataface conventions.
 
     @param ini: `conf.ini`, per `xataface docs`__
     @param section: `_database`, per xataface
 
     __ http://xataface.com/wiki/conf.ini_file
 
-      >>> xataface_url().database
+      >>> xataface_params()[3]
       'hh_office'
 
     '''
@@ -133,9 +136,22 @@ def xataface_url(ini='conf.ini', section='_database', driver='mysql+mysqldb'):
         v = opts.get(section, n)
         return v[1:-1]  # strip ""s
 
-    return URL(driver, opt('user'), opt('password'),
-               host=opt('host'), database=opt('name'))
+    return opt('user'), opt('password'), opt('host'), opt('name')
 
+
+def xataface_url(driver='mysql+mysqldb'):
+    '''Make sqlalchemy connection string URL following xataface conventions.
+
+      >>> xataface_url().database
+      'hh_office'
+
+    '''
+    u, p, h, n = xataface_params()
+    return URL(driver, u, p, host=h, database=n)
+
+def run_script(script_fn):
+    u, p, h, n = xataface_params()
+    print ['@@mysql', '-u', u, '-p', p, '-h', h, '--database', n, script_fn]
 
 def with_cols(meta, tn, cols, field_size=80, **kw):
     cols = [Column('pkey', INTEGER(), primary_key=True)] + [

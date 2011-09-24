@@ -4,7 +4,22 @@ DIFF=diff
 XSLTPROC=xsltproc
 SQLAUTOCODE=sqlautocode
 
-DABBLE_RESTORE_DB=/tmp/dz.db
+DABBLE_BAK=$(HOME)/Dropbox/hh-dabble-kaput/Dabble-2011-05-16-130809/
+ZOHO_BAK=$(HOME)/Desktop/hh-zoho-bak/
+
+
+,din: hh_from_dabble.sql ,dbak ,zin
+	$(PYTHON) mkimports.py --run hh_from_dabble.sql >$@
+
+,dbak:
+	$(PYTHON) mkimports.py --dabble $(DABBLE) >$@
+
+,zin: hh_from_zc.sql ,zbak
+	$(PYTHON) mkimports.py --run hh_from_zc.sql >$@
+
+,zbak:
+	$(PYTHON) mkimports.py --zoho $(ZOHO_BAK) >$@
+
 
 hh_data2.sql: hh_data2.py
 	$(PYTHON) hh_data2.py >$@
