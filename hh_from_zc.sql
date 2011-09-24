@@ -1,19 +1,13 @@
 SET sql_mode='ANSI_QUOTES';
 use hh_office;
 
-truncate table Therapist;
-truncate table `Group`;
-truncate table `Session`;
-truncate table Office;
-truncate table Officer;
-truncate table Client;
 truncate table Visit;
-
-insert into Therapist (id, name)
-select distinct null, Therapist_name
-from zc.Session
-where Therapist_name > ''
-order by Therapist_name;
+truncate table `Session`;
+truncate table `Group`;
+truncate table Therapist;
+truncate table Client;
+truncate table Officer;
+truncate table Office;
 
 insert into `Group` (
   id, name, rate, evaluation,
@@ -37,6 +31,12 @@ on s.primkey = sRg.t_765721000000012056_PK
 join zc.zcfrm_group as g
 on g.primkey = sRg.t_765721000000011546_PK;
 
+
+insert into Therapist (id, name)
+select distinct null, Therapist_name
+from zc.Session
+where Therapist_name > ''
+order by Therapist_name;
 
 insert into `Session` (
  id, session_date, Therapist_id, time, Group_id,
@@ -79,6 +79,18 @@ from zc.Officer zo
 left join Office hof on zo.Office_id_zoho = hof.id_zoho
 order by name;
 
+-- ugh. encoding problem: Fiehler, Tanner (ADV - $15/session; must bring â‰¥ $20/week to attend)
+
+create or replace view zc.Client as
+select c.Name as name, Ins as insurance, Approval as approval, DX, Note as note
+     , address, phone, DOB, File as file, file_site, file_opened, o.primkey as Officer_id_zoho
+     , c.primkey as id_zoho, c.id_dabble
+from zc.zcfrm_client as c
+left join zc.zcrel_client_officer_name as cRo
+  on cRo.t_765721000000011616_PK = c.primkey
+left join zc.zcfrm_officer as o
+  on cRo.t_765721000000011780_PK = o.primkey;
+
 
 insert into Client (
        name, insurance, approval, DX, note
@@ -93,8 +105,34 @@ from zc.Client zc
 left join Officer ho on ho.id_zoho = zc.Officer_id_zoho
 order by name;
 
-create index client_id_zoho on Client(id_zoho);
-create index session_id_zoho on Session(id_zoho);
+
+create unique index session_primkey on zc.zcfrm_session (primkey);
+create unique index client_primkey on zc.zcfrm_client (primkey);
+create unique index visit_primkey on zc.zcfrm_visit (primkey);
+create index zrvs on zc.zcrel_visit_session (t_765721000000011230_PK);
+
+create or replace view zc.Visit as
+select s.primkey as Session_id_zoho
+     , c.primkey as Client_id_zoho
+     , cast(attend_n as unsigned integer) as attend_n
+     , convert(charge, decimal(6, 2)) as charge
+     , convert(client_pd, decimal(6, 2)) as client_paid
+     , convert(ins_paid, decimal(6, 2)) as insurance_paid
+     , convert(Due, decimal(6, 2)) as due
+     , v.note
+     , str_to_date(v.bill_date, '%Y-%m-%d') as bill_date
+     , str_to_date(v.check_date, '%Y-%m-%d') as check_date
+     , v.primkey as id_zoho, v.id_dabble
+from zc.zcrel_visit_client as vRc
+join zc.zcfrm_visit as v
+  on v.primkey = vRc.t_765721000000011230_PK
+join zc.zcfrm_client as c
+  on c.primkey = vRc.t_765721000000011616_PK
+join zc.zcrel_visit_session as vRs
+  on v.primkey = vRs.t_765721000000011230_PK
+join zc.zcfrm_session as s
+  on s.primkey = t_765721000000012056_PK;
+
 
 insert into Visit (
        Session_id

@@ -9,16 +9,20 @@ ZOHO_BAK=$(HOME)/Desktop/hh-zoho-bak/
 
 
 ,din: hh_from_dabble.sql ,dbak ,zin
-	$(PYTHON) mkimports.py --run hh_from_dabble.sql >$@
+	$(PYTHON) mkimports.py --run hh_from_dabble.sql >$@ \
+		|| (mv -f $@ ,errs; exit 1)
 
 ,dbak:
-	$(PYTHON) mkimports.py --dabble $(DABBLE) >$@
+	$(PYTHON) mkimports.py --dabble $(DABBLE_BAK) >$@ \
+		|| (mv -f $@ ,errs; exit 1)
 
 ,zin: hh_from_zc.sql ,zbak
-	$(PYTHON) mkimports.py --run hh_from_zc.sql >$@
+	$(PYTHON) mkimports.py --run hh_from_zc.sql && \
+		touch $@
 
 ,zbak:
-	$(PYTHON) mkimports.py --zoho $(ZOHO_BAK) >$@
+	$(PYTHON) mkimports.py --zoho $(ZOHO_BAK) >$@ \
+		|| (mv -f $@ ,errs; exit 1)
 
 
 hh_data2.sql: hh_data2.py

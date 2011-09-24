@@ -46,7 +46,6 @@ left join hh_office.`Group` hg on hg.id_dabble = dg.id
 where hg.id_dabble is null;
 
 create index gid on dabbledb.`Group` (id);
-create index session_dabble on hh_office.`Session` (id_dabble);
 
 insert into hh_office.`Session`
  (session_date, time, Group_id, Therapist_id, id_dabble)
@@ -60,8 +59,8 @@ where hs.id_dabble is null;
 
 
 create index visit_id on dabbledb.`Visit` (id);
-create index visit_dabble on hh_office.`Visit` (id_dabble);
 
+/*
 -- ouch!!!
 select count(*)
 from zc.zcfrm_visit
@@ -75,17 +74,15 @@ from hh_office.Visit
 group by Session_id, Client_id
 having count(*) > 1
 ) dups on dups.Client_id = a.client_id and dups.Session_id = a.session_id;
+*/
 
 /********* **********/
 
-create index dab on hh_office.Client (id_dabble);
-create index dab on hh_office.`Session` (id_dabble);
-create index visit_match on hh_office.Visit (Session_id, Client_id);
-create index visit_match on dabbledb.Visit (`session`, client);
-
+/*
 select count(*)
 from hh_office.Visit
 where id_dabble is not null;
+*/
 
 insert into hh_office.Visit (
   id_dabble, Session_id, Client_id, attend_n, charge, client_paid

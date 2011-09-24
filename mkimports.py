@@ -9,6 +9,7 @@ Usage:
 '''
 
 import os
+import subprocess
 import csv
 import ConfigParser
 from contextlib import contextmanager
@@ -24,11 +25,11 @@ from sqlalchemy.engine.url import URL
 def main(argv):
     if '--zoho' in argv:
         d = argv[2]
-        xe = create_engine(xataface_url(ini, section))
+        xe = create_engine(xataface_url())
         import_csvdir(xe, d, 'zc', zoho_fixup)
     elif '--dabble' in argv:
         d = argv[2]
-        xe = create_engine(xataface_url(ini, section))
+        xe = create_engine(xataface_url())
         import_csvdir(xe, d, 'dabbledb', dabble_fixup)
     elif '--connurl' in argv:
         print xataface_url()
@@ -149,9 +150,19 @@ def xataface_url(driver='mysql+mysqldb'):
     u, p, h, n = xataface_params()
     return URL(driver, u, p, host=h, database=n)
 
+
 def run_script(script_fn):
     u, p, h, n = xataface_params()
-    print ['@@mysql', '-u', u, '-p', p, '-h', h, '--database', n, script_fn]
+    p = subprocess.Popen(['mysql',
+                          '--user=' + u, '--password=' + p, '-h', h, '-D', n],
+                          stdin=subprocess.PIPE)
+    p.stdin.write(open(script_fn).read())
+    rc = p.stdin.close()
+    if rc is not None and rc % 256:
+        raise IOError
+    if p.wait() != 0:
+        raise IOError
+
 
 def with_cols(meta, tn, cols, field_size=80, **kw):
     cols = [Column('pkey', INTEGER(), primary_key=True)] + [
