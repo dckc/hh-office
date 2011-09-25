@@ -95,6 +95,7 @@ Index(u'session_dabble', Session.c.id_dabble, unique=False)
 Therapist =  Table('Therapist', metadata,
                    Column(u'id', INTEGER(), primary_key=True, nullable=False),
                    Column(u'name', TextLine, nullable=False),
+                   Column('weight', INTEGER()),
                    mysql_engine='InnoDB'
                    )
 
