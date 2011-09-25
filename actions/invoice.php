@@ -13,12 +13,19 @@ select name, charges, client_paid, insurance_paid, balance
 from hh_office.Client c
 where c.id = '$id'");
 
+      $summary = $summary[0];
+      setlocale(LC_ALL, 'en_US');
+      $summary['charges'] = number_format($summary['charges'], 2);
+      $summary['client_paid'] = number_format($summary['client_paid'], 2);
+      $summary['insurance_paid'] = number_format($summary['insurance_paid'], 2);
+      $summary['balance'] = number_format($summary['balance'], 2);
+
       $detail = query_result($app->db(), "
 select session_date, group_name, charge, client_paid, insurance_paid, due
 from hh_office.Attendance
 where client_id = '$id'");
 
-      df_display(array('summary'=>$summary[0],
+      df_display(array('summary'=>$summary,
 		       'detail'=>$detail),
 		 'invoice.html');
     }

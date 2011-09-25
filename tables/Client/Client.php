@@ -8,6 +8,7 @@ class tables_Client {
     $res = df_query("
 update hh_office.Client c
 join Client_Balances cb
+on cb.client_id = c.id
 set balance_updated=current_timestamp,
 c.recent = cb.recent,
 c.client_paid = cb.client_paid,
