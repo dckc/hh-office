@@ -5,6 +5,7 @@ truncate table Visit;
 truncate table `Session`;
 truncate table `Group`;
 truncate table Therapist;
+truncate table Batch;
 truncate table Client;
 truncate table Officer;
 truncate table Office;

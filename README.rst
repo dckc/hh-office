@@ -37,7 +37,6 @@ Unmet requirements:
    * move Account fields to Client table?
  * optimize entering sign-in sheets
    * reduce clutter; make it obvious how to make a new session
-   * therapist order (Sep 17 testing)
    * clients case sensitive
    * pick client w keyboard
    * reduce mouse work

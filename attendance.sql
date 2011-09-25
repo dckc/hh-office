@@ -4,7 +4,7 @@ create or replace view Attendance_all as
 select v.id
      , g.id as group_id, g.name as group_name, g.rate as group_rate
      , c.id as client_id, c.name as client_name, o.name as officer_name
-     , s.id as session_id, date_format(s.session_date, '%Y-%m-%d') as session_date
+     , s.id as session_id, s.Therapist_id, s.session_date
      , attend_n, v.charge, v.client_paid
      , v.insurance_paid
      , v.note
@@ -30,13 +30,19 @@ select client_id
      , sum(charge - client_paid -
            case when insurance_paid is null then 0
            else insurance_paid end) as balance
-from Attendance
+from Attendance_all
 group by client_id;
 
-select * from Client_Balances where client_id=40;
-select id, name, recent from Client;
-
 SET SQL_SAFE_UPDATES=0;
+
+/* Around a dozen of these disconnected clients,
+perhaps entered and abandoned in dabble?
+
+select distinct c.id, c.name
+from Client c
+left join Visit v on v.Client_id = c.id
+where v.id is null;
+*/
 
 update Client c
 join Client_Balances cb on cb.client_id = c.id
@@ -48,6 +54,13 @@ set balance_updated = current_timestamp
   , c.insurance_paid = cb.insurance_paid
   , c.balance = cb.balance;
 
+/* Don't bother billing people with
+   no visits newer than 2 years old. */
+update Client c
+set billing_cutoff = null, balance=null
+where c.recent < str_to_date('2009-07-01', '%Y-%m-%d');
+
+-- select * from Client where billing_cutoff is null;
 
 insert into Batch (name, cutoff)
 values ('current', '2011-06-01');
@@ -73,11 +86,13 @@ group by t.id
 ) tw on tw.id = t.id
 set t.weight = tw.weight;
 
+
 /*
 select * from hh_office.Attendance
 order by group_name, client_name, session_date;
 */
 
+/* 108 cases where the visit charge does not match the group rate; worth review?
 
 select *
 from Attendance
@@ -85,29 +100,10 @@ where attend_n != 0
 and charge != group_rate
 order by session_date;
 
-select group_name as group_name, max(session_date) as session_date, sum(calc_due) as due, client_name
-from Attendance a
-group by client_id, group_id
-order by group_name, max(session_date) desc;
+*/
 
-select max(session_date) recent
-     , c.id as client_id, c.name as client_name
-     , g.id as group_id, g.name as group_name
-from Client c
-join Visit v on v.Client_id = c.id
-join `Session` s on v.Session_id = s.id
-join `Group` g on s.Group_id = g.id
-where datediff(now(), session_date)< 90
-group by c.id, g.id
-order by recent desc
-;
 
-select *
-from `Session`
-where session_date < makedate(2006,1);
-
-drop table each_month;
-
+/*
 create table period as
 (select year, month, quarter, half, STR_TO_DATE(CONCAT_WS('-',y.year,m.month,1),'%Y-%m-%d') as first
 from
@@ -131,40 +127,10 @@ union all select 10 as month, 4 as quarter, 2 as half
 union all select 11 as month, 4 as quarter, 2 as half
 union all select 12 as month, 4 as quarter, 2 as half
 ) as m);
+*/
 
-/* How many sessions each quarter? */
-select period.first, count(distinct s.id)
-from `Session` s
-join period on year(s.session_date) = period.year
-           and quarter(s.session_date) = period.quarter
-group by period.year, period.quarter;
 
-select * from Attendance;
-
-select period.first, count(distinct id)
-from Attendance a
-join period on year(a.session_date) = period.year
-           and quarter(a.session_date) = period.quarter
-group by period.year, period.quarter;
-
-/* how many visits per session on average? 6.348 */
+/* how many visits per session on average? 6.348
 select (select count(*) from Visit)
 / (select count(*) from `Session`);
-
-select each_month.first, c.id as client_id, c.name as client_name,
-  count(v.id) visits,
-  sum(charge - client_paid -
-      case when insurance_paid is null then 0 else insurance_paid end) as balance
-from Client c
-join Visit v on v.Client_id = c.id
-join `Session` s on v.Session_id = s.id,
-each_month
-where session_date < each_month.first
-group by each_month.first, c.id
-having visits > 0
-order by each_month.first, c.name;
-
-
-
-select session_date, datediff(now(), session_date)
-from `Session`;
+*/
