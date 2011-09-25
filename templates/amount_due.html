@@ -22,8 +22,8 @@
   <thead>
     <tr>
       <!-- todo: use style="text-align: center" -->
-      <th align="center">Opened</th>
-      <th align="center">Latest</th>
+      <th align="center">Cutoff</th>
+      <th align="center">Recent</th>
       <th align="center">Client</th>
       <th align="right">Charges</th>
       <th align="right">Client pd</th>
@@ -33,7 +33,7 @@
   </thead>
   <tbody>
     <tr>
-      <td title="stod(opened)" align="right"
+      <td title="stod(billing_cutoff)" align="right"
 	  >01/01/2011</td>
       <td title="stod(recent)" align="right"
 	  >12/31/2011</td>
@@ -92,9 +92,11 @@
 <div>
 <h2>Query</h2>
 <pre><code class="query">
-select a.*, c.name as client_name
-from hh_office.Account a
-join hh_office.Client c on c.id = a.Client_id
+select *, c.name as client_name
+from hh_office.Client c
+where c.recent >= (
+ select cutoff from hh_office.Batch
+ where name = 'current')
 order by balance desc, c.name;
 </code></pre>
 </div>

@@ -21,11 +21,18 @@ Client =  Table('Client', metadata,
                 Column(u'address', TextLine),
                 Column(u'phone', TextLine),
                 Column(u'DOB', DATE()),
+                Column(u'Officer_id', ForeignKey('Officer.id')
+                       ),
                 Column(u'file', TextCode),
                 Column(u'file_site', Enum('op', 'kck')),
                 Column(u'file_opened', DATE()),
-                Column(u'Officer_id', ForeignKey('Officer.id')
-                       ),
+                Column('billing_cutoff', DATE()),
+                Column('recent', DATE()),
+                Column('charges', Money),
+                Column('client_paid', Money),
+                Column('insurance_paid', Money),
+                Column('balance', Money),
+                Column('balance_updated', TIMESTAMP()),
                 Column(u'id_zoho', TextCode),
                 Column(u'id_dabble', TextCode),
                 mysql_engine='InnoDB'
@@ -114,22 +121,13 @@ Visit =  Table('Visit', metadata,
                mysql_engine='InnoDB'
                )
 
-Account = Table('Account', metadata,
-                Column('Client_id', INTEGER(),
-                       ForeignKey('Client.id'),
-                       primary_key=True,),
-                Column('opened', DATE(), nullable=False),
-                Column('recent', DATE()),
-                Column('charges', Money),
-                Column('client_paid', Money),
-                Column('insurance_paid', Money),
-                Column('balance', Money),
-                Column('balance_updated', TIMESTAMP())
-                )
-
 Index(u'visit_dabble', Visit.c.id_dabble, unique=False)
 Index(u'visit_match', Visit.c.Session_id, Visit.c.Client_id, unique=False)
 
+Batch = Table('Batch', metadata,
+              Column('name', TextLine, primary_key=True),
+              Column('cutoff', DATE())
+              )
 
 users =  Table('users', metadata,
                Column(u'username', TextLine, primary_key=True, nullable=False),

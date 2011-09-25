@@ -33,23 +33,19 @@ TODO
 Unmet requirements:
 
  * restore from Zoho, DabbleDB backups
-
+ * exclude inactive clients for performance?
+   * move Account fields to Client table?
  * optimize entering sign-in sheets
+   * reduce clutter; make it obvious how to make a new session
    * therapist order (Sep 17 testing)
    * clients case sensitive
    * pick client w keyboard
-   * reduce clutter; make it obvious how to make a new session
-    * reduce mouse work
+   * reduce mouse work
        * choosing clients
        * how to Save the sign-in sheet with the keyboard?
        * tabbing between fields in general
- * link pdf report
-   * link cgi
-   * access control for printed reports
- * compute Visit.due in a field
- * exclude inactive clients for performance?
- * default Visit.client_paid to 0.00
- * default Visit.charge from Group.rate::
+   * default Visit.client_paid to 0.00
+   * default Visit.charge from Group.rate::
 
   class tables_individual {
 
@@ -57,9 +53,7 @@ Unmet requirements:
 
 per http://xataface.com/forum/viewtopic.php?t=5236#25458
 
-
-code clean-up:
-  - rename Attendance_by_Group view, since it works for by client too
+ * access control for printed reports
 
 data cleanup:
   - be more rigorous about time? time interval? start/end time?

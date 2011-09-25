@@ -1,5 +1,29 @@
 use hh_office;
 
+CREATE TABLE users (
+	username VARCHAR(120) NOT NULL, 
+	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
+	PRIMARY KEY (username)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Batch` (
+	name VARCHAR(120) NOT NULL, 
+	cutoff DATE, 
+	PRIMARY KEY (name)
+)
+
+ ;
+
+CREATE TABLE `Therapist` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB
+
+ ;
+
 CREATE TABLE `Group` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
@@ -22,22 +46,6 @@ CREATE TABLE `Office` (
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
 	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Therapist` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE users (
-	username VARCHAR(120) NOT NULL, 
-	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
-	PRIMARY KEY (username)
 )ENGINE=InnoDB
 
  ;
@@ -80,10 +88,17 @@ CREATE TABLE `Client` (
 	address VARCHAR(120), 
 	phone VARCHAR(120), 
 	`DOB` DATE, 
+	`Officer_id` INTEGER, 
 	file VARCHAR(40), 
 	file_site ENUM('op','kck'), 
 	file_opened DATE, 
-	`Officer_id` INTEGER, 
+	billing_cutoff DATE, 
+	recent DATE, 
+	charges DECIMAL(6, 2), 
+	client_paid DECIMAL(6, 2), 
+	insurance_paid DECIMAL(6, 2), 
+	balance DECIMAL(6, 2), 
+	balance_updated TIMESTAMP NULL, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
 	PRIMARY KEY (id), 
@@ -111,20 +126,5 @@ CREATE TABLE `Visit` (
 	FOREIGN KEY(`Client_id`) REFERENCES `Client` (id), 
 	FOREIGN KEY(`Session_id`) REFERENCES `Session` (id)
 )ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Account` (
-	`Client_id` INTEGER NOT NULL, 
-	opened DATE NOT NULL, 
-	recent DATE, 
-	charges DECIMAL(6, 2), 
-	client_paid DECIMAL(6, 2), 
-	insurance_paid DECIMAL(6, 2), 
-	balance DECIMAL(6, 2), 
-	balance_updated TIMESTAMP NULL, 
-	PRIMARY KEY (`Client_id`), 
-	FOREIGN KEY(`Client_id`) REFERENCES `Client` (id)
-)
 
  ;

@@ -1,25 +1,6 @@
 use hh_office;
 
-drop table Account;
-
-insert into Account (
-  Client_id, opened, recent, charges, client_paid, insurance_paid, balance, balance_updated
-)
-select client_id, min(session_date) opened, max(session_date) recent, sum(charge), sum(client_paid),
-  sum(case when insurance_paid is null then 0 else insurance_paid end),
-  sum(due) as balance, current_timestamp
-from Attendance -- todo: remove circular reference
-group by client_id
-having max(session_date) >= str_to_date('2009-07-01', '%Y-%m-%d') -- 2 years previous to start of this quarter
-;
-
--- create or replace view Account_detail as
-select a.*, c.name
-from Account a
-join Client c on c.id = a.Client_id
-;
-
-create or replace view Attendance as
+create or replace view Attendance_all as
 select v.id
      , g.id as group_id, g.name as group_name, g.rate as group_rate
      , c.id as client_id, c.name as client_name, o.name as officer_name
@@ -29,18 +10,61 @@ select v.id
      , v.note
      , v.charge - v.client_paid -
       case when v.insurance_paid is null then 0 else v.insurance_paid end as due
-     , a.Client_id as account_id
 from Visit as v
 join `Session` as s on v.Session_id = s.id
 join `Group` as g on s.Group_id = g.id
 join Client c on v.Client_id = c.id
-join Account a on v.Client_id = a.Client_id
 left join Officer o on c.Officer_id = o.id
-where session_date >= opened
 ;
--- order by g.name, c.name, s.session_date;
+
+-- drop table Account;
+
+create or replace view Client_Balances as
+select client_id
+     , min(session_date) as oldest_session_date
+     , max(session_date) as recent
+     , sum(charge) as charges
+     , sum(client_paid) as client_paid
+     , sum(case when insurance_paid is null then 0
+           else insurance_paid end) as insurance_paid
+     , sum(charge - client_paid -
+           case when insurance_paid is null then 0
+           else insurance_paid end) as balance
+from Attendance_all
+group by client_id;
+
+select * from Client_Balances;
+select id, name, recent from Client;
+
+SET SQL_SAFE_UPDATES=0;
+
+update Client c
+join Client_Balances cb on cb.client_id = c.id
+set balance_updated = current_timestamp
+  , c.billing_cutoff = cb.oldest_session_date
+  , c.recent = cb.recent
+  , c.charges = cb.charges
+  , c.client_paid = cb.client_paid
+  , c.insurance_paid = cb.insurance_paid
+  , c.balance = cb.balance;
+
+
+insert into Batch (name, cutoff)
+values ('current', '2011-06-01');
+
+create or replace view Attendance as
+select att.*
+from Attendance_all att
+join Client c on c.id = att.client_id
+where att.session_date >= c.billing_cutoff
+and c.recent >= (select cutoff from Batch where name = 'current')
+;
+
+/*
 select * from hh_office.Attendance
 order by group_name, client_name, session_date;
+*/
+
 
 select *
 from Attendance
