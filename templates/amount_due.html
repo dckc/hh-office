@@ -9,7 +9,7 @@
 <h1 class="ReportHeader reversed">Hope Harbor</h1>
 <h2 class="PageHeader">
   <span class="literal"
-	>Amount Due by Client</span>
+	>Account Balances</span>
   <span class="literal blank">_________0_________0</span>
   <span class="literal blank">_________0</span>
   <span class="field" title="date()">mm/dd/yyyy</span>
@@ -22,7 +22,7 @@
   <thead>
     <tr>
       <!-- todo: use style="text-align: center" -->
-      <th align="center">Earliest</th>
+      <th align="center">Opened</th>
       <th align="center">Latest</th>
       <th align="center">Client</th>
       <th align="right">Charges</th>
@@ -33,9 +33,9 @@
   </thead>
   <tbody>
     <tr>
-      <td title="stod(earliest)" align="right"
+      <td title="stod(opened)" align="right"
 	  >01/01/2011</td>
-      <td title="stod(latest)" align="right"
+      <td title="stod(recent)" align="right"
 	  >12/31/2011</td>
       <td title="client_name" align="left"
 	  >Lastname, Firstname ________9_</td>
@@ -45,7 +45,7 @@
 	  > 1,000.00</td>
       <td title="insurance_paid" align="right"
 	  > 1,000.00</td>
-      <td title="due" align="right"
+      <td title="balance" align="right"
 	  > 1,000.00</td>
     </tr>
     <tr>
@@ -92,8 +92,10 @@
 <div>
 <h2>Query</h2>
 <pre><code class="query">
-select * from hh_office.Client_Balances
-order by due desc, client_name;
+select a.*, c.name as client_name
+from hh_office.Account a
+join hh_office.Client c on c.id = a.Client_id
+order by balance desc, c.name;
 </code></pre>
 </div>
 

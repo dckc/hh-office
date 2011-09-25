@@ -114,6 +114,19 @@ Visit =  Table('Visit', metadata,
                mysql_engine='InnoDB'
                )
 
+Account = Table('Account', metadata,
+                Column('Client_id', INTEGER(),
+                       ForeignKey('Client.id'),
+                       primary_key=True,),
+                Column('opened', DATE(), nullable=False),
+                Column('recent', DATE()),
+                Column('charges', Money),
+                Column('client_paid', Money),
+                Column('insurance_paid', Money),
+                Column('balance', Money),
+                Column('balance_updated', TIMESTAMP())
+                )
+
 Index(u'visit_dabble', Visit.c.id_dabble, unique=False)
 Index(u'visit_match', Visit.c.Session_id, Visit.c.Client_id, unique=False)
 

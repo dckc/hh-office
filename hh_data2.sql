@@ -1,9 +1,14 @@
 use hh_office;
 
-CREATE TABLE users (
-	username VARCHAR(120) NOT NULL, 
-	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
-	PRIMARY KEY (username)
+CREATE TABLE `Group` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	rate DECIMAL(6, 2) NOT NULL, 
+	evaluation BOOL NOT NULL, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	PRIMARY KEY (id), 
+	CHECK (evaluation IN (0, 1))
 )ENGINE=InnoDB
 
  ;
@@ -29,15 +34,10 @@ CREATE TABLE `Therapist` (
 
  ;
 
-CREATE TABLE `Group` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	rate DECIMAL(6, 2) NOT NULL, 
-	evaluation BOOL NOT NULL, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	PRIMARY KEY (id), 
-	CHECK (evaluation IN (0, 1))
+CREATE TABLE users (
+	username VARCHAR(120) NOT NULL, 
+	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
+	PRIMARY KEY (username)
 )ENGINE=InnoDB
 
  ;
@@ -111,5 +111,20 @@ CREATE TABLE `Visit` (
 	FOREIGN KEY(`Client_id`) REFERENCES `Client` (id), 
 	FOREIGN KEY(`Session_id`) REFERENCES `Session` (id)
 )ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Account` (
+	`Client_id` INTEGER NOT NULL, 
+	opened DATE NOT NULL, 
+	recent DATE, 
+	charges DECIMAL(6, 2), 
+	client_paid DECIMAL(6, 2), 
+	insurance_paid DECIMAL(6, 2), 
+	balance DECIMAL(6, 2), 
+	balance_updated TIMESTAMP NULL, 
+	PRIMARY KEY (`Client_id`), 
+	FOREIGN KEY(`Client_id`) REFERENCES `Client` (id)
+)
 
  ;

@@ -1,22 +1,43 @@
 use hh_office;
 
-drop view Attendance_by_Group;
+drop table Account;
+
+insert into Account (
+  Client_id, opened, recent, charges, client_paid, insurance_paid, balance, balance_updated
+)
+select client_id, min(session_date) opened, max(session_date) recent, sum(charge), sum(client_paid),
+  sum(case when insurance_paid is null then 0 else insurance_paid end),
+  sum(due) as balance, current_timestamp
+from Attendance -- todo: remove circular reference
+group by client_id
+having max(session_date) >= str_to_date('2009-07-01', '%Y-%m-%d') -- 2 years previous to start of this quarter
+;
+
+-- create or replace view Account_detail as
+select a.*, c.name
+from Account a
+join Client c on c.id = a.Client_id
+;
 
 create or replace view Attendance as
 select v.id
      , g.id as group_id, g.name as group_name, g.rate as group_rate
      , c.id as client_id, c.name as client_name, o.name as officer_name
      , s.id as session_id, date_format(s.session_date, '%Y-%m-%d') as session_date
-     , attend_n, charge, client_paid
-     , insurance_paid, due
+     , attend_n, v.charge, v.client_paid
+     , v.insurance_paid
      , v.note
-     , charge - client_paid -
-      case when insurance_paid is null then 0 else insurance_paid end as calc_due
+     , v.charge - v.client_paid -
+      case when v.insurance_paid is null then 0 else v.insurance_paid end as due
+     , a.Client_id as account_id
 from Visit as v
 join `Session` as s on v.Session_id = s.id
 join `Group` as g on s.Group_id = g.id
 join Client c on v.Client_id = c.id
-left join Officer o on c.Officer_id = o.id;
+join Account a on v.Client_id = a.Client_id
+left join Officer o on c.Officer_id = o.id
+where session_date >= opened
+;
 -- order by g.name, c.name, s.session_date;
 select * from hh_office.Attendance
 order by group_name, client_name, session_date;
