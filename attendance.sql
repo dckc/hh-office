@@ -66,10 +66,9 @@ and c.recent >= (select cutoff from Batch where name = 'current')
 ;
 
 update Therapist t
-join (select t.id, t.name, count(v.id) as weight
+join (select t.id, t.name, count(s.id) as weight
 from Therapist t
 join Session s on s.Therapist_id = t.id
-join Visit v on v.Session_id = s.id
 group by t.id
 ) tw on tw.id = t.id
 set t.weight = tw.weight;
