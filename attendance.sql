@@ -30,10 +30,10 @@ select client_id
      , sum(charge - client_paid -
            case when insurance_paid is null then 0
            else insurance_paid end) as balance
-from Attendance_all
+from Attendance
 group by client_id;
 
-select * from Client_Balances;
+select * from Client_Balances where client_id=40;
 select id, name, recent from Client;
 
 SET SQL_SAFE_UPDATES=0;
@@ -52,6 +52,11 @@ set balance_updated = current_timestamp
 insert into Batch (name, cutoff)
 values ('current', '2011-06-01');
 
+create or replace view Batch_Clients as
+select b.name as batch_name, c.id as client_id
+from Batch b
+join Client c on c.recent >= b.cutoff;
+
 create or replace view Attendance as
 select att.*
 from Attendance_all att
@@ -59,6 +64,15 @@ join Client c on c.id = att.client_id
 where att.session_date >= c.billing_cutoff
 and c.recent >= (select cutoff from Batch where name = 'current')
 ;
+
+update Therapist t
+join (select t.id, t.name, count(v.id) as weight
+from Therapist t
+join Session s on s.Therapist_id = t.id
+join Visit v on v.Session_id = s.id
+group by t.id
+) tw on tw.id = t.id
+set t.weight = tw.weight;
 
 /*
 select * from hh_office.Attendance
