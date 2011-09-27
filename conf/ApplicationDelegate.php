@@ -8,26 +8,20 @@ function ends_with($str, $test) {
   return substr_compare($str, $test, -strlen($test), strlen($test)) === 0;
 }
 
+
 class conf_ApplicationDelegate {
-  /**
-   * Returns permissions array.  This method is called every time an action is 
-   * performed to make sure that the user has permission to perform the action.
-   * @param record A Dataface_Record object (may be null) against which we check
-   *               permissions.
-   * @see Dataface_PermissionsTool
-   * @see Dataface_AuthenticationTool
-   */
-  function getPermissions(&$record){
+  function getRoles(&$record){
     $auth =& Dataface_AuthenticationTool::getInstance();
     $user =& $auth->getLoggedInUser();
-    if ( $user and ends_with($auth->getLoggedInUsername(),
-			     '@hopeharborkc.com')) {
-      return Dataface_PermissionsTool::ALL();
+    $username = $auth->getLoggedInUsername();
+    if ( $user and (
+		    $user->val('role') == 'ADMIN'
+		    or $user->val('role') == 'MANAGER' )){
+      return $user->val('role');
+    } else if (ends_with($username, '@hopeharborkc.com')) {
+      return 'READ ONLY';
     } else {
-      /*
-       trigger_error ( 'unknown domain: ' . $auth->getLoggedInUsername(),
-		      E_USER_NOTICE );
-      */
+      session_destroy();
       return Dataface_PermissionsTool::NO_ACCESS();
     }
   }
@@ -39,9 +33,13 @@ class conf_ApplicationDelegate {
 
   function beforeHandleRequest(){
     $query =& Dataface_Application::getInstance()->getQuery();
-    if ( !$_POST and $query['-table'] == 'Session'
-	 and !isset($query['-sort']) ){
-        $query['-sort'] = 'session_date desc';
+    if ( !$_POST and !isset($query['-sort'])) {
+      if ( $query['-table'] == 'Session') {
+	$query['-sort'] = 'session_date desc';
+      }
+      if ( $query['-table'] == 'Client') {
+	$query['-sort'] = 'name asc';
+      }
     }
   }
 }

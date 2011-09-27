@@ -12,7 +12,7 @@ class dataface_modules_gapp {
 
     if ( isset( $_REQUEST['-action'] ) and $_REQUEST['-action'] == 'logout' ){
       session_destroy();
-				
+
       $redirect = ( (isset($_REQUEST['-redirect'])
 		     and !empty($_REQUEST['-redirect']) )
 		    ? $_REQUEST['-redirect']
@@ -31,24 +31,33 @@ class dataface_modules_gapp {
 	$addr = $_SERVER["REQUEST_URI"] . '?-action=login&-return=1';
 	$googleLogin = GoogleOpenID::createRequest($addr, $ah, true);
 	$googleLogin->redirect();
+	exit;
       } else {
 	$googleLogin = GoogleOpenID::getResponse();
 	if($googleLogin->success()){
-	  $_SESSION['UserName'] = $googleLogin->email();
+	  if ( ends_with($googleLogin->email(),
+			 '@hopeharborkc.com')) {
+	    $_SESSION['UserName'] = $googleLogin->email();
 
-	  if ( isset( $_REQUEST['-redirect'] )
-	       and !empty($_REQUEST['-redirect']) ){
-	    $url = $_REQUEST['-redirect'];
-	  } else if ( isset($_SESSION['--redirect']) ){
-	    $url = $_SESSION['--redirect'];
-	    unset($_SESSION['--redirect']);
+	    if ( isset( $_REQUEST['-redirect'] )
+		 and !empty($_REQUEST['-redirect']) ){
+	      $url = $_REQUEST['-redirect'];
+	    } else if ( isset($_SESSION['--redirect']) ){
+	      $url = $_SESSION['--redirect'];
+	      unset($_SESSION['--redirect']);
+	    } else {
+	      $url = $app->url('');
+	    }
+	    // Now we forward to the homepage:
+	    header('Location: '.$url.
+		   '&--msg='.urlencode('You are now logged in'));
+	    exit;
 	  } else {
-	    $url = $app->url('');
+	    //trigger_error('how to handle wrong domain?', E_USER_ERROR);
+	    session_destroy();
+	    header('', true, 401);
+	    exit('Not authorized: ' . $googleLogin->email());
 	  }
-	  // Now we forward to the homepage:
-	  header('Location: '.$url.
-		 '&--msg='.urlencode('You are now logged in'));
-	  exit;
 	}
 	trigger_error('unexpected login return', E_USER_ERROR);
       }
@@ -93,15 +102,19 @@ class dataface_modules_gapp {
    * Returns the Dataface_Record for the currently logged in user.
    */
   function &getLoggedInUser(){
-    static $record = null;
-    if (! $record ) {
+    static $record = 0;
+    if ( $record === 0 ) {
       if ( @$_SESSION['UserName'] ) {
-	//echo 'get logged in user for: '. @$_SESSION['UserName'].'<br/>';
-	if ( $record === null ) {
-	  $auth =& Dataface_AuthenticationTool::getInstance();
-	  $record = new Dataface_Record($auth->usersTable,
-					array($auth->usernameColumn=>
-					      @$_SESSION['UserName']));
+	//echo 'get logged in user for: '. $_SESSION['UserName'].'<br/>';
+	$auth =& Dataface_AuthenticationTool::getInstance();
+
+	$binding = array($auth->usernameColumn=>$_SESSION['UserName']);
+
+	// got one in the database?
+	$record = df_get_record($auth->usersTable, $binding);
+	if (!$record) {
+	  // no... synthesize one
+	  $record = new Dataface_Record($auth->usersTable, $binding);
 	}
       }
     }
