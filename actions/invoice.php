@@ -21,9 +21,11 @@ where c.id = '$id'");
       $summary['balance'] = number_format($summary['balance'], 2);
 
       $detail = query_result($app->db(), "
-select session_date, group_name, charge, client_paid, insurance_paid, due
+select session_date, group_name
+     , attend_n, charge, client_paid, insurance_paid, due
 from hh_office.Attendance
-where client_id = '$id'");
+where client_id = '$id'
+order by session_date");
 
       df_display(array('summary'=>$summary,
 		       'detail'=>$detail),

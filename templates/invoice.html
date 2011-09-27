@@ -4,7 +4,15 @@
   <title>Hope Harbor Invoice</title>
 <style type="text/css">
 {literal}
-body { font-size: 10pt }
+body { font-size: 11pt }
+
+div.page {
+padding: 0;
+width: 6.5in;
+margin-top: 0;
+margin-left: 0.5in;
+margin-right: 0.5in;
+}
 
 div.letterhead {
  border-style: solid;
@@ -46,9 +54,8 @@ table.fields tbody tr th {
 
 table.rows  {
  border: 1px solid gray;
- margin-left: 2em;
- width: 80%;
- }
+ width: 100%;
+}
 
 table.rows th, table.rows td { padding: 0 0.5em;
   border-bottom: 1px solid #DDD;
@@ -70,7 +77,7 @@ address {
  font-size: smaller;
  font-family: serif;
  font-style: normal;
- margin-top: 4em;
+ margin-top: 1em;
  float: bottom;
  }
 
@@ -78,6 +85,7 @@ address {
 </style>
 </head>
 <body>
+<div class="page">
 
 <div class="letterhead">
  <h1>Invoice</h1>
@@ -96,8 +104,7 @@ address {
 <tr><th>Date:</th><td id="date">{$summary.invoice_date|date_format}</td></tr>
 <tr>
   <th>Client Name:</th>
-  <td>{$summary.name}</span>
-  </td>
+  <td>{$summary.name}</td>
 </tr>
 <tr><th>Amount Due:</th><td id="due1" class="amt_">{$summary.balance}</td></tr>
 </tbody>
@@ -135,16 +142,13 @@ address {
 
 <tbody id="fill">
     {foreach from=$detail item=detail}
+    {if $detail.attend_n}
     <tr class="listing">
       <td>{$detail.session_date|date_format}</td>
       <td>{$detail.group_name}</td>
       <td class="amt">{$detail.charge|string_format:"%.2f"}</td>
-<!--
-      <td>{$detail.client_paid}</td>
-      <td>{$detail.insurance_paid}</td>
-      <td>{$detail.due}</td>
--->
     </tr>
+    {/if}
     {/foreach}
 </tbody>
 
@@ -159,6 +163,6 @@ address {
   Location 2: 3730 Metropolitan Ave, KC KS 66106 (United Methodist Church)
 </address>
 
-
+</div>
 </body>
 </html>

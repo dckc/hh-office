@@ -21,5 +21,5 @@ $app->display();
 
 
 $time = microtime(true) - $time;
-echo "<p>Execution Time: $time</p>";
+echo "<!--Execution Time: $time-->";
 ?>
