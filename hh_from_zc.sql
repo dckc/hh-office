@@ -142,7 +142,6 @@ insert into Visit (
      , charge
      , client_paid
      , insurance_paid
-     , due
      , note
      , bill_date
      , check_date
@@ -153,7 +152,6 @@ select s.id as Session_id
      , v.charge
      , v.client_paid
      , v.insurance_paid
-     , v.due
      , v.note
      , v.bill_date
      , v.check_date

@@ -31,7 +31,7 @@ select client_id
            case when insurance_paid is null then 0
            else insurance_paid end) as balance
 from Attendance_all
-where session_date > billing_cutoff
+where session_date >= billing_cutoff
 group by client_id;
 
 

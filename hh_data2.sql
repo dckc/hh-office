@@ -21,6 +21,14 @@ CREATE TABLE `Office` (
 
  ;
 
+CREATE TABLE `Batch` (
+	name VARCHAR(120) NOT NULL, 
+	cutoff DATE, 
+	PRIMARY KEY (name)
+)
+
+ ;
+
 CREATE TABLE `Group` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
@@ -31,14 +39,6 @@ CREATE TABLE `Group` (
 	PRIMARY KEY (id), 
 	CHECK (evaluation IN (0, 1))
 )ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Batch` (
-	name VARCHAR(120) NOT NULL, 
-	cutoff DATE, 
-	PRIMARY KEY (name)
-)
 
  ;
 
@@ -112,9 +112,8 @@ CREATE TABLE `Visit` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	attend_n BOOL NOT NULL, 
 	charge DECIMAL(6, 2) NOT NULL, 
-	client_paid DECIMAL(6, 2), 
-	insurance_paid DECIMAL(6, 2), 
-	due DECIMAL(6, 2) NOT NULL, 
+	client_paid DECIMAL(6, 2) NOT NULL, 
+	insurance_paid DECIMAL(6, 2) DEFAULT 0.00 NOT NULL, 
 	note TEXT, 
 	bill_date DATE, 
 	check_date DATE, 

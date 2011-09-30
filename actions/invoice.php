@@ -3,6 +3,9 @@ class actions_invoice {
     function handle(&$params){
       $app =& Dataface_Application::getInstance();
       $record =& $app->getRecord();
+
+      /* Update the balance here, just in case things get wonky. */
+      $record->table()->getDelegate()->update_balance($record->val('id'));
       $id = $record->val('id');
 
       $body = "<br /><br />";

@@ -43,16 +43,8 @@ Unmet requirements:
        * choosing clients
        * how to Save the sign-in sheet with the keyboard?
        * tabbing between fields in general
-   * default Visit.client_paid to 0.00
-   * default Visit.charge from Group.rate::
-
-  class tables_individual {
-
-  function Entity_ID__default(){
-
-per http://xataface.com/forum/viewtopic.php?t=5236#25458
-
  * access control for printed reports
+ * TODO: a more direct link to current clients
 
 data cleanup:
   - be more rigorous about time? time interval? start/end time?

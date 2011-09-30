@@ -4,10 +4,23 @@ class tables_Client {
     return 'name';
   }
 
+  function block__before_record_content () {
+    $app =& Dataface_Application::getInstance();
+    $record =& $app->getRecord();
+    $res = df_query("select cutoff from Batch where name='current'",
+		    null, true);
+    if ( !$res ) throw new Exception(mysql_error(df_db()));
+    $recent = $record->strval('recent');
+    $cutoff = $res[0]['cutoff'];
+    if ($recent < $cutoff) {
+      echo "<p class='error'>Most recent visit ($recent) is before current batch cutoff ($cutoff). Current billing info is not available.</p>";
+    }
+  }
+
   function update_balances($id=null) {
     $dml = "
 update hh_office.Client c
-join Client_Balances cb
+left join Client_Balances cb
 on cb.client_id = c.id
 set balance_updated=current_timestamp,
 c.recent = cb.recent,
@@ -19,6 +32,9 @@ c.balance = cb.balance";
     if ($id) {
       $dml = $dml . " where c.id='$id'";
     }
+
+
+    error_log("DEBUG: updating balances with id = $id");
 
     $res = df_query($dml, null, true);
     if ( !$res ) throw new Exception(mysql_error(df_db()));
