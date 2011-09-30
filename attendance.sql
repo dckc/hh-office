@@ -3,7 +3,8 @@ use hh_office;
 create or replace view Attendance_all as
 select v.id
      , g.id as group_id, g.name as group_name, g.rate as group_rate
-     , c.id as client_id, c.name as client_name, o.name as officer_name
+     , c.id as client_id, c.name as client_name, c.billing_cutoff, c.recent
+     , o.name as officer_name
      , s.id as session_id, s.Therapist_id, s.session_date
      , attend_n, v.charge, v.client_paid
      , v.insurance_paid
@@ -17,7 +18,6 @@ join Client c on v.Client_id = c.id
 left join Officer o on c.Officer_id = o.id
 ;
 
--- drop table Account;
 
 create or replace view Client_Balances as
 select client_id
@@ -31,9 +31,9 @@ select client_id
            case when insurance_paid is null then 0
            else insurance_paid end) as balance
 from Attendance_all
+where session_date > billing_cutoff
 group by client_id;
 
-SET SQL_SAFE_UPDATES=0;
 
 /* Around a dozen of these disconnected clients,
 perhaps entered and abandoned in dabble?
@@ -44,21 +44,34 @@ left join Visit v on v.Client_id = c.id
 where v.id is null;
 */
 
+SET SQL_SAFE_UPDATES=0;
+
 update Client c
-join Client_Balances cb on cb.client_id = c.id
-set balance_updated = current_timestamp
-  , c.billing_cutoff = cb.oldest_session_date
-  , c.recent = cb.recent
-  , c.charges = cb.charges
-  , c.client_paid = cb.client_paid
-  , c.insurance_paid = cb.insurance_paid
-  , c.balance = cb.balance;
+set balance_updated = null
+  , c.billing_cutoff = (select min(session_date) from `Session`)
+  , c.charges = null
+  , c.client_paid = null
+  , c.insurance_paid = null
+  , c.balance = null;
 
 /* Don't bother billing people with
    no visits newer than 2 years old. */
 update Client c
-set billing_cutoff = null, balance=null
-where c.recent < str_to_date('2009-07-01', '%Y-%m-%d');
+join Client_Balances cb on cb.client_id = c.id
+set c.recent = cb.recent,
+  c.billing_cutoff = 
+  case
+    when cb.recent < str_to_date('2009-07-01', '%Y-%m-%d') then null
+    else cb.oldest_session_date
+  end;
+
+update Client c
+join Client_Balances cb on cb.client_id = c.id
+set balance_updated = current_timestamp
+  , c.charges = cb.charges
+  , c.client_paid = cb.client_paid
+  , c.insurance_paid = cb.insurance_paid
+  , c.balance = cb.balance;
 
 -- select * from Client where billing_cutoff is null;
 
@@ -73,9 +86,8 @@ join Client c on c.recent >= b.cutoff;
 create or replace view Attendance as
 select att.*
 from Attendance_all att
-join Client c on c.id = att.client_id
-where att.session_date >= c.billing_cutoff
-and c.recent >= (select cutoff from Batch where name = 'current')
+where att.session_date >= att.billing_cutoff
+and att.recent >= (select cutoff from Batch where name = 'current')
 ;
 
 update Therapist t
