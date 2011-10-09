@@ -8,6 +8,10 @@ DABBLE_BAK=$(HOME)/Dropbox/hh-dabble-kaput/Dabble-2011-05-16-130809/
 ZOHO_BAK=$(HOME)/Desktop/hh-zoho-bak/
 
 
+,balances: ,din attendance.sql
+	$(PYTHON) mkimports.py --run attendance.sql >$@ \
+		|| (mv -f $@ ,errs; exit 1)
+
 ,din: hh_from_dabble.sql ,dbak ,zin
 	$(PYTHON) mkimports.py --run hh_from_dabble.sql >$@ \
 		|| (mv -f $@ ,errs; exit 1)
