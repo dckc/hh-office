@@ -9,7 +9,7 @@ metadata = MetaData()
 
 TextLine=VARCHAR(length=120)
 TextCode=VARCHAR(length=40)
-Money=DECIMAL(precision=6, scale=2)
+Money=DECIMAL(precision=8, scale=2)
 
 Client =  Table('Client', metadata,
                 Column(u'id', INTEGER(), primary_key=True, nullable=False),

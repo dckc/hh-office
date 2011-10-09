@@ -21,18 +21,10 @@ CREATE TABLE `Office` (
 
  ;
 
-CREATE TABLE `Batch` (
-	name VARCHAR(120) NOT NULL, 
-	cutoff DATE, 
-	PRIMARY KEY (name)
-)
-
- ;
-
 CREATE TABLE `Group` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
-	rate DECIMAL(6, 2) NOT NULL, 
+	rate DECIMAL(8, 2) NOT NULL, 
 	evaluation BOOL NOT NULL, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
@@ -48,6 +40,14 @@ CREATE TABLE `Therapist` (
 	weight INTEGER, 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Batch` (
+	name VARCHAR(120) NOT NULL, 
+	cutoff DATE, 
+	PRIMARY KEY (name)
+)
 
  ;
 
@@ -95,10 +95,10 @@ CREATE TABLE `Client` (
 	file_opened DATE, 
 	billing_cutoff DATE, 
 	recent DATE, 
-	charges DECIMAL(6, 2), 
-	client_paid DECIMAL(6, 2), 
-	insurance_paid DECIMAL(6, 2), 
-	balance DECIMAL(6, 2), 
+	charges DECIMAL(8, 2), 
+	client_paid DECIMAL(8, 2), 
+	insurance_paid DECIMAL(8, 2), 
+	balance DECIMAL(8, 2), 
 	balance_updated TIMESTAMP NULL, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
@@ -111,9 +111,9 @@ CREATE TABLE `Client` (
 CREATE TABLE `Visit` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	attend_n BOOL NOT NULL, 
-	charge DECIMAL(6, 2) NOT NULL, 
-	client_paid DECIMAL(6, 2) NOT NULL, 
-	insurance_paid DECIMAL(6, 2) DEFAULT 0.00 NOT NULL, 
+	charge DECIMAL(8, 2) NOT NULL, 
+	client_paid DECIMAL(8, 2) NOT NULL, 
+	insurance_paid DECIMAL(8, 2) DEFAULT 0.00 NOT NULL, 
 	note TEXT, 
 	bill_date DATE, 
 	check_date DATE, 
