@@ -33,7 +33,7 @@ Client =  Table('Client', metadata,
                 Column('client_paid', Money),
                 Column('insurance_paid', Money),
                 Column('balance', Money),
-                Column('balance_updated', TIMESTAMP()),
+                Column('balance_cached', TIMESTAMP()),
                 Column(u'id_zoho', TextCode),
                 Column(u'id_dabble', TextCode),
 

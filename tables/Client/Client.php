@@ -23,7 +23,7 @@ class tables_Client extends Audited {
 update hh_office.Client c
 left join Client_Balances cb
 on cb.client_id = c.id
-set balance_updated=current_timestamp,
+set balance_cached=current_timestamp,
 c.recent = cb.recent,
 c.charges = cb.charges,
 c.client_paid = cb.client_paid,

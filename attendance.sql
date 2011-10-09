@@ -47,7 +47,7 @@ where v.id is null;
 SET SQL_SAFE_UPDATES=0;
 
 update Client c
-set balance_updated = null
+set balance_cached = null
   , c.billing_cutoff = (select min(session_date) from `Session`)
   , c.charges = null
   , c.client_paid = null
@@ -67,7 +67,7 @@ set c.recent = cb.recent,
 
 update Client c
 join Client_Balances cb on cb.client_id = c.id
-set balance_updated = current_timestamp
+set balance_cached = current_timestamp
   , c.charges = cb.charges
   , c.client_paid = cb.client_paid
   , c.insurance_paid = cb.insurance_paid
