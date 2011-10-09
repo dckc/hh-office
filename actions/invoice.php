@@ -5,8 +5,8 @@ class actions_invoice {
       $record =& $app->getRecord();
 
       /* Update the balance here, just in case things get wonky. */
-      $record->table()->getDelegate()->update_balance($record->val('id'));
       $id = $record->val('id');
+      $record->table()->getDelegate()->update_balance($id);
 
       $body = "<br /><br />";
 
