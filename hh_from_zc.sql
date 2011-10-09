@@ -12,9 +12,11 @@ truncate table Office;
 
 insert into `Group` (
   id, name, rate, evaluation,
-  id_zoho, id_dabble )
+  id_zoho, id_dabble, added_time, added_user, modified_time, modified_user )
 select null, name, rate, Eval
      , primkey, id_dabble
+     , str_to_date(added_time, '%Y-%m-%d %H:%i:%s') as added_time, added_user
+     , str_to_date(modified_time, '%Y-%m-%d %H:%i:%s') as modified_time, modified_user
 from zc.zcfrm_group
 order by name;
 
@@ -22,10 +24,9 @@ order by name;
 create or replace view zc.`Session` as
 select str_to_date(s.date_field, '%Y-%m-%d') as session_date
      , s.Therapist as Therapist_name
-     , s.Time as time
      , g.primkey as Group_id_zoho
      , s.primkey as id_zoho
-     , s.id_dabble
+     , s.*
 from zc.zcrel_session_group_name as sRg
 join zc.zcfrm_session as s
 on s.primkey = sRg.t_765721000000012056_PK
@@ -41,15 +42,17 @@ order by Therapist_name;
 
 insert into `Session` (
  id, session_date, Therapist_id, time, Group_id,
- id_zoho, id_dabble
+ id_zoho, id_dabble, added_time, added_user, modified_time, modified_user
 )
 select null
      , session_date
      , t.id
-     , time
+     , s.Time
      , g.id
      , s.id_zoho
      , s.id_dabble
+     , str_to_date(s.added_time, '%Y-%m-%d %H:%i:%s') as added_time, s.added_user
+     , str_to_date(s.modified_time, '%Y-%m-%d %H:%i:%s') as modified_time, s.modified_user
 from zc.`Session` s
 join `Group` g on g.id_zoho = s.Group_id_zoho
 left join Therapist t on t.name = s.Therapist_name
@@ -58,24 +61,28 @@ order by session_date, g.name;
 
 insert into Office (
   id, name, address, fax, notes
-, id_zoho, id_dabble)
+, id_zoho, id_dabble, added_time, added_user, modified_time, modified_user)
 select null
      , name, address, fax, notes
      , primkey as id_zoho, id_dabble
-from zc.zcfrm_office
+     , str_to_date(o.added_time, '%Y-%m-%d %H:%i:%s') as added_time, o.added_user
+     , str_to_date(o.modified_time, '%Y-%m-%d %H:%i:%s') as modified_time, o.modified_user
+from zc.zcfrm_office o
 order by name;
 
 create or replace view zc.Officer as
-select zo.Name as name, email, zof.primkey as Office_id_zoho, zo.primkey as id_zoho, zo.id_dabble
+select zo.*, zof.primkey as Office_id_zoho, zo.primkey as id_zoho
 from zc.zcfrm_officer zo
 left join zc.zcrel_officer_office_name oro
   on oro.t_765721000000011780_PK = zo.primkey
 left join zc.zcfrm_office zof on oro.t_765721000000011877_PK = zof.primkey;
 
 insert into Officer (
- name, email, Office_id, id_zoho, id_dabble
+ name, email, Office_id, id_zoho, id_dabble, added_time, added_user, modified_time, modified_user
 )
 select zo.name, zo.email, hof.id as office_id, zo.id_zoho, zo.id_dabble
+     , str_to_date(zo.added_time, '%Y-%m-%d %H:%i:%s') as added_time, zo.added_user
+     , str_to_date(zo.modified_time, '%Y-%m-%d %H:%i:%s') as modified_time, zo.modified_user
 from zc.Officer zo
 left join Office hof on zo.Office_id_zoho = hof.id_zoho
 order by name;
@@ -83,9 +90,8 @@ order by name;
 -- ugh. encoding problem: Fiehler, Tanner (ADV - $15/session; must bring â‰¥ $20/week to attend)
 
 create or replace view zc.Client as
-select c.Name as name, Ins as insurance, Approval as approval, DX, Note as note
-     , address, phone, DOB, File as file, file_site, file_opened, o.primkey as Officer_id_zoho
-     , c.primkey as id_zoho, c.id_dabble
+select c.*, Ins as insurance, o.primkey as Officer_id_zoho
+     , c.primkey as id_zoho
 from zc.zcfrm_client as c
 left join zc.zcrel_client_officer_name as cRo
   on cRo.t_765721000000011616_PK = c.primkey
@@ -96,12 +102,14 @@ left join zc.zcfrm_officer as o
 insert into Client (
        name, insurance, approval, DX, note
      , address, phone, DOB, file, file_site, file_opened, Officer_id
-     , id_zoho, id_dabble
+     , id_zoho, id_dabble, added_time, added_user, modified_time, modified_user
 )
 select
        zc.name, insurance, approval, DX, note
      , address, phone, DOB, file, file_site, file_opened, ho.id as Officer_id
      , zc.id_zoho, zc.id_dabble
+     , str_to_date(zc.added_time, '%Y-%m-%d %H:%i:%s') as added_time, zc.added_user
+     , str_to_date(zc.modified_time, '%Y-%m-%d %H:%i:%s') as modified_time, zc.modified_user
 from zc.Client zc
 left join Officer ho on ho.id_zoho = zc.Officer_id_zoho
 order by name;
@@ -124,6 +132,7 @@ select s.primkey as Session_id_zoho
      , str_to_date(v.bill_date, '%Y-%m-%d') as bill_date
      , str_to_date(v.check_date, '%Y-%m-%d') as check_date
      , v.primkey as id_zoho, v.id_dabble
+     , v.added_time, v.added_user, v.modified_time, v.modified_user
 from zc.zcrel_visit_client as vRc
 join zc.zcfrm_visit as v
   on v.primkey = vRc.t_765721000000011230_PK
@@ -145,7 +154,7 @@ insert into Visit (
      , note
      , bill_date
      , check_date
-     , id_zoho, id_dabble )
+     , id_zoho, id_dabble, added_time, added_user, modified_time, modified_user )
 select s.id as Session_id
      , c.id as Client_id
      , v.attend_n
@@ -156,6 +165,8 @@ select s.id as Session_id
      , v.bill_date
      , v.check_date
      , v.id_zoho, v.id_dabble
+     , str_to_date(v.added_time, '%Y-%m-%d %H:%i:%s') as added_time, v.added_user
+     , str_to_date(v.modified_time, '%Y-%m-%d %H:%i:%s') as modified_time, v.modified_user
 from zc.Visit v
 join Client c on v.Client_id_zoho = c.id_zoho
 join `Session` s on v.Session_id_zoho = s.id_zoho
