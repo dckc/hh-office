@@ -3,8 +3,24 @@ use hh_office;
 CREATE TABLE users (
 	username VARCHAR(120) NOT NULL, 
 	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
 	PRIMARY KEY (username)
 )ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Batch` (
+	name VARCHAR(120) NOT NULL, 
+	cutoff DATE, 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (name)
+)
 
  ;
 
@@ -16,6 +32,10 @@ CREATE TABLE `Office` (
 	notes TEXT, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB
 
@@ -28,6 +48,10 @@ CREATE TABLE `Group` (
 	evaluation BOOL NOT NULL, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
 	PRIMARY KEY (id), 
 	CHECK (evaluation IN (0, 1))
 )ENGINE=InnoDB
@@ -38,28 +62,11 @@ CREATE TABLE `Therapist` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
 	weight INTEGER, 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
 	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Batch` (
-	name VARCHAR(120) NOT NULL, 
-	cutoff DATE, 
-	PRIMARY KEY (name)
-)
-
- ;
-
-CREATE TABLE `Officer` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	email VARCHAR(120), 
-	`Office_id` INTEGER, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(`Office_id`) REFERENCES `Office` (id)
 )ENGINE=InnoDB
 
  ;
@@ -72,9 +79,30 @@ CREATE TABLE `Session` (
 	`Therapist_id` INTEGER, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
 	PRIMARY KEY (id), 
-	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id), 
-	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id)
+	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
+	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Officer` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	email VARCHAR(120), 
+	`Office_id` INTEGER, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(`Office_id`) REFERENCES `Office` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
@@ -102,8 +130,12 @@ CREATE TABLE `Client` (
 	balance_updated TIMESTAMP NULL, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
 	PRIMARY KEY (id), 
-	FOREIGN KEY(`Officer_id`) REFERENCES `Officer` (id)
+	FOREIGN KEY(`Officer_id`) REFERENCES `Officer` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
@@ -121,10 +153,14 @@ CREATE TABLE `Visit` (
 	`Session_id` INTEGER NOT NULL, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
 	PRIMARY KEY (id), 
 	CHECK (attend_n IN (0, 1)), 
-	FOREIGN KEY(`Client_id`) REFERENCES `Client` (id), 
-	FOREIGN KEY(`Session_id`) REFERENCES `Session` (id)
+	FOREIGN KEY(`Client_id`) REFERENCES `Client` (id) ON DELETE CASCADE, 
+	FOREIGN KEY(`Session_id`) REFERENCES `Session` (id) ON DELETE CASCADE
 )ENGINE=InnoDB
 
  ;

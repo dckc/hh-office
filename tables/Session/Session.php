@@ -1,5 +1,5 @@
 <?
-class tables_Session {
+class tables_Session extends Audited {
   function getTitle(&$record){
     return $record->strval('session_date');
   }

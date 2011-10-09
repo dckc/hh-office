@@ -1,9 +1,10 @@
 <?
-class tables_Client {
+class tables_Client extends Audited {
   function titleColumn(){
     return 'name';
   }
 
+  // Warn about old clients
   function block__before_record_content () {
     $app =& Dataface_Application::getInstance();
     $record =& $app->getRecord();
@@ -46,7 +47,9 @@ c.balance = cb.balance";
     # TODO: consider passing in the record instead.
     if ($id == 0) {
       $record =& Dataface_Application::getInstance()->getRecord();
-      $id = $record->val('id');
+      if ($record) {
+	$id = $record->val('id');
+      }
     }
 
     $this->update_balances($id);

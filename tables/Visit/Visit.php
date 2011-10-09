@@ -1,5 +1,5 @@
 <?
-class tables_Visit {
+class tables_Visit extends Audited{
   function attend_n__default () {
     return 1;
   }

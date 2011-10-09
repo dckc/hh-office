@@ -21,7 +21,8 @@ Client =  Table('Client', metadata,
                 Column(u'address', TextLine),
                 Column(u'phone', TextLine),
                 Column(u'DOB', DATE()),
-                Column(u'Officer_id', ForeignKey('Officer.id')
+                Column(u'Officer_id',
+                       ForeignKey('Officer.id', ondelete="SET NULL")
                        ),
                 Column(u'file', TextCode),
                 Column(u'file_site', Enum('op', 'kck')),
@@ -35,6 +36,11 @@ Client =  Table('Client', metadata,
                 Column('balance_updated', TIMESTAMP()),
                 Column(u'id_zoho', TextCode),
                 Column(u'id_dabble', TextCode),
+
+                Column('added_time', TIMESTAMP()),
+                Column('added_user', TextCode),
+                Column('modified_time', TIMESTAMP()),
+                Column('modified_user', TextCode),
                 mysql_engine='InnoDB'
                 )
 
@@ -50,6 +56,10 @@ Group =  Table('Group', metadata,
                Column(u'evaluation', BOOLEAN(), nullable=False),
                Column(u'id_zoho', TextCode),
                Column(u'id_dabble', TextCode),
+               Column('added_time', TIMESTAMP()),
+               Column('added_user', TextCode),
+               Column('modified_time', TIMESTAMP()),
+               Column('modified_user', TextCode),
                mysql_engine='InnoDB'
                )
 
@@ -62,6 +72,10 @@ Office = Table('Office', metadata,
                Column(u'notes', TEXT()),
                Column(u'id_zoho', TextCode),
                Column(u'id_dabble', TextCode),
+               Column('added_time', TIMESTAMP()),
+               Column('added_user', TextCode),
+               Column('modified_time', TIMESTAMP()),
+               Column('modified_user', TextCode),
                mysql_engine='InnoDB'
                )
 
@@ -70,9 +84,14 @@ Officer = Table('Officer', metadata,
                 Column(u'id', INTEGER(), primary_key=True, nullable=False),
                 Column(u'name', TextLine, nullable=False),
                 Column(u'email', TextLine),
-                Column(u'Office_id', INTEGER(), ForeignKey('Office.id')),
+                Column(u'Office_id', INTEGER(),
+                       ForeignKey('Office.id', ondelete="SET NULL")),
                 Column(u'id_zoho', TextCode),
                 Column(u'id_dabble', TextCode),
+                Column('added_time', TIMESTAMP()),
+                Column('added_user', TextCode),
+                Column('modified_time', TIMESTAMP()),
+                Column('modified_user', TextCode),
                 mysql_engine='InnoDB'
                 )
 
@@ -81,11 +100,17 @@ Session =  Table('Session', metadata,
                  Column(u'id', INTEGER(), primary_key=True, nullable=False),
                  Column(u'session_date', DATE(), nullable=False),
                  Column(u'time', TextCode),
-                 Column(u'Group_id', INTEGER(), ForeignKey('Group.id'),
+                 Column(u'Group_id', INTEGER(),
+                        ForeignKey('Group.id', ondelete="CASCADE"),
                         nullable=False),
-                 Column(u'Therapist_id', INTEGER(), ForeignKey('Therapist.id')),
+                 Column(u'Therapist_id', INTEGER(),
+                        ForeignKey('Therapist.id', ondelete="SET NULL")),
                  Column(u'id_zoho', TextCode),
                  Column(u'id_dabble', TextCode),
+                 Column('added_time', TIMESTAMP()),
+                 Column('added_user', TextCode),
+                 Column('modified_time', TIMESTAMP()),
+                 Column('modified_user', TextCode),
                  mysql_engine='InnoDB'
                  )
 
@@ -96,6 +121,10 @@ Therapist =  Table('Therapist', metadata,
                    Column(u'id', INTEGER(), primary_key=True, nullable=False),
                    Column(u'name', TextLine, nullable=False),
                    Column('weight', INTEGER()),
+                   Column('added_time', TIMESTAMP()),
+                   Column('added_user', TextCode),
+                   Column('modified_time', TIMESTAMP()),
+                   Column('modified_user', TextCode),
                    mysql_engine='InnoDB'
                    )
 
@@ -112,13 +141,17 @@ Visit =  Table('Visit', metadata,
                Column(u'bill_date', DATE()),
                Column(u'check_date', DATE()),
                Column(u'Client_id', INTEGER(),
-                      ForeignKey('Client.id'),
+                      ForeignKey('Client.id', ondelete="CASCADE"),
                       nullable=False),
                Column(u'Session_id', INTEGER(),
-                      ForeignKey('Session.id'),
+                      ForeignKey('Session.id', ondelete="CASCADE"),
                       nullable=False),
                Column(u'id_zoho', TextCode),
                Column(u'id_dabble', TextCode),
+               Column('added_time', TIMESTAMP()),
+               Column('added_user', TextCode),
+               Column('modified_time', TIMESTAMP()),
+               Column('modified_user', TextCode),
                mysql_engine='InnoDB'
                )
 
@@ -127,7 +160,11 @@ Index(u'visit_match', Visit.c.Session_id, Visit.c.Client_id, unique=False)
 
 Batch = Table('Batch', metadata,
               Column('name', TextLine, primary_key=True),
-              Column('cutoff', DATE())
+              Column('cutoff', DATE()),
+              Column('added_time', TIMESTAMP()),
+              Column('added_user', TextCode),
+              Column('modified_time', TIMESTAMP()),
+              Column('modified_user', TextCode),
               )
 
 users =  Table('users', metadata,
@@ -135,6 +172,10 @@ users =  Table('users', metadata,
                Column(u'role', Enum('READ ONLY', 'EDIT', 'DELETE',
                                     'OWNER', 'REVIEWER',
                                     'USER', 'ADMIN', 'MANAGER')),
+               Column('added_time', TIMESTAMP()),
+               Column('added_user', TextCode),
+               Column('modified_time', TIMESTAMP()),
+               Column('modified_user', TextCode),
                mysql_engine='InnoDB'
                )
 

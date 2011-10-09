@@ -8,6 +8,32 @@ function ends_with($str, $test) {
   return substr_compare($str, $test, -strlen($test), strlen($test)) === 0;
 }
 
+class Audited {
+
+  # ack: User tracking
+  # by ADobkin » Tue Oct 23, 2007 11:19 am
+  # http://xataface.com/forum/viewtopic.php?t=4215#21205
+
+  # Note also:
+  # "It is not possible to have the current
+  # timestamp be the default value for one column and
+  # the auto-update value for another column"
+  # -- http://dev.mysql.com/doc/refman/5.5/en/timestamp.html
+
+  function beforeInsert(&$record){
+    $auth =& Dataface_AuthenticationTool::getInstance();
+    $user =& $auth->getLoggedInUsername();
+    $record->setValue('added_user', $user);
+    $record->setValue('modified_user', $user);
+  }
+  
+  function beforeUpdate(&$record){
+    $auth =& Dataface_AuthenticationTool::getInstance();
+    $user =& $auth->getLoggedInUsername();
+    $record->setValue('modified_user', $user);
+  }
+}
+
 
 class conf_ApplicationDelegate {
   function getRoles(&$record){
