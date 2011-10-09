@@ -20,9 +20,12 @@ ZOHO_BAK=$(HOME)/Desktop/hh-zoho-bak/
 	$(PYTHON) mkimports.py --dabble $(DABBLE_BAK) >$@ \
 		|| (mv -f $@ ,errs; exit 1)
 
-,zin: hh_from_zc.sql ,zbak
+,zin: hh_from_zc.sql ,zbak ,hh_init
 	$(PYTHON) mkimports.py --run hh_from_zc.sql && \
 		touch $@
+
+,hh_init: mkimports.py hh_data2.sql
+	$(PYTHON) mkimports.py --make-tables
 
 ,zbak:
 	$(PYTHON) mkimports.py --zoho $(ZOHO_BAK) >$@ \

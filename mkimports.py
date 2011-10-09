@@ -40,10 +40,18 @@ def main(argv):
         outf = argv[2]
         xe = create_engine(xataface_url(ini, section))
         schema_diagram(xe, outf)
+    elif '--make-tables' in argv:
+        xe = create_engine(xataface_url())
+        make_tables(xe)
     else:
         print >> sys.stderr, __doc__
         exit(1)
     
+
+def make_tables(xe):
+    import hh_data2
+    hh_data2.metadata.drop_all(xe)
+    hh_data2.metadata.create_all(xe)
 
 def schema_diagram(xe, outf):
     from sqlalchemy import MetaData
