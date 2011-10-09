@@ -1,5 +1,6 @@
 PYTHON=python
 DIFF=diff
+MYSQLDUMP=mysqldump
 # see devtools target below
 XSLTPROC=xsltproc
 SQLAUTOCODE=sqlautocode
@@ -30,6 +31,9 @@ ZOHO_BAK=$(HOME)/Desktop/hh-zoho-bak/
 ,zbak:
 	$(PYTHON) mkimports.py --zoho $(ZOHO_BAK) >$@ \
 		|| (mv -f $@ ,errs; exit 1)
+
+hh_data_backup.sql:
+	$(MYSQLDUMP) -u root -p --databases hh_office >$@
 
 
 hh_data2.sql: hh_data2.py
