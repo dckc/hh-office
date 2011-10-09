@@ -127,8 +127,9 @@ def _asset(*paths):
 
 
 def _progress(*args):
-    import sys
-    sys.stderr.write(' '.join([str(a) for a in args]) + '\n')
+    #import sys
+    #sys.stderr.write(' '.join([str(a) for a in args]) + '\n')
+    pass
 
 
 def add_xataface_datasource(report, dsn,
