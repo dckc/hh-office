@@ -5,7 +5,8 @@
 // ack:
 // http://stackoverflow.com/questions/619610/whats-the-most-efficient-test-of-whether-a-php-string-ends-with-another-string
 function ends_with($str, $test) {
-  return substr_compare($str, $test, -strlen($test), strlen($test)) === 0;
+  return (strlen($str) >= strlen($test) and
+    substr_compare($str, $test, -strlen($test), strlen($test)) === 0);
 }
 
 class Audited {
