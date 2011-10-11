@@ -9,9 +9,9 @@
  */
 $time = microtime(true);
 	// use the timer to time how long it takes to generate a page
-require_once '/usr/local/src/xataface-1.3rc6/dataface-public-api.php';
+require_once '/home/dckc/hh-office.dreamhosters.com/hh-office/lib/xataface-1.3rc6/dataface-public-api.php';
 	// include the initialization file
-df_init(__FILE__, 'http://pav.local/xataface-1.3rc6');
+df_init(__FILE__, '/hh-office/lib/xataface-1.3rc6');
 	// initialize the site
 
 $app =& Dataface_Application::getInstance();
