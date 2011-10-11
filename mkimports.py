@@ -8,6 +8,7 @@ Usage:
  
 '''
 
+from __future__ import with_statement  # python2.5 compatibility
 import os
 import subprocess
 import csv
@@ -161,8 +162,9 @@ def xataface_url(driver='mysql+mysqldb'):
 
 def run_script(script_fn):
     u, p, h, n = xataface_params()
-    p = subprocess.Popen(['mysql',
-                          '--user=' + u, '--password=' + p, '-h', h, '-D', n],
+    argv = ['mysql', '--user=' + u, '--password=' + p, '-h', h, '-D', n]
+    #print argv
+    p = subprocess.Popen(argv,
                           stdin=subprocess.PIPE)
     p.stdin.write(open(script_fn).read())
     rc = p.stdin.close()
