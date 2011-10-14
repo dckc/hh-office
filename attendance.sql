@@ -4,10 +4,13 @@ create or replace view Attendance_all as
 select v.id
      , g.id as group_id, g.name as group_name, g.rate as group_rate
      , c.id as client_id, c.name as client_name, c.billing_cutoff, c.recent
+     , c.insurance
      , o.name as officer_name
      , s.id as session_id, s.Therapist_id, s.session_date
      , attend_n, v.charge, v.client_paid
      , v.insurance_paid
+     , v.bill_date
+     , v.check_date
      , v.note
      , v.charge - v.client_paid -
       case when v.insurance_paid is null then 0 else v.insurance_paid end as due
