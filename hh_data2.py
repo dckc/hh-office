@@ -132,7 +132,7 @@ Index(u'Therapist_name', Therapist.c.name, unique=True)
 
 Visit =  Table('Visit', metadata,
                Column(u'id', INTEGER(), primary_key=True, nullable=False),
-               Column(u'attend_n', BOOLEAN(), nullable=False),
+               Column(u'attend_n', BOOLEAN(), server_default=text('0')),
                Column(u'charge', Money, nullable=False),
                Column(u'client_paid', Money, nullable=False),
                Column(u'insurance_paid', Money, nullable=False,

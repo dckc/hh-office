@@ -20,6 +20,18 @@ class tables_Visit extends Audited{
     }
   }
 
+  function beforeHandleRequest(){
+    
+    $app=& Dataface_Application::getInstance();
+    $query = $app->getQuery();
+    if ( $query['-table'] == 'Session' ){
+        $record =& $app->getRelatedRecord();
+	$roleField =& $record->_table->getField('bill_date');
+	$roleField['widget']['type'] = 'hidden';
+    }
+    
+}
+
   function afterInsert ($record) {
     $vid = $record->val('id');
     /* If a dormant client returns, set the billing_cutoff per session. */

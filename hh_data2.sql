@@ -12,23 +12,6 @@ CREATE TABLE users (
 
  ;
 
-CREATE TABLE `Group` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	rate DECIMAL(8, 2) NOT NULL, 
-	evaluation BOOL NOT NULL, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id), 
-	CHECK (evaluation IN (0, 1))
-)ENGINE=InnoDB
-
- ;
-
 CREATE TABLE `Batch` (
 	name VARCHAR(120) NOT NULL, 
 	cutoff DATE, 
@@ -54,6 +37,23 @@ CREATE TABLE `Therapist` (
 
  ;
 
+CREATE TABLE `Group` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	rate DECIMAL(8, 2) NOT NULL, 
+	evaluation BOOL NOT NULL, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id), 
+	CHECK (evaluation IN (0, 1))
+)ENGINE=InnoDB
+
+ ;
+
 CREATE TABLE `Office` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
@@ -67,23 +67,6 @@ CREATE TABLE `Office` (
 	modified_time TIMESTAMP NULL, 
 	modified_user VARCHAR(40), 
 	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Officer` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	email VARCHAR(120), 
-	`Office_id` INTEGER, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(`Office_id`) REFERENCES `Office` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
@@ -103,6 +86,23 @@ CREATE TABLE `Session` (
 	PRIMARY KEY (id), 
 	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
 	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Officer` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	email VARCHAR(120), 
+	`Office_id` INTEGER, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(`Office_id`) REFERENCES `Office` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
@@ -142,7 +142,7 @@ CREATE TABLE `Client` (
 
 CREATE TABLE `Visit` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
-	attend_n BOOL NOT NULL, 
+	attend_n BOOL DEFAULT 0, 
 	charge DECIMAL(8, 2) NOT NULL, 
 	client_paid DECIMAL(8, 2) NOT NULL, 
 	insurance_paid DECIMAL(8, 2) DEFAULT 0.00 NOT NULL, 
