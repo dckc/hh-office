@@ -12,6 +12,40 @@ CREATE TABLE users (
 
  ;
 
+CREATE TABLE `Office` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	address VARCHAR(120), 
+	fax VARCHAR(120), 
+	notes TEXT, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Group` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	rate DECIMAL(8, 2) NOT NULL, 
+	evaluation BOOL DEFAULT 0, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id), 
+	CHECK (evaluation IN (0, 1))
+)ENGINE=InnoDB
+
+ ;
+
 CREATE TABLE `Batch` (
 	name VARCHAR(120) NOT NULL, 
 	cutoff DATE, 
@@ -37,11 +71,11 @@ CREATE TABLE `Therapist` (
 
  ;
 
-CREATE TABLE `Group` (
+CREATE TABLE `Officer` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
-	rate DECIMAL(8, 2) NOT NULL, 
-	evaluation BOOL NOT NULL, 
+	email VARCHAR(120), 
+	`Office_id` INTEGER, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
 	added_time TIMESTAMP NULL, 
@@ -49,24 +83,7 @@ CREATE TABLE `Group` (
 	modified_time TIMESTAMP NULL, 
 	modified_user VARCHAR(40), 
 	PRIMARY KEY (id), 
-	CHECK (evaluation IN (0, 1))
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Office` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	address VARCHAR(120), 
-	fax VARCHAR(120), 
-	notes TEXT, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id)
+	FOREIGN KEY(`Office_id`) REFERENCES `Office` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
@@ -86,23 +103,6 @@ CREATE TABLE `Session` (
 	PRIMARY KEY (id), 
 	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
 	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Officer` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	email VARCHAR(120), 
-	`Office_id` INTEGER, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(`Office_id`) REFERENCES `Office` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
