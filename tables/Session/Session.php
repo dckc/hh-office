@@ -13,6 +13,22 @@ class tables_Session extends Audited {
     return 'session_date';
   }
 
+  function block__after_global_footer() {
+    // ack: http://greatwebguy.com/programming/dom/setting-your-tabindex-on-your-html-forms-automatically-with-jquery/
+    echo '<script type="text/javascript">
+(function () {
+//#new_Session_record_form
+    $(".documentContent input[type=\"submit\"]").each(function() {
+            var $save = $(this);
+            $save.attr("tabindex", 9); //HARDCODED
+            $save.attr("accesskey", "S");
+    });
+//alert("set tab index on " + tabindex + " fields");
+})();
+</script>
+';
+  }
+
   function session_date__display(&$record){
     return date('m/d/Y', strtotime($record->strval('session_date')));
   }
