@@ -7,9 +7,10 @@ class tables_Visit extends Audited{
   function block__after_Client_id_widget() {
     $client_name = '';
     $app =& Dataface_Application::getInstance();
-    $record =& $app->getRecord();
-    $client = $record->getRelatedRecord('client');
-    if ($client) {
+    $query = $app->getQuery();
+    if ($query['-action'] == 'edit' or $query['-action'] == 'browse') {
+      $record =& $app->getRecord();
+      $client = $record->getRelatedRecord('client');
       $client_name = $client->val('name');
     }
 
@@ -78,11 +79,10 @@ class tables_Visit extends Audited{
     }
   }
 
-  function block__after_edit_record_form() {
+  function block__after_main_section() {
     echo '<script type="text/javascript">
 (function () {
-//#new_Session_record_form
-    $(".documentContent input[type=\"submit\"]").each(function() {
+    $("form[method=\"post\"] input[type=\"submit\"]").each(function() {
             var save = $(this);
             save.attr("tabindex", 11); //HARDCODED
             save.attr("accesskey", "S");

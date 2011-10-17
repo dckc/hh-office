@@ -13,11 +13,10 @@ class tables_Session extends Audited {
     return 'session_date';
   }
 
-  function block__after_edit_record_form() {
+  function block__after_main_section() {
     echo '<script type="text/javascript">
 (function () {
-//#new_Session_record_form
-    $(".documentContent input[type=\"submit\"]").each(function() {
+    $("form[method=\"post\"] input[type=\"submit\"]").each(function() {
             var save = $(this);
             save.attr("tabindex", 9); //HARDCODED
             save.attr("accesskey", "S");
