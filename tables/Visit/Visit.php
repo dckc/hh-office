@@ -4,17 +4,46 @@ class tables_Visit extends Audited{
     return 1;
   }
 
-  function block__before_Client_id_widget () {
-    echo "<input id='Client_id_ac' />\n";
+  function block__after_Client_id_widget() {
+    $client_name = '';
+    $app =& Dataface_Application::getInstance();
+    $record =& $app->getRecord();
+    $client = $record->getRelatedRecord('client');
+    if ($client) {
+      $client_name = $client->val('name');
+    }
 
-    // horrible copy-and-paste KLUDGE...
-    echo '<a href="#" onclick="return false" id="Client_id-other">Other..</a>
+    echo "<input id='Client_id_ac' value='$client_name' tabindex='3'/>\n";
+
+    echo '<a href="#" onclick="return false" id="Client_id-other">Other..</a>';
+
+    echo "<script src='av/jqac/jquery.autocomplete.js'></script>";
+    echo "<script type='text/javascript'>
+\$('#Client_id').hide();
+\$('#Client_id_ac').autocomplete({
+   url: 'index.php',
+   paramName: '-search',
+   selectFirst: true,
+   extraParams: {'-action': 'client_data',
+                '-table': 'Client',
+                '-value': 'id',
+                '-text': 'name'},
+   onItemSelect: function(item) {
+     \$('#Client_id').val(item.data);
+     }
+});
+</script>";
+
+    // copy-and-paste KLUDGE? but that's what xataface code seems to do.
+    echo '
+<script type="text/javascript" src="'.DATAFACE_URL.'/js/jquery-ui-1.7.2.custom.min.js"></script>
+<script type="text/javascript" src="'.DATAFACE_URL.'/js/RecordDialog/RecordDialog.js"></script>
 <script>
   $("head").append("<link rel=\"stylesheet\" type=\"text/css\" href=\""+DATAFACE_URL+"/css/smoothness/jquery-ui-1.7.2.custom.css\"/>");
   jQuery(document).ready(function($){
       $("#Client_id-other").each(function(){
 	  var tablename = "Client";
-	  var valfld = "id";
+	  var valfld = "name";
 	  var keyfld = "id";
 	  var fieldname = "Client_id";
 	  var btn = this;
@@ -23,13 +52,14 @@ class tables_Visit extends Audited{
 	      callback: function(data){
 		  var key = data[keyfld];
 		  var val = data[valfld];
-		  $("#"+fieldname).append("<option value=\""+key+"\">"+val+"</option>");
 		  $("#"+fieldname).val(key);
+		  $("#"+fieldname+"_ac").val(val);
 	      }
 	  });
       });
   });
 </script>';
+
   }
 
   function charge__default () {
@@ -46,6 +76,28 @@ class tables_Visit extends Audited{
     } else {
       return null;
     }
+  }
+
+  function block__after_edit_record_form() {
+    echo '<script type="text/javascript">
+(function () {
+//#new_Session_record_form
+    $(".documentContent input[type=\"submit\"]").each(function() {
+            var save = $(this);
+            save.attr("tabindex", 11); //HARDCODED
+            save.attr("accesskey", "S");
+    });
+//alert("set tab index on " + tabindex + " fields");
+
+    // no tabbing through links nor the search form
+    $("a, .search_form input").each(function() {
+            var a = $(this);
+            a.attr("tabindex", -1);
+    });
+
+})();
+</script>
+';
   }
 
   function afterInsert ($record) {
