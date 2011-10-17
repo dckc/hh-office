@@ -13,20 +13,41 @@ class tables_Session extends Audited {
     return 'session_date';
   }
 
+  function block__custom_stylesheets2 () {
+    echo "<link rel='stylesheet' href='av/jqac/jquery.autocomplete.css' />";
+  }
+
   function block__after_global_footer() {
     // ack: http://greatwebguy.com/programming/dom/setting-your-tabindex-on-your-html-forms-automatically-with-jquery/
     echo '<script type="text/javascript">
 (function () {
 //#new_Session_record_form
     $(".documentContent input[type=\"submit\"]").each(function() {
-            var $save = $(this);
-            $save.attr("tabindex", 9); //HARDCODED
-            $save.attr("accesskey", "S");
+            var save = $(this);
+            save.attr("tabindex", 9); //HARDCODED
+            save.attr("accesskey", "S");
     });
 //alert("set tab index on " + tabindex + " fields");
 })();
 </script>
 ';
+
+    echo "<script src='av/jqac/jquery.autocomplete.js'></script>";
+    echo "<script type='text/javascript'>
+\$('#Client_id_ac').autocomplete({
+   url: 'index.php',
+   paramName: '-search',
+   selectFirst: true,
+   extraParams: {'-action': 'client_data',
+                '-table': 'Client',
+                '-value': 'id',
+                '-text': 'name'},
+   onItemSelect: function(item) {
+     \$('#Client_id').val(item.data);
+     }
+});
+</script>";
+
   }
 
   function session_date__display(&$record){

@@ -4,6 +4,34 @@ class tables_Visit extends Audited{
     return 1;
   }
 
+  function block__before_Client_id_widget () {
+    echo "<input id='Client_id_ac' />\n";
+
+    // horrible copy-and-paste KLUDGE...
+    echo '<a href="#" onclick="return false" id="Client_id-other">Other..</a>
+<script>
+  $("head").append("<link rel=\"stylesheet\" type=\"text/css\" href=\""+DATAFACE_URL+"/css/smoothness/jquery-ui-1.7.2.custom.css\"/>");
+  jQuery(document).ready(function($){
+      $("#Client_id-other").each(function(){
+	  var tablename = "Client";
+	  var valfld = "id";
+	  var keyfld = "id";
+	  var fieldname = "Client_id";
+	  var btn = this;
+	  $(this).RecordDialog({
+	      table: tablename,
+	      callback: function(data){
+		  var key = data[keyfld];
+		  var val = data[valfld];
+		  $("#"+fieldname).append("<option value=\""+key+"\">"+val+"</option>");
+		  $("#"+fieldname).val(key);
+	      }
+	  });
+      });
+  });
+</script>';
+  }
+
   function charge__default () {
     $app =& Dataface_Application::getInstance();
     $record =& $app->getRecord();

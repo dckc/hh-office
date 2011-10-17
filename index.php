@@ -21,5 +21,6 @@ $app->display();
 
 
 $time = microtime(true) - $time;
-echo "<!--Execution Time: $time-->";
+//interferes with auto-complete
+//echo "<!--Execution Time: $time-->";
 ?>
