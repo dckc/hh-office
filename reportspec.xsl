@@ -8,6 +8,7 @@
 <xsl:template match="h:html">
   <xsl:variable name="fs">
     <xsl:choose>
+      <xsl:when test="contains(h:body/@class, 'small-print')">8pt</xsl:when>
       <xsl:when test="contains(h:body/@class, 'medium-print')">9pt</xsl:when>
       <xsl:otherwise>10pt</xsl:otherwise> <!-- hmm... default size? -->
     </xsl:choose>
@@ -21,7 +22,9 @@
     </xsl:choose>
   </xsl:variable>
 
-  <Report fontSize="{$fs}" orientation="{$o}">
+  <Report fontSize="{$fs}" orientation="{$o}"
+	  leftMargin="0.4"
+	  topMargin="0.4">
     <xsl:apply-templates />
   </Report>
 </xsl:template>
