@@ -4,15 +4,15 @@
 '''
 
 from os import path
-from urlparse import urlparse, parse_qs
+from urlparse import urlparse
+from cgi import parse_qs
 import ConfigParser
 import logging
 import traceback
 import wsgiref.handlers
 
-from lxml import etree  # ubuntu python-lxml 2.2.4-1
-                        # MD5sum: 0db8703d05c67d04c854ce44ab466625
-                        # http://lxml.de/index.html
+import libxml2
+import libxslt
 
 import rlib  # http://rlib.sicompos.com/
              # 06b3e629c6f99a8b2fd1264f32db8f56  rlib-1.3.7.tar.gz
@@ -132,18 +132,17 @@ def serve_report_request(start_response, template, txpath, report, dsn):
     .. todo: cite WSGI
     '''
 
-    tx = etree.XSLT(etree.parse(txpath.fp()))
+    tx = libxslt.parseStylesheetDoc(libxml2.parseFile(str(txpath)))
 
-
-    skel = etree.parse(template.fp())
-    report_dml = skel.xpath('//*[@class="query"]/text()')[0]
+    skel = libxml2.parseFile(str(template))
+    ctxt = skel.xpathNewContext()
+    report_dml = ctxt.xpathEval('//*[@class="query"]')[0].content
     log.debug('report dml: %s', report_dml)
-    spec = tx(skel)
-    spec_txt = etree.tostring(spec)
-
     report.add_query_as(dsn, report_dml, 'arbitrary_report_name')
+
+    spec = tx.applyStylesheet(skel, None)
+    spec_txt = spec.serialize()
     report.add_report_from_buffer(spec_txt)
-    report.set_output_format_from_text("PDF")
 
     # todo: try different font:
     # report.set_output_parameter("pdf_fontname", 'helvetica')
@@ -152,6 +151,7 @@ def serve_report_request(start_response, template, txpath, report, dsn):
     # encoding is NULL or invalid [C]... using en_US
     # but this doesn't seem to change anything.
     # myreport.set_output_encoding('UTF-8')
+    report.set_output_format_from_text("PDF")
     report.execute()
 
     log.debug('raw headers: %s', report.get_content_type_as_text())
