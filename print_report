@@ -139,7 +139,8 @@ def add_xataface_datasource(report, dsn,
     __ http://xataface.com/wiki/conf.ini_file
     '''
     opts = ConfigParser.SafeConfigParser()
-    opts.read(_asset(ini))
+    pc = PrefixConfig(_asset(ini), '[DEFAULT]')
+    pc.feedto(opts)
 
     def opt(n):
         v = opts.get(section, n)
@@ -147,6 +148,27 @@ def add_xataface_datasource(report, dsn,
 
     report.add_datasource_mysql(dsn, opt('host'), opt('user'),
                                 opt('password'), opt('name'))
+
+
+class PrefixConfig(object):
+    '''work-around: xataface needs options before the 1st [section]
+    '''
+    def __init__(self, filename, line):
+        self._fn = filename
+        self._fp = open(filename)
+        self._l = line
+
+    def feedto(self, opts):
+        opts.readfp(self, self._fn)
+
+    def readline(self):
+        if self._l:
+            l = self._l
+            self._l = None
+            return l
+        else:
+            return self._fp.readline()
+
 
 if __name__ == '__main__':
     cgi_main()
