@@ -12,11 +12,28 @@ CREATE TABLE users (
 
  ;
 
+CREATE TABLE `Office` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	address VARCHAR(120), 
+	fax VARCHAR(120), 
+	notes TEXT, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB
+
+ ;
+
 CREATE TABLE `Group` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
 	rate DECIMAL(8, 2) NOT NULL, 
-	evaluation BOOL NOT NULL, 
+	evaluation BOOL DEFAULT 0, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
 	added_time TIMESTAMP NULL, 
@@ -45,23 +62,6 @@ CREATE TABLE `Therapist` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
 	weight INTEGER, 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Office` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	address VARCHAR(120), 
-	fax VARCHAR(120), 
-	notes TEXT, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
 	added_time TIMESTAMP NULL, 
 	added_user VARCHAR(40), 
 	modified_time TIMESTAMP NULL, 
@@ -142,7 +142,7 @@ CREATE TABLE `Client` (
 
 CREATE TABLE `Visit` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
-	attend_n BOOL NOT NULL, 
+	attend_n BOOL DEFAULT 0, 
 	charge DECIMAL(8, 2) NOT NULL, 
 	client_paid DECIMAL(8, 2) NOT NULL, 
 	insurance_paid DECIMAL(8, 2) DEFAULT 0.00 NOT NULL, 

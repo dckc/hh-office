@@ -4,6 +4,7 @@ conf.ini
 
 ,*
 *~
+*.pyc
 
 hh_data2.mwb
 hh_data2.mwb.bak

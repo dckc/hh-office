@@ -93,9 +93,9 @@
 <h2>Query</h2>
 <pre><code class="query">
 select *, c.name as client_name
-from hh_office.Client c
+from Client c
 where c.recent >= (
- select cutoff from hh_office.Batch
+ select cutoff from Batch
  where name = 'current')
 order by balance desc, c.name;
 </code></pre>

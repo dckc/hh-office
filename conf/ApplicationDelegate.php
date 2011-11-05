@@ -53,8 +53,9 @@ class conf_ApplicationDelegate {
     }
   }
 
-  function block__custom_stylesheets2() {
+  function block__custom_stylesheets2 () {
     echo '<link rel="stylesheet" href="./midwest.css" />';
+    echo "<link rel='stylesheet' href='av/jqac/jquery.autocomplete.css' />";
   }
 
 

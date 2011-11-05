@@ -9,7 +9,7 @@
 <h1 class="ReportHeader reversed">Hope Harbor</h1>
 <h2 class="PageHeader">
   <span class="literal"
-	>Attendance by Client</span>
+	>Duplicate Client Attendance</span>
   <span class="literal blank">0.........0.........0.........0</span>
   <span class="field" title="date()">mm/dd/yyyy</span>
   <span class="literal blank">          </span>
@@ -20,12 +20,26 @@
 <table class="Breaks">
 <thead>
   <tr id="per_client">
+    <th id="client_id" title="client_id" align="right" class="field"
+	>12345</th>
     <th id="client_id" title="client_name" align="left" class="field"
-	colspan="2"
-	>Lastname, Firstname ________9_</th>
-    <th class="literal blank">............................</th>
-    <th class="field" title="iif(officer_name>'', 'Officer: ', '')"
-	>Officer: </th>
+	>Lastname, Firstname __</th>
+    <th class="literal">D:</th>
+    <th id="client_id" title="iif(id_dabble>'',fxpval(id_dabble,0),'')"
+      align="right" class="field"
+	>.....</th>
+    <th class="literal"> Z:</th>
+    <th id="client_id" title="iif(id_zoho>'',fxpval(id_zoho,0),'')"
+      align="right" class="field"
+	>.........</th>
+    <th class="literal"> </th>
+    <th id="client_id" title="added_time" align="left" class="field"
+	>..........</th>
+    <th class="literal"> by:</th>
+    <th id="client_id" title="added_user" align="left" class="field"
+	>.........</th>
+
+    <th class="literal"> Ofcr: </th>
     <th id="client_id" title="officer_name" align="left" class="field"
 	>Officer             ________9_</th>
   </tr>
@@ -53,7 +67,6 @@
 
   <tfoot>
     <tr class="per_client">
-      <td>...... mm/dd/yyyy<!-- placeholder for session date in footer --></td>
       <td title="attend_n" class="sum" align="right"
 	  > 1,000</td>
       <td title="charge" class="sum money" align="right"
@@ -97,8 +110,20 @@
 <div>
 <h2>Query</h2>
 <pre><code class="query">
-select * from Attendance
-order by client_name, group_name, session_date
+select aa.*
+     , c.id_dabble, c.id_zoho
+     , c.added_time, c.added_user
+ from Attendance_all aa
+join (
+select count(*), name
+from Client
+group by name
+having count(*) > 1
+) dups
+on dups.name = aa.client_name
+join Client c
+on aa.client_id = c.id
+order by client_name, client_id, group_name, session_date desc
 </code></pre>
 </div>
 

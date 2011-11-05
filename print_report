@@ -3,16 +3,15 @@
 
 '''
 
-import sys
+from os import path, environ
+from cgi import parse_qs
 import ConfigParser
-import datetime
-from os import path
-import wsgiref.handlers
+import logging
 import traceback
+import wsgiref.handlers
 
-from lxml import etree  # ubuntu python-lxml 2.2.4-1
-                        # MD5sum: 0db8703d05c67d04c854ce44ab466625
-                        # http://lxml.de/index.html
+import libxml2
+import libxslt
 
 import rlib  # http://rlib.sicompos.com/
              # 06b3e629c6f99a8b2fd1264f32db8f56  rlib-1.3.7.tar.gz
@@ -21,85 +20,156 @@ PLAIN = [('Content-Type', 'text/plain')]
 HTML8 = [('Content-Type', 'text/html; charset=utf-8')]
 PDF = [('Content-Type', 'application/pdf')]
 
+log = logging.getLogger(__name__)
+
 
 def cgi_main():
-    report = rlib.Rlib()
-    h = report_handler(report)
-    wsgiref.handlers.CGIHandler().run(h)
+    wsgiref.handlers.CGIHandler().run(report_if_key)
 
 
-def report_handler(report, tx='reportspec.xsl'):
-    '''Build a report handler from a report.
+def _test_main(ini='conf.ini'):
+    import sys
 
-    @param report: from rlib__
-    @param tx: filename of an XSLT transformation that produces
-               `rlib report definitions`__ from HTML skeletons.
+    here = path.dirname(__file__)
+    opts = PrefixConfig(File(here, ini), '[DEFAULT]').opts()
+    report_name, outfn = sys.argv[1:3]
 
-    @return: a WSGI app, i.e. f(e, sr) that produces the report
-             using :func:`serve_report_request`.
+    def start_response(r, hdrs):
+        print r
+        print hdrs
 
-    __ http://rlib.sicompos.com/
-    __ http://newrlib.sicom.com/~rlib/index.php/Documentation_XML
-
-    '''
-    def handle(env, start_response):
-        try:
-            return serve_report_request(env, start_response, report, tx)
-        except:
-            start_response('500 internal error', PLAIN)
-            return [traceback.format_exc()]
-
-    return handle
+    content = run_report(report_name, start_response, opts)
+    for part in content:
+        open(outfn, 'w').write(part)
 
 
-def serve_report_request(env, start_response, report, tx_file):
-    '''Service a report request
+def report_if_key(env, start_response,
+                  ini='conf.ini',
+                  section='_database'):
+    '''TCB part of the WSGI handler
 
     @param env: CGI environment; PATH_INFO is used to find
-                a report skeleton under `templates`. See :func:`_asset`.
-                The skeleton also specifies the mysql query to run
-                in an element with @class="query".
-    @param start_response: as per WSGI; called with 200 OK on
-                           success or 404
-                           in case no template is found.
-                           The caller is responsible to make 5xx
-                           responses out of any exceptions raised.
-    @param report: an intilized rlib report.
-    @param tx_file: transform filename, as per report_handler.
-
+            a report skeleton under `templates`.
+            
     See :func:`add_xataface_datasource` for database connection strategy.
 
-    @return: an iterator as per WSGI; contains a PDF document
-             in the success case or a message in the 404 case.
-
-    .. todo: rename/unhide, document _asset()
-    .. todo: cite WSGI
     '''
+    k = parse_qs(env.get('QUERY_STRING', '')).get('key')
+    if not k:
+        start_response('401 unauthorized', PLAIN)
+        return ['missing key parameter ']
 
-    tx = etree.XSLT(etree.parse(open(_asset(tx_file))))
+    here = path.dirname(__file__)
 
-    path_info = env.get('PATH_INFO', None)
-    if not path_info:
-        start_response('404 not found', PLAIN)
-        return ['no report path given\n']
+    opts = PrefixConfig(File(here, ini), '[DEFAULT]').opts()
 
-    try:
-        skel_path = _asset('templates', path_info[1:] + '.html')
-    except:
+    if opts.get(section, 'report_key') not in k:
+        start_response('401 unauthorized', PLAIN)
+        return ['report key does not match.']
+
+    return run_report(env.get('PATH_INFO', '')[1:], start_response,
+                      opts, section)
+
+
+def run_report(report_name, start_response,
+               opts, section='_database',
+               tx='reportspec.xsl',
+               dsn='local_mysql'):
+    '''Common TCB part of report generation
+
+    @param env: report_name used to find
+            a report skeleton under `templates`.
+            
+    See :func:`add_xataface_datasource` for database connection strategy.
+
+    '''
+    here = path.dirname(__file__)
+
+    report = rlib.Rlib()
+    add_xataface_datasource(report, dsn, opts, section)
+
+    txpath = File(here, tx)
+
+    template = File(path.join(here, 'templates'), report_name + '.html')
+    if not template.exists():
         start_response('404 not found', PLAIN)
         return ['no such report spec\n']
 
-    skel = etree.parse(open(skel_path))
-    report_dml = skel.xpath('//*[@class="query"]/text()')[0]
-    _progress('report dml:', report_dml)
-    spec = tx(skel)
-    spec_txt = etree.tostring(spec)
+    try:
+        return serve_report_request(start_response, template,
+                                    txpath, report, dsn)
+    except:  # pylint: disable-msg=W0703,W0702
+        start_response('500 internal error', PLAIN)
+        return [traceback.format_exc()]
 
-    dsn = "local_mysql"
-    add_xataface_datasource(report, dsn)
+
+class Path(object):
+    def __init__(self, dirpath, segment=None):
+        self._dp = dirpath
+        self._seg = segment
+
+    def __str__(self, segment=None):
+        if segment is None:
+            segment = self._seg
+        return path.join(self._dp, seg_ck(segment))
+
+
+def seg_ck(fn):
+    assert path.sep not in fn
+    assert path.pathsep not in fn
+    return fn
+
+
+class Dir(Path):
+    def subdir(self, segment):
+        return Dir(path.join(self._dp, segment))
+
+    def file(self, fn, ext):
+        return File(self._dp, fn, ext)
+
+
+class File(Path):
+    def fp(self):
+        return open(str(self))
+
+    def exists(self):
+        return path.exists(str(self))
+
+
+def serve_report_request(start_response, template, txpath, report, dsn):
+    '''Less trusted part of the WSGI handler.
+
+    The caller is responsible to make 5xx responses out of any
+    exceptions raised.
+
+    @param start_response: as per WSGI; called with 200 OK.
+    @param template: a report skeleton; The skeleton also specifies
+                     the mysql query to run in an element with
+                     @class="query".
+    @param txpath: File of an XSLT transformation that produces
+                  `rlib report definitions`__ from HTML skeletons.
+    @param report: an intilized rlib__ report with datasource.
+    @param dsn: data source name to associate with query.
+
+    @return: an iterator as per WSGI; contains a PDF document.
+
+    __ http://newrlib.sicom.com/~rlib/index.php/Documentation_XML
+    __ http://rlib.sicompos.com/
+
+    .. todo: cite WSGI
+    '''
+
+    tx = libxslt.parseStylesheetDoc(libxml2.parseFile(str(txpath)))
+
+    skel = libxml2.parseFile(str(template))
+    ctxt = skel.xpathNewContext()
+    report_dml = ctxt.xpathEval('//*[@class="query"]')[0].content
+    log.debug('report dml: %s', report_dml)
     report.add_query_as(dsn, report_dml, 'arbitrary_report_name')
+
+    spec = tx.applyStylesheet(skel, None)
+    spec_txt = spec.serialize()
     report.add_report_from_buffer(spec_txt)
-    report.set_output_format_from_text("PDF")
 
     # todo: try different font:
     # report.set_output_parameter("pdf_fontname", 'helvetica')
@@ -108,44 +178,28 @@ def serve_report_request(env, start_response, report, tx_file):
     # encoding is NULL or invalid [C]... using en_US
     # but this doesn't seem to change anything.
     # myreport.set_output_encoding('UTF-8')
+    report.set_output_format_from_text("PDF")
     report.execute()
 
-    _progress('raw headers: ', report.get_content_type_as_text())
+    log.debug('raw headers: %s', report.get_content_type_as_text())
     hd_txt = report.get_content_type_as_text()
     hdrs = [tuple(line.strip().split(': ', 1))
             for line in hd_txt.split('\n')[:-1]]  # skip head/body separator
-    _progress('parsed headers: ', hdrs)
+    log.debug('parsed headers: %s', hdrs)
     start_response('200 ok', hdrs)
     return [report.get_output()]
 
 
-def _asset(*paths):
-    abspath = path.join(path.dirname(__file__), *paths)
-    if not path.exists(abspath):
-        raise IOError('no such file: ' + abspath)
-    return abspath
-
-
-def _progress(*args):
-    #import sys
-    #sys.stderr.write(' '.join([str(a) for a in args]) + '\n')
-    pass
-
-
-def add_xataface_datasource(report, dsn,
-                            ini='conf.ini', section='_database'):
+def add_xataface_datasource(report, dsn, opts, section):
     '''Add a mysql datasource to a report following xataface conventions.
 
     @param report: an rlib.Rlib
     @param dsn: a name for the datasource, per the rlib API
-    @param ini: `conf.ini`, per `xataface docs`__
+    @param opts: ConfigParser on `conf.ini`, per `xataface docs`__
     @param section: `_database`, per xataface
 
     __ http://xataface.com/wiki/conf.ini_file
     '''
-    opts = ConfigParser.SafeConfigParser()
-    opts.read(_asset(ini))
-
     def opt(n):
         v = opts.get(section, n)
         return v[1:-1]  # strip ""s
@@ -153,5 +207,32 @@ def add_xataface_datasource(report, dsn,
     report.add_datasource_mysql(dsn, opt('host'), opt('user'),
                                 opt('password'), opt('name'))
 
+
+class PrefixConfig(object):
+    '''work-around: xataface needs options before the 1st [section]
+    '''
+    def __init__(self, fpath, line):
+        self._f = fpath
+        self._l = line
+        self._fp = None
+
+    def opts(self):
+        self._fp = self._f.fp()
+        opts = ConfigParser.SafeConfigParser()
+        opts.readfp(self, str(self._f))
+        return opts
+
+    def readline(self):
+        if self._l:
+            l = self._l
+            self._l = None
+            return l
+        else:
+            return self._fp.readline()
+
+
 if __name__ == '__main__':
-    cgi_main()
+    if 'SCRIPT_NAME' in environ:
+        cgi_main()
+    else:
+        _test_main()

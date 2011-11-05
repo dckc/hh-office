@@ -32,29 +32,21 @@ TODO
 
 Unmet requirements:
 
- * restore from Zoho, DabbleDB backups
- * exclude inactive clients for performance?
-   * move Account fields to Client table?
+ * access control for printed reports
+
+Near term goals:
+
  * optimize entering sign-in sheets
+   * save and add another
    * reduce clutter; make it obvious how to make a new session
-   * clients case sensitive
    * pick client w keyboard
    * reduce mouse work
        * choosing clients
        * how to Save the sign-in sheet with the keyboard?
        * tabbing between fields in general
- * access control for printed reports
- * TODO: a more direct link to current clients
 
 data cleanup:
   - be more rigorous about time? time interval? start/end time?
-
-Near term goals:
-
- * permissions: view-only vs. edit
-http://xataface.com/wiki/permissions.ini_file
- * format money fields better in the list view
-http://stackoverflow.com/questions/4995979/php-currency-formatting-trailing-zeros
 
 Eventual goals:
 

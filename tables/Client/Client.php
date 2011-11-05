@@ -4,6 +4,21 @@ class tables_Client extends Audited {
     return 'name';
   }
 
+  function block__tables_menu_head () {
+    $app =& Dataface_Application::getInstance();
+    $key = $app->_conf['_database']['report_key'];
+    echo "<ul class='report_menu'>
+           <li><a href='print_report/attendance_by_client?key=$key'
+	          target='_new'>Attendance by Client</a></li>
+           <li><a href='print_report/billing_insurance?key=$key'
+ 	          target='_new'>Billing Insurance</a></li>
+           <li><a href='print_report/amount_due?key=$key'
+                  target='_new'>Account Balances</a></li>
+           <li><a href='print_report/dup_clients?key=$key'
+                  target='_new'><em>Duplicate Clients</em></a></li>
+         </ul>";
+  }
+
   // Warn about old clients
   function block__before_record_content () {
     $app =& Dataface_Application::getInstance();
