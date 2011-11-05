@@ -86,7 +86,7 @@
 <h2>Query</h2>
 <pre><code class="query">
 select aa.*, s.time, t.name as therapist_name
- from hh_office.Attendance_all aa
+ from Attendance_all aa
 join `Session` s on s.id = aa.session_id
 left join Therapist t on aa.Therapist_id = t.id
 where s.session_date > (current_date - interval 30 day)
