@@ -9,6 +9,14 @@ DABBLE_BAK=$(HOME)/Dropbox/hh-dabble-kaput/Dabble-2011-05-16-130809/
 ZOHO_BAK=$(HOME)/Desktop/hh-zoho-bak/
 
 
+BAK_USER=root
+# --skip-opt line "fastest" per http://bugs.mysql.com/bug.php?id=16181
+hh_office.sql.gz:
+	mysqldump --user $(BAK_USER) -p \
+		--skip-opt --quick --extended-insert \
+		--replace --add-drop-table hh_office \
+		|gzip >$@
+
 ,balances: ,din attendance.sql
 	$(PYTHON) mkimports.py --run attendance.sql >$@ \
 		|| (mv -f $@ ,errs; exit 1)
