@@ -9,6 +9,8 @@ hh_data2.mwb
 hh_data2.mwb.bak
 hh_data2/@db
 
+lib/xataface-1.3rc6/
+
 hh_office.egg-info
 dist/
 build/
