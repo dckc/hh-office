@@ -3,11 +3,12 @@
 
 '''
 
-import logging
-import ConfigParser
 from os import path
-import wsgiref.handlers
+from urlparse import urlparse, parse_qs
+import ConfigParser
+import logging
 import traceback
+import wsgiref.handlers
 
 from lxml import etree  # ubuntu python-lxml 2.2.4-1
                         # MD5sum: 0db8703d05c67d04c854ce44ab466625
@@ -24,80 +25,122 @@ log = logging.getLogger(__name__)
 
 
 def cgi_main():
-    report = rlib.Rlib()
-    h = report_handler(report)
-    wsgiref.handlers.CGIHandler().run(h)
+    wsgiref.handlers.CGIHandler().run(trusted_handler)
 
 
-def report_handler(report, tx='reportspec.xsl'):
-    '''Build a report handler from a report.
-
-    @param report: from rlib__
-    @param tx: filename of an XSLT transformation that produces
-               `rlib report definitions`__ from HTML skeletons.
-
-    @return: a WSGI app, i.e. f(e, sr) that produces the report
-             using :func:`serve_report_request`.
-
-    __ http://rlib.sicompos.com/
-    __ http://newrlib.sicom.com/~rlib/index.php/Documentation_XML
-
-    '''
-    def handle(env, start_response):
-        try:
-            return serve_report_request(env, start_response, report, tx)
-        except:  # pylint: disable-msg=W0703,W0702
-            start_response('500 internal error', PLAIN)
-            return [traceback.format_exc()]
-
-    return handle
-
-
-def serve_report_request(env, start_response, report, tx_file):
-    '''Service a report request
+def trusted_handler(env, start_response,
+                    tx='reportspec.xsl',
+                    ini='conf.ini',
+                    section='_database',
+                    dsn='local_mysql'):
+    '''TCB part of the WSGI handler
 
     @param env: CGI environment; PATH_INFO is used to find
-                a report skeleton under `templates`. See :func:`_asset`.
-                The skeleton also specifies the mysql query to run
-                in an element with @class="query".
-    @param start_response: as per WSGI; called with 200 OK on
-                           success or 404
-                           in case no template is found.
-                           The caller is responsible to make 5xx
-                           responses out of any exceptions raised.
-    @param report: an intilized rlib report.
-    @param tx_file: transform filename, as per report_handler.
-
+            a report skeleton under `templates`.
+            
     See :func:`add_xataface_datasource` for database connection strategy.
 
-    @return: an iterator as per WSGI; contains a PDF document
-             in the success case or a message in the 404 case.
-
-    .. todo: rename/unhide, document _asset()
-    .. todo: cite WSGI
     '''
+    k = parse_qs(env.get('QUERY_STRING', '')).get('key')
+    if not k:
+        start_response('401 unauthorized', PLAIN)
+        return ['missing key parameter ']
 
-    tx = etree.XSLT(etree.parse(open(_asset(tx_file))))
+    here = path.dirname(__file__)
 
-    path_info = env.get('PATH_INFO', None)
-    if not path_info:
-        start_response('404 not found', PLAIN)
-        return ['no report path given\n']
+    opts = ConfigParser.SafeConfigParser()
+    pc = PrefixConfig(File(here, ini), '[DEFAULT]')
+    pc.feedto(opts)
 
-    try:
-        skel_path = _asset('templates', path_info[1:] + '.html')
-    except:  # pylint: disable-msg=W0703,W0702
+    if opts.get(section, 'report_key') not in k:
+        start_response('401 unauthorized', PLAIN)
+        return ['report key does not match.']
+
+    report = rlib.Rlib()
+    # The report_key is authorization to open the database.
+    add_xataface_datasource(report, dsn, opts, section)
+
+    txpath = File(here, tx)
+
+    template = File(path.join(here, 'templates'),
+                    env.get('PATH_INFO', '')[1:] + '.html')
+    if not template.exists():
         start_response('404 not found', PLAIN)
         return ['no such report spec\n']
 
-    skel = etree.parse(open(skel_path))
+    try:
+        return serve_report_request(start_response, template,
+                                    txpath, report, dsn)
+    except:  # pylint: disable-msg=W0703,W0702
+        start_response('500 internal error', PLAIN)
+        return [traceback.format_exc()]
+
+
+class Path(object):
+    def __init__(self, dirpath, segment=None):
+        self._dp = dirpath
+        self._seg = segment
+
+    def __str__(self, segment=None):
+        if segment is None:
+            segment = self._seg
+        return path.join(self._dp, seg_ck(segment))
+
+
+def seg_ck(fn):
+    assert path.sep not in fn
+    assert path.pathsep not in fn
+    return fn
+
+
+class Dir(Path):
+    def subdir(self, segment):
+        return Dir(path.join(self._dp, segment))
+
+    def file(self, fn, ext):
+        return File(self._dp, fn, ext)
+
+
+class File(Path):
+    def fp(self):
+        return open(str(self))
+
+    def exists(self):
+        return path.exists(str(self))
+
+
+def serve_report_request(start_response, template, txpath, report, dsn):
+    '''Less trusted part of the WSGI handler.
+
+    The caller is responsible to make 5xx responses out of any
+    exceptions raised.
+
+    @param start_response: as per WSGI; called with 200 OK.
+    @param template: a report skeleton; The skeleton also specifies
+                     the mysql query to run in an element with
+                     @class="query".
+    @param txpath: File of an XSLT transformation that produces
+                  `rlib report definitions`__ from HTML skeletons.
+    @param report: an intilized rlib__ report with datasource.
+    @param dsn: data source name to associate with query.
+
+    @return: an iterator as per WSGI; contains a PDF document.
+
+    __ http://newrlib.sicom.com/~rlib/index.php/Documentation_XML
+    __ http://rlib.sicompos.com/
+
+    .. todo: cite WSGI
+    '''
+
+    tx = etree.XSLT(etree.parse(txpath.fp()))
+
+
+    skel = etree.parse(template.fp())
     report_dml = skel.xpath('//*[@class="query"]/text()')[0]
     log.debug('report dml: %s', report_dml)
     spec = tx(skel)
     spec_txt = etree.tostring(spec)
 
-    dsn = "local_mysql"
-    add_xataface_datasource(report, dsn)
     report.add_query_as(dsn, report_dml, 'arbitrary_report_name')
     report.add_report_from_buffer(spec_txt)
     report.set_output_format_from_text("PDF")
@@ -120,28 +163,16 @@ def serve_report_request(env, start_response, report, tx_file):
     return [report.get_output()]
 
 
-def _asset(*paths):
-    abspath = path.join(path.dirname(__file__), *paths)
-    if not path.exists(abspath):
-        raise IOError('no such file: ' + abspath)
-    return abspath
-
-
-def add_xataface_datasource(report, dsn,
-                            ini='conf.ini', section='_database'):
+def add_xataface_datasource(report, dsn, opts, section):
     '''Add a mysql datasource to a report following xataface conventions.
 
     @param report: an rlib.Rlib
     @param dsn: a name for the datasource, per the rlib API
-    @param ini: `conf.ini`, per `xataface docs`__
+    @param opts: ConfigParser on `conf.ini`, per `xataface docs`__
     @param section: `_database`, per xataface
 
     __ http://xataface.com/wiki/conf.ini_file
     '''
-    opts = ConfigParser.SafeConfigParser()
-    pc = PrefixConfig(_asset(ini), '[DEFAULT]')
-    pc.feedto(opts)
-
     def opt(n):
         v = opts.get(section, n)
         return v[1:-1]  # strip ""s
@@ -153,13 +184,14 @@ def add_xataface_datasource(report, dsn,
 class PrefixConfig(object):
     '''work-around: xataface needs options before the 1st [section]
     '''
-    def __init__(self, filename, line):
-        self._fn = filename
-        self._fp = open(filename)
+    def __init__(self, fpath, line):
+        self._f = fpath
         self._l = line
+        self._fp = None
 
     def feedto(self, opts):
-        opts.readfp(self, self._fn)
+        self._fp = self._f.fp()
+        opts.readfp(self, str(self._f))
 
     def readline(self):
         if self._l:

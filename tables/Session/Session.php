@@ -13,6 +13,15 @@ class tables_Session extends Audited {
     return 'session_date';
   }
 
+  function block__tables_menu_head () {
+    $app =& Dataface_Application::getInstance();
+    $key = $app->_conf['_database']['report_key'];
+    echo "<ul class='report_menu'>
+            <li><a href='print_report/recent_sessions?key=$key'
+                   target='_new'><em>Recent Sign-in Sheets</em></a></li>
+         </ul>";
+  }
+
   function block__after_main_section() {
     echo '<script type="text/javascript">
 (function () {
