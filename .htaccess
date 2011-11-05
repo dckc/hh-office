@@ -1,3 +1,8 @@
 <FilesMatch "\.ini$">
 Deny from all
 </FilesMatch>
+
+<Files print_report>
+  SetHandler cgi-script
+  Options +ExecCGI
+</Files>
