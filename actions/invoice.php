@@ -13,7 +13,7 @@ class actions_invoice {
       $summary = query_result($app->db(), "
 select name, charges, client_paid, insurance_paid, balance
      , current_timestamp as invoice_date
-from hh_office.Client c
+from Client c
 where c.id = '$id'");
 
       $summary = $summary[0];
@@ -26,7 +26,7 @@ where c.id = '$id'");
       $detail = query_result($app->db(), "
 select session_date, group_name
      , attend_n, charge, client_paid, insurance_paid, due
-from hh_office.Attendance
+from Attendance
 where client_id = '$id'
 order by session_date");
 
