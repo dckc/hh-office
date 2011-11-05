@@ -1,0 +1,101 @@
+<!DOCTYPE html> <!-- -*- nxml -*- -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Hope Harbor Recent Sessions Skeleton</title>
+<link rel="stylesheet" href="office.css" />
+</head>
+
+<body class="rlib medium-print portrait">
+<h1 class="ReportHeader reversed">Hope Harbor</h1>
+<h2 class="PageHeader">
+  <span class="literal"
+	>Recent Sign-in Sheets</span>
+  <span class="literal blank">0.........0.........0.........0</span>
+  <span class="field" title="date()">mm/dd/yyyy</span>
+  <span class="literal blank">          </span>
+  <span class="literal">pg. </span>
+  <span class="field" title="r.pageno">##</span>
+</h2>
+
+<table class="Breaks">
+<thead>
+  <tr id="per_session">
+    <th id="session_id" title="stod(session_date)" align="right" class="field"
+	>mm/dd/yyyy</th>
+    <th class="literal"> </th>
+    <th id="session_id" title="group_rate" align="left" class="field"
+	> $123</th>
+    <th class="literal"> </th>
+    <th id="session_id" title="group_name" align="left" class="field"
+	>Group Name ...........</th>
+    <th class="literal"> </th>
+    <th id="session_id" title="time" align="right" class="field"
+	>hh:mm</th>
+    <th class="literal"> </th>
+    <th id="session_id" title="therapist_name" align="left" class="field"
+	>..................................</th>
+  </tr>
+</thead>
+<tbody><tr><td colspan="9">
+
+
+<table class="Detail">
+  <thead>
+    <tr>
+      <th align="left">Client</th>
+      <th align="right">Attend</th>
+      <th align="right">Charge</th>
+      <th align="right">Client Pd</th>
+      <th align="left">  Note</th>
+    </tr>
+  </thead>
+
+  <tfoot>
+    <tr class="per_session">
+      <td>.............................</td>
+      <td title="attend_n" class="sum" align="right"
+	  > 1,000</td>
+      <td title="charge" class="sum money" align="right"
+	  > 1,000.00</td>
+      <td title="client_paid" class="sum money" align="right"
+	  > 1,000.00</td>
+    </tr>
+  </tfoot>
+
+  <tbody>
+    <tr>
+      <td title="client_name" align="left"
+	  >Doe, John ..............</td>
+      <td title="attend_n" align="right"
+	  > 1,000.00</td>
+      <td title="charge" align="right"
+	  > 1,000.00</td>
+      <td title="client_paid" align="right"
+	  > 1,000.00</td>
+      <td title="note" align="left"
+	  >.......................</td>
+    </tr>
+  </tbody>
+</table>
+
+</td></tr></tbody></table>
+
+<hr />
+
+<div>
+<h2>Query</h2>
+<pre><code class="query">
+select aa.*, s.time, t.name as therapist_name
+ from Attendance_all aa
+join `Session` s on s.id = aa.session_id
+left join Therapist t on aa.Therapist_id = t.id
+where s.session_date > (current_date - interval 30 day)
+order by
+  session_date desc,
+  group_id,
+  client_name, client_id
+</code></pre>
+</div>
+
+</body>
+</html>

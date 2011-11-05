@@ -13,41 +13,34 @@ class tables_Session extends Audited {
     return 'session_date';
   }
 
-  function block__custom_stylesheets2 () {
-    echo "<link rel='stylesheet' href='av/jqac/jquery.autocomplete.css' />";
+  function block__tables_menu_head () {
+    $app =& Dataface_Application::getInstance();
+    $key = $app->_conf['_database']['report_key'];
+    echo "<ul class='report_menu'>
+            <li><a href='print_report/recent_sessions?key=$key'
+                   target='_new'><em>Recent Sign-in Sheets</em></a></li>
+         </ul>";
   }
 
-  function block__after_global_footer() {
-    // ack: http://greatwebguy.com/programming/dom/setting-your-tabindex-on-your-html-forms-automatically-with-jquery/
+  function block__after_main_section() {
     echo '<script type="text/javascript">
 (function () {
-//#new_Session_record_form
-    $(".documentContent input[type=\"submit\"]").each(function() {
+    $("form[method=\"post\"] input[type=\"submit\"]").each(function() {
             var save = $(this);
             save.attr("tabindex", 9); //HARDCODED
             save.attr("accesskey", "S");
     });
+
+    // no tabbing through links nor the search form
+    $("a, .search_form input").each(function() {
+            var a = $(this);
+            a.attr("tabindex", -1);
+    });
+
 //alert("set tab index on " + tabindex + " fields");
 })();
 </script>
 ';
-
-    echo "<script src='av/jqac/jquery.autocomplete.js'></script>";
-    echo "<script type='text/javascript'>
-\$('#Client_id_ac').autocomplete({
-   url: 'index.php',
-   paramName: '-search',
-   selectFirst: true,
-   extraParams: {'-action': 'client_data',
-                '-table': 'Client',
-                '-value': 'id',
-                '-text': 'name'},
-   onItemSelect: function(item) {
-     \$('#Client_id').val(item.data);
-     }
-});
-</script>";
-
   }
 
   function session_date__display(&$record){

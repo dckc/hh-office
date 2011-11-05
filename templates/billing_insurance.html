@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="office.css" />
 </head>
 
-<body class="rlib medium-print portrait">
+<body class="rlib medium-print landscape">
 <h1 class="ReportHeader reversed">Hope Harbor</h1>
 <h2 class="PageHeader">
   <span class="literal"
@@ -40,8 +40,8 @@
       <th align="right">Attend</th>
       <th align="right">Charge</th>
       <th align="right">Client Pd</th>
-      <th align="right">Check date</th>
-      <th align="right">Bill date</th>
+      <th align="center">Billed</th>
+      <th align="center">Pmt Date</th>
       <th align="right">Ins. Pd</th>
       <th align="right">Due</th>
       <th align="left"> Note</th>
@@ -69,8 +69,8 @@
 
   <tbody>
     <tr>
-      <td title="stod(session_date)" align="right"
-	  > 01/01/2011</td>
+      <td title="format(stod(session_date), '!@%m/%d/%y')" align="right"
+	  > 01/01/11</td>
       <td title="group_name" align="left"
 	  >                   </td>
       <td title="attend_n" align="right"
@@ -79,17 +79,17 @@
 	  > 1,000.00</td>
       <td title="client_paid" align="right"
 	  > 1,000.00</td>
-      <td title="iif(bill_date &gt; '', stod(bill_date), '')" align="right"
-	  >01/01/2011</td>
-      <td title="iif(check_date &gt; '', stod(check_date), '')" align="right"
-	  >01/01/2011</td>
+      <td title="iif(bill_date &gt; '', format(stod(bill_date), '!@%m/%d/%y'), '')" align="right"
+	  >01/01/11</td>
+      <td title="iif(check_date &gt; '', format(stod(check_date), '!@%m/%d/%y'), '')" align="right"
+	  >01/01/11</td>
       <td title="insurance_paid" align="right"
 	  > 1,000.00</td>
       <td title="due" align="right"
 	  > 1,000.00</td>
       <!-- todo: more space before note -->
       <td title="note" align="left"
-	  >......<!--
+	  >...........................................<!--
       todo: handle multi-line notes --></td>
     </tr>
   </tbody>
@@ -102,7 +102,7 @@
 <div>
 <h2>Query</h2>
 <pre><code class="query">
-select * from hh_office.Attendance
+select * from Attendance
 where insurance > ''
 order by client_name, session_date desc, group_name
 </code></pre>
