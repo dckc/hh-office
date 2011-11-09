@@ -10,6 +10,10 @@ import logging
 import traceback
 import wsgiref.handlers
 
+# a bit of a KLUDGE...
+import sys
+sys.path.append(path.expanduser('~/run/lib/python2.5/site-packages/'))
+
 import libxml2
 import libxslt
 

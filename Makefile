@@ -9,6 +9,13 @@ DABBLE_BAK=$(HOME)/Dropbox/hh-dabble-kaput/Dabble-2011-05-16-130809/
 ZOHO_BAK=$(HOME)/Desktop/hh-zoho-bak/
 
 
+BAK_FILE=$(HOME)/hh_office.sql.gz
+restore:
+	gunzip -c $(BAK_FILE) \
+	| mysql --force --batch \
+		-h mysql.hh-office.dreamhosters.com -u hopeharborkc -p \
+		hopeharborkc
+
 BAK_USER=root
 # --skip-opt line "fastest" per http://bugs.mysql.com/bug.php?id=16181
 hh_office.sql.gz:

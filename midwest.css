@@ -22,7 +22,7 @@ body {
 
 ul.report_menu { 
   margin-left: 2em;
-  list-style-image: url('../xataface-1.3rc6/images/document_icon.gif');
+  list-style-image: url('lib/xataface-1.3rc6/images/document_icon.gif');
  }
 ul.report_menu li { 
 margin-bottom: 0

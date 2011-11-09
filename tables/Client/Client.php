@@ -35,7 +35,7 @@ class tables_Client extends Audited {
 
   function update_balances($id=null) {
     $dml = "
-update hh_office.Client c
+update Client c
 left join Client_Balances cb
 on cb.client_id = c.id
 set balance_cached=current_timestamp,
