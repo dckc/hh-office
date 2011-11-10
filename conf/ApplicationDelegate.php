@@ -48,7 +48,8 @@ class conf_ApplicationDelegate {
     } else if (ends_with($username, '@hopeharborkc.com')) {
       return 'READ ONLY';
     } else {
-      session_destroy();
+      //session_destroy() produces warnings; seems to be superfluous.
+      //session_destroy();
       return Dataface_PermissionsTool::NO_ACCESS();
     }
   }
