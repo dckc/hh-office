@@ -27,8 +27,9 @@ class dataface_modules_gapp {
       if (!isset( $_REQUEST['-return'] )) {
 	$ah = $this->loadAssociationHandle($app);
 
-	//$addr = $_SERVER['HOST_URI'].DATAFACE_SITE_HREF;
-	$addr = $_SERVER["REQUEST_URI"] . '?-action=login&-return=1';
+	$addr = (($_SERVER['HTTPS'] ? "https://" : "http://") . $_SERVER['HTTP_HOST'] .
+	      DATAFACE_SITE_HREF . '?-action=login&-return=1');
+	//error_log('loging redirect: ' . $addr . "\n", 3, 'gapp.log');
 	$googleLogin = GoogleOpenID::createRequest($addr, $ah, true);
 	$googleLogin->redirect();
 	exit;
