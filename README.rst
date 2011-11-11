@@ -30,16 +30,10 @@ __ http://rlib.sicompos.com/
 TODO
 ====
 
-Unmet requirements:
-
- * access control for printed reports
-
 Near term goals:
 
  * optimize entering sign-in sheets
    * save and add another
-   * reduce clutter; make it obvious how to make a new session
-   * pick client w keyboard
    * reduce mouse work
        * choosing clients
        * how to Save the sign-in sheet with the keyboard?
