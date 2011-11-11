@@ -7,6 +7,8 @@ class tables_Group extends Audited {
     echo "<ul class='report_menu'>
             <li><a href='print_report/attendance_by_group?key=$key'
                 target='_new'>Attendance by Group</a></li>
+            <li><a href='print_report/evaluations?key=$key'
+                target='_new'>Evaluations</a></li>
          </ul>";
   }
 

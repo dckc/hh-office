@@ -1,0 +1,99 @@
+<!DOCTYPE html> <!-- -*- nxml -*- -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Hope Harbor Evaluations Skeleton</title>
+<link rel="stylesheet" href="office.css" />
+</head>
+
+<body class="rlib medium-print landscape">
+<h1 class="ReportHeader reversed">Hope Harbor</h1>
+<h2 class="PageHeader">
+  <span class="literal"
+	>Evaluations in the last 60 Days</span>
+  <span class="literal blank">0.........0.........0.........0</span>
+  <span class="field" title="date()">mm/dd/yyyy</span>
+  <span class="literal blank">          </span>
+  <span class="literal">pg. </span>
+  <span class="field" title="r.pageno">##</span>
+</h2>
+
+<table class="Breaks">
+<thead>
+  <tr id="per_group">
+    <th id="group_id" title="group_name" align="left" class="field"
+        colspan="2"
+	>Group X..0.........0.........0</th>
+  </tr>
+</thead>
+<tbody><tr><td colspan="9">
+
+
+<table class="Detail">
+  <thead>
+    <tr>
+      <th align="right">Date</th>
+      <th align="center">Time</th>
+      <th align="center">Client</th>
+      <th align="center">Therapist</th>
+      <th align="right">Charge</th>
+      <th align="right">Client Pd</th>
+      <th align="right">Due</th>
+      <th align="left">  Note</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <!-- todo: literal | in detail row -->
+      <td title="format(stod(session_date), '!@%m/%d/%y')" align="right"
+	  > 01/01/11</td>
+      <td title="time" align="right"
+	  > 12:00-12:00</td>
+      <td title="client_name" align="left"
+	>Lastname, Firstname ____</td>
+      <td title="therapist_name" align="left"
+	>Lastname, Firstname</td>
+      <td title="charge" align="right"
+	  > 1,000.00</td>
+      <td title="client_paid" align="right"
+	  > 1,000.00</td>
+      <td title="due" align="right"
+	  > 1,000.00</td>
+      <!-- todo: more space before note -->
+      <td title="note" align="left"
+	  >....................................<!--
+      todo: handle multi-line notes --></td>
+    </tr>
+  </tbody>
+</table>
+
+</td></tr></tbody></table>
+
+<hr />
+
+<div>
+<h2>Query</h2>
+<pre><code class="query">
+select g.id as group_id
+     , g.name as group_name
+     , s.session_date
+     , s.time
+     , a.client_name
+     , t.name as therapist_name
+     , a.charge
+     , a.client_paid
+     , a.insurance_paid
+     , a.due
+     , a.note
+from `Group` g
+join Attendance_all a on a.group_id = g.id
+join Session s on a.Session_id = s.id
+join Therapist t on t.id = s.Therapist_id
+where g.evaluation=1
+  and s.session_date > adddate(current_timestamp, interval -60 day)
+order by g.name, s.session_date desc, client_name;
+</code></pre>
+</div>
+
+</body>
+</html>
