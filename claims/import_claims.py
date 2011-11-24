@@ -1,28 +1,45 @@
-'''
+'''import_claims -- import patien insurance info from .xls to SQL
+
+Usage::
+  $ python import_claims.py sqlite:///,ins.db ,data/*.xls
+
 '''
 
 from collections import namedtuple
 import csv
 import logging
 import datetime
+import os
 
 import xlrd
-from sqlalchemy import MetaData, Table, Column, types, schema, create_engine
+from sqlalchemy import MetaData, Table, Column, create_engine
+from sqlalchemy import types, schema, exc
 
 
 log = logging.getLogger(__name__)
 
 
-def main(argv):
+def main(argv, specfn='user_print_file_spec.csv'):
     logging.basicConfig(level=logging.INFO)
 
-    specfn, files = argv[1], argv[2:]
-    spec = make_spec(open(specfn))
+    engineurl, files = argv[1], argv[2:]
+    engine = create_engine(engineurl)
+    spec = make_spec(open(os.path.join(os.path.dirname(__file__), specfn)))
+
+    HealthInsurance.drop(bind=engine)
+    HealthInsurance.create(bind=engine)
 
     for fn in files:
+        log.info('claim file: %s', fn)
         book = xlrd.open_workbook(fn, formatting_info=True)
         c = Claim.make(book, spec)
-        explore_claim(log, spec, c)
+        #explore_claim(log, spec, c)
+        log.info('patient name: %s',
+                 c.field(('2', "Patient's Name (Last, First, MI)")))
+        try:
+            engine.execute(c.insert())
+        except exc.IntegrityError as ex:
+            log.warn('insert failed for %s', fn, exc_info=ex)
 
 
 def explore_claim(log, spec, c):
@@ -123,10 +140,10 @@ class Claim(object):
         self._data = sheet
         self._spec = spec
 
-    def active(self, rx, cx):
+    def active(self, rx, cx, n=None):
         xf = self._book.xf_list[self._data.cell_xf_index(rx, cx)]
         out = xf._protection_flag and not xf.protection.cell_locked
-        log.debug('active(%s) = %s/%s: %s',
+        log.debug('active(%s@%s) = %s/%s: %s', n,
                   xlrd.cellname(rx, cx),
                   xf._protection_flag, xf.protection.cell_locked,
                   out)
@@ -137,7 +154,7 @@ class Claim(object):
         cv = self._data.cell_value
         for rx in xrange(r - 1, r + 3):
             for cx in xrange(c - 2, c + 2):
-                if self.active(rx, cx):
+                if self.active(rx, cx, n):
                     return cv(rx, cx)
 
 
@@ -154,10 +171,16 @@ class Claim(object):
     def insert(self):
         get = self.field
 
-        def which(fnum):
-            return [label for num, label in self._spec.keys()
+        def which(fnum, choices=None, xlate=None):
+            vals = [label for num, label in self._spec.keys()
                     if num == fnum
-                    and get((num, label)) == 'X'][0]
+                    and (choices is None or label in choices)
+                    and get((num, label)) in ('x', 'X')]
+            if vals:
+                val = vals[0]
+                return val if xlate is None else xlate[val]
+            else:
+                return None
 
         pn, pa, pcsz = self.payer_contact()
 
@@ -172,7 +195,7 @@ class Claim(object):
                 _yy(get(('3', "Patient's Birth (Year)"))),
                 int(get(('3', "Patient's Birth Date (Month)"))),
                 int(get(('3', "Patient's Birth Date (Day)")))),
-            patient_sex={'Sex-Male': 'M', 'Sex-Female': 'F'}[which('3')],
+            patient_sex=which('3', xlate={'Sex-Male': 'M', 'Sex-Female': 'F'}),
             insured_name=get(('4', 'Insured Name (Last, First, MI)')),
             patient_address=get(('5', "Patient's Address")),
             patient_city=get(('5', "Patient's City")),
@@ -182,7 +205,15 @@ class Claim(object):
             insured_address=get(('7', "Insured's Address")),
             insured_city=get(('7', "Insured's City")),
             insured_state=get(('7', "Insured's State")),
-            insured_zip=str(int(get(('7', "Insured's ZIP Code")))),
+            insured_zip=_zip(get(('7', "Insured's ZIP Code"))),
+            patient_status=_paren(which('8', choices=(
+                "Patient Status (Single)",
+                "Patient Status (Married)",
+                "Patient Status (Other)"))),
+            patient_status2=which('8', choices=('Employed',
+                                                'Full Time Student',
+                                                'Part Time Student')),
+            insured_policy=get(('11', "Insured's Policy, Group or FECA Number"))
             )
 
 def _yy(yy):
@@ -194,7 +225,12 @@ def _paren(txt):
     >>> paren('abc (def) ghi')
     'def'
     '''
+    if txt is None: return None
     return txt[txt.index('(')+1:txt.index(')')]
+
+def _zip(z):
+    if not z: return None
+    return str(int(z))
 
 
 Meta = MetaData()
@@ -230,7 +266,15 @@ HealthInsurance = Table(
     Column('insured_city', types.String(24), nullable=False),
     Column('insured_state', types.String(3), nullable=False),
     Column('insured_zip', types.String(12), nullable=False),
-    # skip 10, 11; 12, 13 are blank; skip 14-18; 19 is reserved
+    # Field 8
+    Column('patient_status', types.Enum('Single', 'Married', 'Other')),
+    Column('patient_status2', types.Enum('Employed',
+                                         'Full Time Student',
+                                         'Part Time Student')),
+    # skip 10
+    # Field 11
+    Column('insured_policy', types.String(30)),
+    # 12, 13 are blank; skip 14-18; 19 is reserved
     # 20 is computed per-claim
     # Field 21
     Column('dx1', types.String(8)),
