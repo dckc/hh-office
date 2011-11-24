@@ -1,3 +1,6 @@
+'''
+'''
+
 from collections import namedtuple
 import csv
 import logging
@@ -192,19 +195,6 @@ def _paren(txt):
     'def'
     '''
     return txt[txt.index('(')+1:txt.index(')')]
-
-
-def explore(book):
-    for sheet in book.sheets():
-        if not sheet.name.startswith('1500 '):
-            continue
-        log.debug('sheet: %s hidden? %s', sheet.name, sheet.visibility)
-        for rowx in xrange(sheet.nrows):
-            log.debug('row: %s', rowx)
-            for v in sheet.row_values(rowx):
-                if v:
-                    log.debug('val: %s [%s]', v, type(v))
-
 
 
 Meta = MetaData()

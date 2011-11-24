@@ -15,3 +15,11 @@ lib/xataface-1.3rc6/
 hh_office.egg-info
 dist/
 build/
+
+claims/dist/
+claims/build/
+claims/lib/
+claims/include/
+claims/bin
+
+
