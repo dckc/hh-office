@@ -19,14 +19,18 @@ from sqlalchemy import types, schema, exc
 log = logging.getLogger(__name__)
 
 
-def main(argv, specfn='user_print_file_spec.csv'):
+def main(argv):
     logging.basicConfig(level=logging.INFO)
 
     engineurl, files = argv[1], argv[2:]
     engine = create_engine(engineurl)
-    spec = make_spec(open(os.path.join(os.path.dirname(__file__), specfn)))
+    spec = _the_spec()
 
-    HealthInsurance.drop(bind=engine)
+    # is this state-of-the-art for 'ensure the table exists'?
+    try:
+        HealthInsurance.drop(bind=engine)
+    except exc.OperationalError:
+        pass
     HealthInsurance.create(bind=engine)
 
     for fn in files:
@@ -38,8 +42,12 @@ def main(argv, specfn='user_print_file_spec.csv'):
                  c.field(('2', "Patient's Name (Last, First, MI)")))
         try:
             engine.execute(c.insert())
-        except exc.IntegrityError as ex:
+        except (exc.IntegrityError, exc.OperationalError) as ex:
             log.warn('insert failed for %s', fn, exc_info=ex)
+
+
+def _the_spec(specfn='user_print_file_spec.csv'):
+    return make_spec(open(os.path.join(os.path.dirname(__file__), specfn)))
 
 
 def explore_claim(log, spec, c):
@@ -171,16 +179,8 @@ class Claim(object):
     def insert(self):
         get = self.field
 
-        def which(fnum, choices=None, xlate=None):
-            vals = [label for num, label in self._spec.keys()
-                    if num == fnum
-                    and (choices is None or label in choices)
-                    and get((num, label)) in ('x', 'X')]
-            if vals:
-                val = vals[0]
-                return val if xlate is None else xlate[val]
-            else:
-                return None
+        def which(fnum, choices=None, xlate=None, paren=None):
+            return pick(get, self._spec.keys(), fnum, choices, xlate, paren)
 
         pn, pa, pcsz = self.payer_contact()
 
@@ -201,45 +201,76 @@ class Claim(object):
             patient_city=get(('5', "Patient's City")),
             patient_state=get(('5', "Patient's State")),
             patient_zip=str(int(get(('5', "Patient's ZIP Code")))),
-            patient_rel=_paren(which('6')),
+            patient_rel=which('6', paren=True),
             insured_address=get(('7', "Insured's Address")),
             insured_city=get(('7', "Insured's City")),
             insured_state=get(('7', "Insured's State")),
             insured_zip=_zip(get(('7', "Insured's ZIP Code"))),
-            patient_status=_paren(which('8', choices=(
+            patient_status=which('8', choices=(
                 "Patient Status (Single)",
                 "Patient Status (Married)",
-                "Patient Status (Other)"))),
-            patient_status2=which('8', choices=('Employed',
-                                                'Full Time Student',
-                                                'Part Time Student')),
-            insured_policy=get(('11', "Insured's Policy, Group or FECA Number"))
+                "Patient Status (Other)"), paren=True),
+            patient_status2=which('8', choices=(
+                "Patient Status (Employed)",
+                "Patient Status (Full Time Student)",
+                "Patient Status (Part Time Student)"), paren=True),
+            insured_policy=(
+                get(('11', "Insured's Policy, Group or FECA Number"))
+                and None)  # don't store ''
             )
 
 def _yy(yy):
     return int(2000 + yy if yy < 50 else 1900 + yy)
 
 
-def _paren(txt):
-    '''
-    >>> paren('abc (def) ghi')
-    'def'
-    '''
-    if txt is None: return None
-    return txt[txt.index('(')+1:txt.index(')')]
-
 def _zip(z):
     if not z: return None
     return str(int(z))
+
+
+def pick(get, keys, fnum, choices=None, xlate=None, paren=False):
+    '''
+    >>> get = {('8', "abc"): 'x'}.get
+    >>> pick(get, [('8', "abc"), ('8', "def")], '8')
+    'abc'
+
+    >>> spec = _the_spec()
+    >>> pick({('8', "Patient Status (Employed)"): 'x'}.get, spec.keys(),
+    ...        '8', choices=(
+    ...            "Patient Status (Employed)",
+    ...            "Patient Status (Full Time Student)",
+    ...            "Patient Status (Part Time Student)"), paren=True)
+    'Employed'
+    '''
+    if xlate:
+        choices = xlate.keys()
+
+    fields = [(num, label) for num, label in keys
+              if num == fnum
+              and (choices is None or label in choices)]
+
+    vals = [label for num, label in fields
+            if get((num, label)) in ('x', 'X')]
+    if vals:
+        val = vals[0]
+        if paren:
+            if choices is None:
+                choices = [label for num, label in fields]
+            xlate = dict([(txt,
+                           txt[txt.index('(')+1:txt.index(')')])
+                          for txt in choices])
+        return val if xlate is None else xlate[val]
+    else:
+        return None
 
 
 Meta = MetaData()
 HealthInsurance = Table(
     'health_insurance', Meta,
     Column('id', types.Integer, primary_key=True, nullable=False),
-    Column('payer_name', types.String(30), nullable=False),
-    Column('payer_address', types.String(30), nullable=False),
-    Column('payer_city_st_zip', types.String(40), nullable=False),
+    Column('payer_name', types.String(50), nullable=False),
+    Column('payer_address', types.String(50), nullable=False),
+    Column('payer_city_st_zip', types.String(50), nullable=False),
     # Field 1 from user_print_file_spec.csv
     Column('payer_type', types.Enum('Medicare',
                                     'Medicaid',
