@@ -3,8 +3,11 @@ import csv
 import logging
 
 import xlrd
+from sqlalchemy import MetaData, Table, Column, types, schema, create_engine
+
 
 log = logging.getLogger(__name__)
+
 
 def main(argv):
     logging.basicConfig(level=logging.INFO)
@@ -27,8 +30,9 @@ def main(argv):
         if c.field(k):
             log.info('field %s: <%s>', k, c.field(k))
 
-    log.info('patient name: %s', c.patient_name())
     log.info('claim payer contact: %s', c.payer_contact())
+    dml = c.insert()
+    log.info('insert: %s, %s', dml, dml.compile().params)
 
 
 FieldSpec = namedtuple('FieldSpec',
@@ -128,14 +132,6 @@ class Claim(object):
                     return cv(rx, cx)
 
 
-    _ptn_rc = (39, 4)
-    def patient_name(self):
-        '''
-        >>> xlrd.cellname(*Claim._ptn_rc)
-        'E40'
-        '''
-        return self._data.cell_value(*self._ptn_rc)
-
     _payer_rc = [(5 + 4 * ln, 168)
                  for ln in xrange(3)]
     def payer_contact(self):
@@ -145,6 +141,12 @@ class Claim(object):
         '''
         return [self._data.cell_value(r, c)
                 for r, c in self._payer_rc]
+
+    def insert(self):
+        return HealthInsurance.insert().values(
+            payer_type=[label for num, label in self._spec.keys()
+                        if num == '1'
+                        and self.field((num, label)) == 'X'][0])
 
 
 def explore(book):
@@ -157,6 +159,59 @@ def explore(book):
             for v in sheet.row_values(rowx):
                 if v:
                     log.debug('val: %s [%s]', v, type(v))
+
+
+
+Meta = MetaData()
+HealthInsurance = Table(
+    'health_insurance', Meta,
+    Column('id', types.Integer, primary_key=True, nullable=False),
+    # Field 1 from user_print_file_spec.csv
+    Column('payer_type', types.Enum('Medicare',
+                                    'Medicaid',
+                                    'Group Health Plan',
+                                    'Other'), nullable=False),
+    Column('id_number', types.String(30), nullable=False),
+    # Field 2
+    Column('patient_name', types.String(30), nullable=False),
+    # Field 3
+    Column('patient_dob', types.Date, nullable=False),
+    Column('patient_sex', types.Enum('M', 'F'), nullable=False),
+    # Field 4
+    Column('insured_name', types.String(30), nullable=False),
+    # Field 5
+    Column('patient_address', types.String(30), nullable=False),
+    Column('patient_city', types.String(24), nullable=False),
+    Column('patient_state', types.String(3), nullable=False),
+    Column('patient_zip', types.String(12), nullable=False),
+    # Field 6
+    Column('patient_rel', types.Enum('Self', 'Spouse', 'Child', 'Other'),
+           nullable=False),
+    # Field 7
+    Column('insured_address', types.String(30), nullable=False),
+    Column('insured_city', types.String(24), nullable=False),
+    Column('insured_state', types.String(3), nullable=False),
+    Column('insured_zip', types.String(12), nullable=False),
+    # skip 10, 11; 12, 13 are blank; skip 14-18; 19 is reserved
+    # 20 is computed per-claim
+    # Field 21
+    Column('dx1', types.String(8)),
+    Column('dx2', types.String(8)),
+    Column('dx3', types.String(8)),
+    Column('dx4', types.String(8))
+    )
+
+def _test_schema_sql():
+    '''
+    >>> ddl = schema.CreateTable(HealthInsurance)
+    >>> 'CREATE TABLE' in str(ddl)
+    True
+    
+    >>> 'insured_address' in  str(ddl)
+    True
+
+    '''
+    pass
 
 
 if __name__ == '__main__':
