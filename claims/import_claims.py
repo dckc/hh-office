@@ -1,6 +1,7 @@
 from collections import namedtuple
 import csv
 import logging
+import datetime
 
 import xlrd
 from sqlalchemy import MetaData, Table, Column, types, schema, create_engine
@@ -12,12 +13,17 @@ log = logging.getLogger(__name__)
 def main(argv):
     logging.basicConfig(level=logging.INFO)
 
-    specfn, fn = argv[1:3]
+    specfn, files = argv[1], argv[2:]
     spec = make_spec(open(specfn))
 
-    book = xlrd.open_workbook(fn, formatting_info=True)
+    for fn in files:
+        book = xlrd.open_workbook(fn, formatting_info=True)
+        c = Claim.make(book, spec)
+        explore_claim(log, spec, c)
 
-    c = Claim.make(book, spec)
+
+def explore_claim(log, spec, c):
+    from pprint import pformat
 
     for k in sorted(spec,
                     key=lambda(fs): (spec[fs].field,
@@ -32,7 +38,7 @@ def main(argv):
 
     log.info('claim payer contact: %s', c.payer_contact())
     dml = c.insert()
-    log.info('insert: %s, %s', dml, dml.compile().params)
+    log.info('insert: \n%s', pformat(dml.compile().params))
 
 
 FieldSpec = namedtuple('FieldSpec',
@@ -143,10 +149,49 @@ class Claim(object):
                 for r, c in self._payer_rc]
 
     def insert(self):
+        get = self.field
+
+        def which(fnum):
+            return [label for num, label in self._spec.keys()
+                    if num == fnum
+                    and get((num, label)) == 'X'][0]
+
+        pn, pa, pcsz = self.payer_contact()
+
         return HealthInsurance.insert().values(
-            payer_type=[label for num, label in self._spec.keys()
-                        if num == '1'
-                        and self.field((num, label)) == 'X'][0])
+            payer_name=pn,
+            payer_address=pa,
+            payer_city_st_zip=pcsz,
+            payer_type=which('1'),
+            id_number=get(('1a', "Insured's ID Number")),
+            patient_name=get(('2', "Patient's Name (Last, First, MI)")),
+            patient_dob=datetime.date(
+                _yy(get(('3', "Patient's Birth (Year)"))),
+                int(get(('3', "Patient's Birth Date (Month)"))),
+                int(get(('3', "Patient's Birth Date (Day)")))),
+            patient_sex={'Sex-Male': 'M', 'Sex-Female': 'F'}[which('3')],
+            insured_name=get(('4', 'Insured Name (Last, First, MI)')),
+            patient_address=get(('5', "Patient's Address")),
+            patient_city=get(('5', "Patient's City")),
+            patient_state=get(('5', "Patient's State")),
+            patient_zip=str(int(get(('5', "Patient's ZIP Code")))),
+            patient_rel=_paren(which('6')),
+            insured_address=get(('7', "Insured's Address")),
+            insured_city=get(('7', "Insured's City")),
+            insured_state=get(('7', "Insured's State")),
+            insured_zip=str(int(get(('7', "Insured's ZIP Code")))),
+            )
+
+def _yy(yy):
+    return int(2000 + yy if yy < 50 else 1900 + yy)
+
+
+def _paren(txt):
+    '''
+    >>> paren('abc (def) ghi')
+    'def'
+    '''
+    return txt[txt.index('(')+1:txt.index(')')]
 
 
 def explore(book):
@@ -166,6 +211,9 @@ Meta = MetaData()
 HealthInsurance = Table(
     'health_insurance', Meta,
     Column('id', types.Integer, primary_key=True, nullable=False),
+    Column('payer_name', types.String(30), nullable=False),
+    Column('payer_address', types.String(30), nullable=False),
+    Column('payer_city_st_zip', types.String(40), nullable=False),
     # Field 1 from user_print_file_spec.csv
     Column('payer_type', types.Enum('Medicare',
                                     'Medicaid',
