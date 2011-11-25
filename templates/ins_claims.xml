@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Report
   fontSize="12pt"
   orientation="portrait" leftMargin="0.4" topMargin="0.4">
@@ -14,240 +15,168 @@
           <Line>
 	    <literal>123456789012345678901234567890123456789012345678901234567890</literal>
 	  </Line>
-          <Line>
-            <field width="1" value="iif(payer_type == 'Medicare', 'X', ' ')"/>
-            <literal width="6"/>
-            <field width="1" value="iif(payer_type == 'Medicaid', 'X', ' ')"/>
-            <literal width="6"/>
-            <field width="1" value="iif(payer_type == 'Champus', 'X', ' ')"/>
-            <literal width="8"/>
-            <field width="1" value="iif(payer_type == 'ChampVA', 'X', ' ')"/>
-            <literal width="6"/>
-            <field width="1"
-		   value="iif(payer_type == 'Group Health Plan', 'X', ' ')"/>
-            <literal width="7"/>
-            <field width="1" value="iif(payer_type == 'FECA', 'X', ' ')"/>
-            <literal width="5"/>
-            <field width="1" value="iif(payer_type == 'Other', 'X', ' ')"/>
-            <literal width="5"/>
-            <field width="29" value="id_number"/>
-          </Line>
-        </Output>
-      </BreakHeader>
-      <BreakFields>
-        <BreakField value="claim_id"/>
-      </BreakFields>
-      <BreakFooter>
-        <Output>
-          <Line>
-            <field width="9" value="v.charge_sum"
-		   align="right" format="'%$.2nd'"/>
-          </Line>
-        </Output>
-      </BreakFooter>
-    </Break>
-  </Breaks>
-  <Detail>
-    <FieldDetails>
-      <Output>
-        <Line>
-          <field value="stod(session_date)"/>
-        </Line>
-      </Output>
-    </FieldDetails>
-  </Detail>
-  <Variables>
-    <Variable type="sum" resetonbreak="per_claim" name="charge_sum" value="val(charge)"/>
-  </Variables>
-  <Query class="query">
-select ins.id as claim_id
-     , payer.name, payer.address, payer.city_st_zip
-     , ins.payer_type, ins.id_number
-     , ins.patient_name, ins.patient_dob, ins.patient_sex -- reconcile with c.name, c.DOB
-     , ins.insured_name
-     , ins.patient_address, ins.patient_city, ins.patient_state, ins.patient_zip
-     , ins.patient_rel
-     , ins.insured_address, ins.insured_city, ins.insured_state, ins.insured_zip
-     , ins.patient_status, ins.patient_status2
-     , ins.insured_policy
-     , c.DX
-     , a.session_date
-     , a.charge -- why $80?
-     , a.client_paid
-     , p.npi
-     , p.tax_id
-     , p.name
-from health_insurance ins
-join (select id, payer_name as name, payer_address as address, payer_city_st_zip as city_st_zip
-      from health_insurance) payer on ins.id = payer.id
-join Client c on ins.patient_name like concat(c.name, '%')
-join Attendance a on a.Client_id = c.id
-join (select 'Individual-Prof Staff' as group_name, '90806' as cpt_code) codes
-  on a.group_name = codes.group_name
-join (select 'Bascom W. Ratliff,DSW' as name, '1689779738' as npi, '270-46-6033' as tax_id) as p 
-where bill_date is null;
-  </Query>
-</Report>
+
   <Line> <!-- 1 -->
   </Line>
   <Line> <!-- 2 -->
   </Line>
   <Line> <!-- 3 -->
-    <field width='1' value='"Medicare"' align='left'/>
-    <literal width='6' /> <!-- col 8 -->
-    <field width='1' value='"Medicaid"' align='left'/>
-    <literal width='6' /> <!-- col 15 -->
-    <field width='1' value='"Tricare Champus"' align='left'/>
-    <literal width='8' /> <!-- col 24 -->
-    <field width='1' value='"Champva"' align='left'/>
-    <literal width='6' /> <!-- col 31 -->
-    <field width='1' value='"Group Health Plan"' align='left'/>
-    <literal width='7' /> <!-- col 39 -->
-    <field width='1' value='"FECA Blk Lung"' align='left'/>
-    <literal width='5' /> <!-- col 45 -->
-    <field width='1' value='"Other"' align='left'/>
-    <literal width='4' /> <!-- col 50 -->
-    <field width='29' value='"Insured's ID Number"' align='left'/>
+    <field width="1" value="iif(payer_type == 'Medicare', 'X', ' ')"/>
+    <literal width="6" /> <!-- col 8 -->
+    <field width="1" value="iif(payer_type == 'Medicaid', 'X', ' ')"/>
+    <literal width="6" /> <!-- col 15 -->
+    <field width="1" value="iif(payer_type == 'Champus', 'X', ' ')"/>
+    <literal width="8" /> <!-- col 24 -->
+    <field width="1" value="iif(payer_type == 'ChampVA', 'X', ' ')"/>
+    <literal width="6" /> <!-- col 31 -->
+    <field width="1"
+	   value="iif(payer_type == 'Group Health Plan', 'X', ' ')"/>
+    <literal width="7" /> <!-- col 39 -->
+    <field width="1" value="iif(payer_type == 'FECA', 'X', ' ')"/>
+    <literal width="5" /> <!-- col 45 -->
+    <field width="1" value="iif(payer_type == 'Other', 'X', ' ')"/>
+    <literal width="4" /> <!-- col 50 -->
+    <field width="29" value="id_number"/>
   </Line>
   <Line> <!-- 4 -->
   </Line>
   <Line> <!-- 5 -->
-    <field width='28' value='"Patient's Name (Last, First, MI)"' align='left'/>
-    <literal width='2' /> <!-- col 31 -->
-    <field width='2' value='"Patient's Birth Date (Month)"' align='right'/>
-    <literal width='1' /> <!-- col 34 -->
-    <field width='2' value='"Patient's Birth Date (Day)"' align='right'/>
-    <literal width='1' /> <!-- col 37 -->
-    <field width='4' value='"Patient's Birth (Year)"' align='right'/>
-    <literal width='1' /> <!-- col 42 -->
-    <field width='1' value='"Sex-Male"' align='left'/>
-    <literal width='4' /> <!-- col 47 -->
-    <field width='1' value='"Sex-Female"' align='left'/>
-    <literal width='2' /> <!-- col 50 -->
-    <field width='29' value='"Insured Name (Last, First, MI)"' align='left'/>
+    <field width="28" value="patient_name" align="left"/>
+    <literal width="2" /> <!-- col 31 -->
+    <field width="2" value="format(stod(patient_dob), '!@%m')" align="right"/>
+    <literal width="1" /> <!-- col 34 -->
+    <field width="2" value="format(stod(patient_dob), '!@%d')" align="right"/>
+    <literal width="1" /> <!-- col 37 -->
+    <field width="4" value="format(stod(patient_dob), '!@%Y')" align="right"/>
+    <literal width="1" /> <!-- col 42 -->
+    <field width="1" value="iif(patient_sex == 'M', 'X', ' ')" align="left"/>
+    <literal width="4" /> <!-- col 47 -->
+    <field width="1" value="iif(patient_sex == 'F', 'X', ' ')" align="left"/>
+    <literal width="2" /> <!-- col 50 -->
+    <field width="29" value="insured_name" align="left"/>
   </Line>
   <Line> <!-- 6 -->
   </Line>
   <Line> <!-- 7 -->
-    <field width='28' value='"Patient's Address"' align='left'/>
-    <literal width='4' /> <!-- col 33 -->
-    <field width='1' value='"Patient Relationship to Insured (Self)"' align='left'/>
-    <literal width='4' /> <!-- col 38 -->
-    <field width='1' value='"Patient Relationship to Insured (Spouse)"' align='left'/>
-    <literal width='3' /> <!-- col 42 -->
-    <field width='1' value='"Patient Relationship to Insured (Child)"' align='left'/>
-    <literal width='4' /> <!-- col 47 -->
-    <field width='1' value='"Patient Relationship to Insured (Other)"' align='left'/>
-    <literal width='2' /> <!-- col 50 -->
-    <field width='29' value='"Insured's Address"' align='left'/>
+    <field width="28" value="'Patient@@s Address'" align="left"/>
+    <literal width="4" /> <!-- col 33 -->
+    <field width="1" value="'Patient Relationship to Insured (Self)'" align="left"/>
+    <literal width="4" /> <!-- col 38 -->
+    <field width="1" value="'Patient Relationship to Insured (Spouse)'" align="left"/>
+    <literal width="3" /> <!-- col 42 -->
+    <field width="1" value="'Patient Relationship to Insured (Child)'" align="left"/>
+    <literal width="4" /> <!-- col 47 -->
+    <field width="1" value="'Patient Relationship to Insured (Other)'" align="left"/>
+    <literal width="2" /> <!-- col 50 -->
+    <field width="29" value="'Insured@@s Address'" align="left"/>
   </Line>
   <Line> <!-- 8 -->
   </Line>
   <Line> <!-- 9 -->
-    <field width='24' value='"Patient's City"' align='left'/>
-    <literal width='1' /> <!-- col 26 -->
-    <field width='3' value='"Patient's State"' align='left'/>
-    <literal width='6' /> <!-- col 35 -->
-    <field width='1' value='"Patient Status (Single)"' align='left'/>
-    <literal width='5' /> <!-- col 41 -->
-    <field width='1' value='"Patient Status (Married)"' align='left'/>
-    <literal width='5' /> <!-- col 47 -->
-    <field width='1' value='"Patient Status (Other)"' align='left'/>
-    <literal width='2' /> <!-- col 50 -->
-    <field width='23' value='"Insured's City"' align='left'/>
-    <literal width='1' /> <!-- col 74 -->
-    <field width='4' value='"Insured's State"' align='left'/>
+    <field width="24" value="'Patient@@s City'" align="left"/>
+    <literal width="1" /> <!-- col 26 -->
+    <field width="3" value="'Patient@@s State'" align="left"/>
+    <literal width="6" /> <!-- col 35 -->
+    <field width="1" value="'Patient Status (Single)'" align="left"/>
+    <literal width="5" /> <!-- col 41 -->
+    <field width="1" value="'Patient Status (Married)'" align="left"/>
+    <literal width="5" /> <!-- col 47 -->
+    <field width="1" value="'Patient Status (Other)'" align="left"/>
+    <literal width="2" /> <!-- col 50 -->
+    <field width="23" value="insured_city" align="left"/>
+    <literal width="1" /> <!-- col 74 -->
+    <field width="4" value="insured_state" align="left"/>
   </Line>
   <Line> <!-- 10 -->
   </Line>
   <Line> <!-- 11 -->
-    <field width='12' value='"Patient's ZIP Code"' align='right'/>
-    <literal width='2' /> <!-- col 15 -->
-    <field width='3' value='"Patient's Area Code"' align='right'/>
-    <literal width='1' /> <!-- col 19 -->
-    <field width='10' value='"Patient's Phone Number"' align='right'/>
-    <literal width='6' /> <!-- col 35 -->
-    <field width='1' value='"Patient Status (Employed)"' align='left'/>
-    <literal width='5' /> <!-- col 41 -->
-    <field width='1' value='"Patient Status (Full Time Student)"' align='left'/>
-    <literal width='5' /> <!-- col 47 -->
-    <field width='1' value='"Patient Status (Part Time Student)"' align='left'/>
-    <literal width='2' /> <!-- col 50 -->
-    <field width='12' value='"Insured's ZIP Code"' align='right'/>
-    <literal width='3' /> <!-- col 65 -->
-    <field width='3' value='"Insured's Area Code"' align='right'/>
-    <literal width='1' /> <!-- col 69 -->
-    <field width='10' value='"Insured's Phone Number"' align='right'/>
+    <field width="12" value="patient_zip" align="right"/>
+    <literal width="2" /> <!-- col 15 -->
+    <field width="3" value="'Patient@@s Area Code'" align="right"/>
+    <literal width="1" /> <!-- col 19 -->
+    <field width="10" value="'Patient@@s Phone Number'" align="right"/>
+    <literal width="6" /> <!-- col 35 -->
+    <field width="1" value="'Patient Status (Employed)'" align="left"/>
+    <literal width="5" /> <!-- col 41 -->
+    <field width="1" value="'Patient Status (Full Time Student)'" align="left"/>
+    <literal width="5" /> <!-- col 47 -->
+    <field width="1" value="'Patient Status (Part Time Student)'" align="left"/>
+    <literal width="2" /> <!-- col 50 -->
+    <field width="12" value="insured_zip" align="right"/>
+    <literal width="3" /> <!-- col 65 -->
+    <field width="3" value="'Insured@@s Area Code'" align="right"/>
+    <literal width="1" /> <!-- col 69 -->
+    <field width="10" value="'Insured@@s Phone Number'" align="right"/>
   </Line>
   <Line> <!-- 12 -->
   </Line>
   <Line> <!-- 13 -->
-    <field width='28' value='"Other Insured's Name (Last, First, MI)"' align='left'/>
-    <literal width='21' /> <!-- col 50 -->
-    <field width='29' value='"Insured's Policy, Group or FECA Number"' align='left'/>
+    <field width="28" value="'Other Insured@@s Name (Last, First, MI)'" align="left"/>
+    <literal width="21" /> <!-- col 50 -->
+    <field width="29" value="'Insured@@s Policy, Group or FECA Number'" align="left"/>
   </Line>
   <Line> <!-- 14 -->
   </Line>
   <Line> <!-- 15 -->
-    <field width='28' value='"Other Insured's Policy or Group Number"' align='left'/>
-    <literal width='6' /> <!-- col 35 -->
-    <field width='1' value='"Condition Related (Employment C/P, Yes)"' align='left'/>
-    <literal width='5' /> <!-- col 41 -->
-    <field width='1' value='"Condition Related (Employment C/P, No)"' align='left'/>
-    <literal width='11' /> <!-- col 53 -->
-    <field width='2' value='"Insured's Date of Birth (Month)"' align='right'/>
-    <literal width='1' /> <!-- col 56 -->
-    <field width='2' value='"Insured's Date of Birth (Day)"' align='right'/>
-    <literal width='1' /> <!-- col 59 -->
-    <field width='4' value='"Insured's Date of Birth (Year)"' align='right'/>
-    <literal width='5' /> <!-- col 68 -->
-    <field width='1' value='"Sex-Male"' align='left'/>
-    <literal width='6' /> <!-- col 75 -->
-    <field width='1' value='"Sex-Female"' align='left'/>
+    <field width="28" value="'Other Insured@@s Policy or Group Number'" align="left"/>
+    <literal width="6" /> <!-- col 35 -->
+    <field width="1" value="'Condition Related (Employment C/P, Yes)'" align="left"/>
+    <literal width="5" /> <!-- col 41 -->
+    <field width="1" value="'Condition Related (Employment C/P, No)'" align="left"/>
+    <literal width="11" /> <!-- col 53 -->
+    <field width="2" value="'Insured@@s Date of Birth (Month)'" align="right"/>
+    <literal width="1" /> <!-- col 56 -->
+    <field width="2" value="'Insured@@s Date of Birth (Day)'" align="right"/>
+    <literal width="1" /> <!-- col 59 -->
+    <field width="4" value="'Insured@@s Date of Birth (Year)'" align="right"/>
+    <literal width="5" /> <!-- col 68 -->
+    <field width="1" value="'Sex-Male'" align="left"/>
+    <literal width="6" /> <!-- col 75 -->
+    <field width="1" value="'Sex-Female'" align="left"/>
   </Line>
   <Line> <!-- 16 -->
   </Line>
   <Line> <!-- 17 -->
-    <literal width='1' /> <!-- col 2 -->
-    <field width='2' value='"Other Insured's Date of Birth (Month)"' align='right'/>
-    <literal width='1' /> <!-- col 5 -->
-    <field width='2' value='"Other Insured's Date of Birth (Day)"' align='right'/>
-    <literal width='1' /> <!-- col 8 -->
-    <field width='4' value='"Other Insured's Date of Birth (Year)"' align='right'/>
-    <literal width='6' /> <!-- col 18 -->
-    <field width='1' value='"Sex-Male"' align='left'/>
-    <literal width='5' /> <!-- col 24 -->
-    <field width='1' value='"Sex-Female"' align='left'/>
-    <literal width='10' /> <!-- col 35 -->
-    <field width='1' value='"Condition Related To: (Auto Accident-Yes)"' align='left'/>
-    <literal width='5' /> <!-- col 41 -->
-    <field width='1' value='"Condition Related To: (Auto Accident-No)"' align='left'/>
-    <literal width='3' /> <!-- col 45 -->
-    <field width='2' value='"Condition Related To: (Auto Accident-State)"' align='left'/>
-    <literal width='3' /> <!-- col 50 -->
-    <field width='29' value='"Insured's Employer's Name or School Name"' align='left'/>
+    <literal width="1" /> <!-- col 2 -->
+    <field width="2" value="'Other Insured@@s Date of Birth (Month)'" align="right"/>
+    <literal width="1" /> <!-- col 5 -->
+    <field width="2" value="'Other Insured@@s Date of Birth (Day)'" align="right"/>
+    <literal width="1" /> <!-- col 8 -->
+    <field width="4" value="'Other Insured@@s Date of Birth (Year)'" align="right"/>
+    <literal width="6" /> <!-- col 18 -->
+    <field width="1" value="'Sex-Male'" align="left"/>
+    <literal width="5" /> <!-- col 24 -->
+    <field width="1" value="'Sex-Female'" align="left"/>
+    <literal width="10" /> <!-- col 35 -->
+    <field width="1" value="'Condition Related To: (Auto Accident-Yes)'" align="left"/>
+    <literal width="5" /> <!-- col 41 -->
+    <field width="1" value="'Condition Related To: (Auto Accident-No)'" align="left"/>
+    <literal width="3" /> <!-- col 45 -->
+    <field width="2" value="'Condition Related To: (Auto Accident-State)'" align="left"/>
+    <literal width="3" /> <!-- col 50 -->
+    <field width="29" value="'Insured@@s Employer@@s Name or School Name'" align="left"/>
   </Line>
   <Line> <!-- 18 -->
   </Line>
   <Line> <!-- 19 -->
-    <field width='28' value='"Other Insured's Employer's Name or School"' align='left'/>
-    <literal width='6' /> <!-- col 35 -->
-    <field width='1' value='"Other Accident (Yes)"' align='left'/>
-    <literal width='5' /> <!-- col 41 -->
-    <field width='1' value='"Other Accident (No)"' align='left'/>
-    <literal width='8' /> <!-- col 50 -->
-    <field width='29' value='"Insured's Insurance Plan or PayerID"' align='left'/>
+    <field width="28" value="'Other Insured@@s Employer@@s Name or School'" align="left"/>
+    <literal width="6" /> <!-- col 35 -->
+    <field width="1" value="'Other Accident (Yes)'" align="left"/>
+    <literal width="5" /> <!-- col 41 -->
+    <field width="1" value="'Other Accident (No)'" align="left"/>
+    <literal width="8" /> <!-- col 50 -->
+    <field width="29" value="'Insured@@s Insurance Plan or PayerID'" align="left"/>
   </Line>
   <Line> <!-- 20 -->
   </Line>
   <Line> <!-- 21 -->
-    <field width='28' value='"Other Insured's Insurance Plan Name or PayerID"' align='left'/>
-    <literal width='1' /> <!-- col 30 -->
-    <field width='19' value='"(Reserved for Local Use)"' align='left'/>
-    <literal width='3' /> <!-- col 52 -->
-    <field width='1' value='"Another Benefit Health Plan (Yes)"' align='left'/>
-    <literal width='4' /> <!-- col 57 -->
-    <field width='1' value='"Another Benefit Health Plan (No)"' align='left'/>
+    <field width="28" value="'Other Insured@@s Insurance Plan Name or PayerID'" align="left"/>
+    <literal width="1" /> <!-- col 30 -->
+    <field width="19" value="'(Reserved for Local Use)'" align="left"/>
+    <literal width="3" /> <!-- col 52 -->
+    <field width="1" value="'Another Benefit Health Plan (Yes)'" align="left"/>
+    <literal width="4" /> <!-- col 57 -->
+    <field width="1" value="'Another Benefit Health Plan (No)'" align="left"/>
   </Line>
   <Line> <!-- 22 -->
   </Line>
@@ -260,390 +189,247 @@ where bill_date is null;
   <Line> <!-- 26 -->
   </Line>
   <Line> <!-- 27 -->
-    <literal width='1' /> <!-- col 2 -->
-    <field width='2' value='"Date of Current Illness, Injury, Pregnancy (Month)"' align='right'/>
-    <literal width='1' /> <!-- col 5 -->
-    <field width='2' value='"Date of Current Illness, Injury, Pregnancy (Day)"' align='right'/>
-    <literal width='1' /> <!-- col 8 -->
-    <field width='4' value='"Date of Current Illness, Injury, Pregnancy -
-              (Year) N"' align='left'/>
-    <literal width='25' /> <!-- col 37 -->
-    <field width='2' value='"First Date Has Had Same or Similar Illness
-              (Month)N"' align='left'/>
-    <literal width='1' /> <!-- col 40 -->
-    <field width='2' value='"First Date Has Had Same or Similar Illness (Day) N"' align='left'/>
-    <literal width='1' /> <!-- col 43 -->
-    <field width='4' value='"First Date Has Had Same or Similar Illness -
-              (Year) N"' align='left'/>
-    <literal width='7' /> <!-- col 54 -->
-    <field width='2' value='"Dates Patient Unable to Work (From Month)"' align='right'/>
-    <literal width='1' /> <!-- col 57 -->
-    <field width='2' value='"Dates Patient Unable to Work (From Day)"' align='right'/>
-    <literal width='1' /> <!-- col 60 -->
-    <field width='4' value='"Dates Patient Unable to Work (From Year)"' align='right'/>
-    <literal width='4' /> <!-- col 68 -->
-    <field width='2' value='"Dates Patient Unable to Work (To Month)"' align='right'/>
-    <literal width='1' /> <!-- col 71 -->
-    <field width='2' value='"Dates Patient Unable to Work (To Day)"' align='right'/>
-    <literal width='1' /> <!-- col 74 -->
-    <field width='4' value='"Dates Patient Unable to Work (To Year)"' align='right'/>
+    <literal width="1" /> <!-- col 2 -->
+    <field width="2" value="'Date of Current Illness, Injury, Pregnancy (Month)'" align="right"/>
+    <literal width="1" /> <!-- col 5 -->
+    <field width="2" value="'Date of Current Illness, Injury, Pregnancy (Day)'" align="right"/>
+    <literal width="1" /> <!-- col 8 -->
+    <field width="4" value="'Date of Current Illness, Injury, Pregnancy -
+              (Year) N'" align="left"/>
+    <literal width="25" /> <!-- col 37 -->
+    <field width="2" value="'First Date Has Had Same or Similar Illness
+              (Month)N'" align="left"/>
+    <literal width="1" /> <!-- col 40 -->
+    <field width="2" value="'First Date Has Had Same or Similar Illness (Day) N'" align="left"/>
+    <literal width="1" /> <!-- col 43 -->
+    <field width="4" value="'First Date Has Had Same or Similar Illness -
+              (Year) N'" align="left"/>
+    <literal width="7" /> <!-- col 54 -->
+    <field width="2" value="'Dates Patient Unable to Work (From Month)'" align="right"/>
+    <literal width="1" /> <!-- col 57 -->
+    <field width="2" value="'Dates Patient Unable to Work (From Day)'" align="right"/>
+    <literal width="1" /> <!-- col 60 -->
+    <field width="4" value="'Dates Patient Unable to Work (From Year)'" align="right"/>
+    <literal width="4" /> <!-- col 68 -->
+    <field width="2" value="'Dates Patient Unable to Work (To Month)'" align="right"/>
+    <literal width="1" /> <!-- col 71 -->
+    <field width="2" value="'Dates Patient Unable to Work (To Day)'" align="right"/>
+    <literal width="1" /> <!-- col 74 -->
+    <field width="4" value="'Dates Patient Unable to Work (To Year)'" align="right"/>
   </Line>
   <Line> <!-- 28 -->
-    <literal width='29' /> <!-- col 30 -->
-    <field width='19' value='"Legacy Qualifier/Provider Number of Referring Physician"' align='left'/>
+    <literal width="29" /> <!-- col 30 -->
+    <field width="19" value="'Legacy Qualifier/Provider Number of Referring Physician'" align="left"/>
   </Line>
   <Line> <!-- 29 -->
-    <field width='26' value='"Name of Referring Physician or Other Source"' align='left'/>
-    <literal width='5' /> <!-- col 32 -->
-    <field width='17' value='"NPI Number of Referring Physician"' align='right'/>
-    <literal width='5' /> <!-- col 54 -->
-    <field width='2' value='"Hospitalization Related Current Svcs (From Month)"' align='right'/>
-    <literal width='1' /> <!-- col 57 -->
-    <field width='2' value='"Hospitalization Related Current Svcs (From Day)"' align='right'/>
-    <literal width='1' /> <!-- col 60 -->
-    <field width='4' value='"Hospitalization Related Current Svcs (From Year)"' align='right'/>
-    <literal width='4' /> <!-- col 68 -->
-    <field width='2' value='"Hospitalization Related Current Svcs (To Month)"' align='right'/>
-    <literal width='1' /> <!-- col 71 -->
-    <field width='2' value='"Hospitalization Related Current Svcs (To Day)"' align='right'/>
-    <literal width='1' /> <!-- col 74 -->
-    <field width='4' value='"Hospitalization Related Current Svcs (To Year)"' align='right'/>
+    <field width="26" value="'Name of Referring Physician or Other Source'" align="left"/>
+    <literal width="5" /> <!-- col 32 -->
+    <field width="17" value="'NPI Number of Referring Physician'" align="right"/>
+    <literal width="5" /> <!-- col 54 -->
+    <field width="2" value="'Hospitalization Related Current Svcs (From Month)'" align="right"/>
+    <literal width="1" /> <!-- col 57 -->
+    <field width="2" value="'Hospitalization Related Current Svcs (From Day)'" align="right"/>
+    <literal width="1" /> <!-- col 60 -->
+    <field width="4" value="'Hospitalization Related Current Svcs (From Year)'" align="right"/>
+    <literal width="4" /> <!-- col 68 -->
+    <field width="2" value="'Hospitalization Related Current Svcs (To Month)'" align="right"/>
+    <literal width="1" /> <!-- col 71 -->
+    <field width="2" value="'Hospitalization Related Current Svcs (To Day)'" align="right"/>
+    <literal width="1" /> <!-- col 74 -->
+    <field width="4" value="'Hospitalization Related Current Svcs (To Year)'" align="right"/>
   </Line>
   <Line> <!-- 30 -->
   </Line>
   <Line> <!-- 31 -->
-    <field width='48' value='"Reserved for Local Use"' align='left'/>
-    <literal width='3' /> <!-- col 52 -->
-    <field width='1' value='"Outside Lab (Yes)"' align='left'/>
-    <literal width='4' /> <!-- col 57 -->
-    <field width='1' value='"Outside Lab (No)"' align='left'/>
-    <literal width='4' /> <!-- col 62 -->
-    <field width='17' value='"$ Charges"' align='right'/>
+    <field width="48" value="'Reserved for Local Use'" align="left"/>
+    <literal width="3" /> <!-- col 52 -->
+    <field width="1" value="'Outside Lab (Yes)'" align="left"/>
+    <literal width="4" /> <!-- col 57 -->
+    <field width="1" value="'Outside Lab (No)'" align="left"/>
+    <literal width="4" /> <!-- col 62 -->
+    <field width="17" value="'$ Charges'" align="right"/>
   </Line>
   <Line> <!-- 32 -->
   </Line>
   <Line> <!-- 33 -->
-    <literal width='2' /> <!-- col 3 -->
-    <field width='8' value='"Diagnosis or Nature of Illness or Injury (Code)"' align='left'/>
-    <literal width='19' /> <!-- col 30 -->
-    <field width='8' value='"Diagnosis or Nature of Illness or Injury (Code)"' align='left'/>
-    <literal width='12' /> <!-- col 50 -->
-    <field width='11' value='"Medicaid Resubmission Code"' align='left'/>
-    <field width='18' value='"Original Reference Number"' align='left'/>
+    <literal width="2" /> <!-- col 3 -->
+    <field width="8" value="'Diagnosis or Nature of Illness or Injury (Code)'" align="left"/>
+    <literal width="19" /> <!-- col 30 -->
+    <field width="8" value="'Diagnosis or Nature of Illness or Injury (Code)'" align="left"/>
+    <literal width="12" /> <!-- col 50 -->
+    <field width="11" value="'Medicaid Resubmission Code'" align="left"/>
+    <field width="18" value="'Original Reference Number'" align="left"/>
   </Line>
   <Line> <!-- 34 -->
   </Line>
   <Line> <!-- 35 -->
-    <literal width='2' /> <!-- col 3 -->
-    <field width='8' value='"Diagnosis or Nature of Illness or Injury (Code)"' align='left'/>
-    <literal width='19' /> <!-- col 30 -->
-    <field width='8' value='"Diagnosis or Nature of Illness or Injury (Code)"' align='left'/>
-    <literal width='12' /> <!-- col 50 -->
-    <field width='29' value='"Prior Authorization Number"' align='left'/>
+    <literal width="2" /> <!-- col 3 -->
+    <field width="8" value="'Diagnosis or Nature of Illness or Injury (Code)'" align="left"/>
+    <literal width="19" /> <!-- col 30 -->
+    <field width="8" value="'Diagnosis or Nature of Illness or Injury (Code)'" align="left"/>
+    <literal width="12" /> <!-- col 50 -->
+    <field width="29" value="'Prior Authorization Number'" align="left"/>
   </Line>
   <Line> <!-- 36 -->
   </Line>
   <Line> <!-- 37 -->
   </Line>
   <Line> <!-- 38 -->
-    <literal width='64' /> <!-- col 65 -->
-    <field width='2' value='"Legacy Qualifier Rendering Provider"' align='left'/>
+    <literal width="64" /> <!-- col 65 -->
+    <field width="2" value="'Legacy Qualifier Rendering Provider'" align="left"/>
   </Line>
-  <Line> <!-- 39 -->
-    <field width='2' value='"Date(s) of Service - (From Month)"' align='right'/>
-    <literal width='1' /> <!-- col 4 -->
-    <field width='2' value='"Date(s) of Service - (From Day)"' align='right'/>
-    <literal width='1' /> <!-- col 7 -->
-    <field width='2' value='"Date(s) of Service - (From Year)"' align='right'/>
-    <literal width='1' /> <!-- col 10 -->
-    <field width='2' value='"Date(s) of Service - (To Month)"' align='right'/>
-    <literal width='1' /> <!-- col 13 -->
-    <field width='2' value='"Date(s) of Service - (To Day)"' align='right'/>
-    <literal width='1' /> <!-- col 16 -->
-    <field width='2' value='"Date(s) of Service - (To Year)"' align='right'/>
-    <literal width='1' /> <!-- col 19 -->
-    <field width='2' value='"Place of Service"' align='left'/>
-    <literal width='1' /> <!-- col 22 -->
-    <field width='2' value='"EMG"' align='left'/>
-    <literal width='1' /> <!-- col 25 -->
-    <field width='6' value='"Procedures, Svcs or Supplies (CPT/HCPCS)"' align='left'/>
-    <literal width='2' /> <!-- col 33 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 1)"' align='left'/>
-    <literal width='1' /> <!-- col 36 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 2)"' align='left'/>
-    <literal width='1' /> <!-- col 39 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 3)"' align='left'/>
-    <literal width='1' /> <!-- col 42 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 4)"' align='left'/>
-    <literal width='1' /> <!-- col 45 -->
-    <field width='4' value='"Diagnosis Pointer"' align='right'/>
-    <literal width='1' /> <!-- col 50 -->
-    <field width='8' value='"$ Charges"' align='right'/>
-    <literal width='1' /> <!-- col 59 -->
-    <field width='3' value='"Days or Units"' align='right'/>
-    <literal width='1' /> <!-- col 63 -->
-    <field width='1' value='"EPSDT Family Plan"' align='left'/>
-    <literal width='4' /> <!-- col 68 -->
-    <field width='11' value='"Legacy Provider Number Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 40 -->
-    <literal width='64' /> <!-- col 65 -->
-    <field width='2' value='"Legacy Qualifier Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 41 -->
-    <field width='2' value='"Date(s) of Service - (From Month)"' align='right'/>
-    <literal width='1' /> <!-- col 4 -->
-    <field width='2' value='"Date(s) of Service - (From Day)"' align='right'/>
-    <literal width='1' /> <!-- col 7 -->
-    <field width='2' value='"Date(s) of Service - (From Year)"' align='right'/>
-    <literal width='1' /> <!-- col 10 -->
-    <field width='2' value='"Date(s) of Service - (To Month)"' align='right'/>
-    <literal width='1' /> <!-- col 13 -->
-    <field width='2' value='"Date(s) of Service - (To Day)"' align='right'/>
-    <literal width='1' /> <!-- col 16 -->
-    <field width='2' value='"Date(s) of Service - (To Year)"' align='right'/>
-    <literal width='1' /> <!-- col 19 -->
-    <field width='2' value='"Place of Service"' align='left'/>
-    <literal width='1' /> <!-- col 22 -->
-    <field width='2' value='"EMG"' align='left'/>
-    <literal width='1' /> <!-- col 25 -->
-    <field width='6' value='"Procedures, Svcs or Supplies (CPT/HCPCS)"' align='left'/>
-    <literal width='2' /> <!-- col 33 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 1)"' align='left'/>
-    <literal width='1' /> <!-- col 36 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 2)"' align='left'/>
-    <literal width='1' /> <!-- col 39 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 3)"' align='left'/>
-    <literal width='1' /> <!-- col 42 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 4)"' align='left'/>
-    <literal width='1' /> <!-- col 45 -->
-    <field width='4' value='"Diagnosis Pointer"' align='right'/>
-    <literal width='1' /> <!-- col 50 -->
-    <field width='8' value='"$ Charges"' align='right'/>
-    <literal width='1' /> <!-- col 59 -->
-    <field width='3' value='"Days or Units"' align='right'/>
-    <literal width='1' /> <!-- col 63 -->
-    <field width='1' value='"EPSDT Family Plan"' align='left'/>
-    <literal width='4' /> <!-- col 68 -->
-    <field width='11' value='"Legacy Provider Number Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 42 -->
-    <literal width='64' /> <!-- col 65 -->
-    <field width='2' value='"Legacy Qualifier Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 43 -->
-    <field width='2' value='"Date(s) of Service - (From Month)"' align='right'/>
-    <literal width='1' /> <!-- col 4 -->
-    <field width='2' value='"Date(s) of Service - (From Day)"' align='right'/>
-    <literal width='1' /> <!-- col 7 -->
-    <field width='2' value='"Date(s) of Service - (From Year)"' align='right'/>
-    <literal width='1' /> <!-- col 10 -->
-    <field width='2' value='"Date(s) of Service - (To Month)"' align='right'/>
-    <literal width='1' /> <!-- col 13 -->
-    <field width='2' value='"Date(s) of Service - (To Day)"' align='right'/>
-    <literal width='1' /> <!-- col 16 -->
-    <field width='2' value='"Date(s) of Service - (To Year)"' align='right'/>
-    <literal width='1' /> <!-- col 19 -->
-    <field width='2' value='"Place of Service"' align='left'/>
-    <literal width='1' /> <!-- col 22 -->
-    <field width='2' value='"EMG"' align='left'/>
-    <literal width='1' /> <!-- col 25 -->
-    <field width='6' value='"Procedures, Svcs or Supplies (CPT/HCPCS)"' align='left'/>
-    <literal width='2' /> <!-- col 33 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 1)"' align='left'/>
-    <literal width='1' /> <!-- col 36 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 2)"' align='left'/>
-    <literal width='1' /> <!-- col 39 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 3)"' align='left'/>
-    <literal width='1' /> <!-- col 42 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 4)"' align='left'/>
-    <literal width='1' /> <!-- col 45 -->
-    <field width='4' value='"Diagnosis Pointer"' align='right'/>
-    <literal width='1' /> <!-- col 50 -->
-    <field width='8' value='"$ Charges"' align='right'/>
-    <literal width='1' /> <!-- col 59 -->
-    <field width='3' value='"Days or Units"' align='right'/>
-    <literal width='1' /> <!-- col 63 -->
-    <field width='1' value='"EPSDT Family Plan"' align='left'/>
-    <literal width='4' /> <!-- col 68 -->
-    <field width='11' value='"Legacy Provider Number Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 44 -->
-    <literal width='64' /> <!-- col 65 -->
-    <field width='2' value='"Legacy Qualifier Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 45 -->
-    <field width='2' value='"Date(s) of Service - (From Month)"' align='right'/>
-    <literal width='1' /> <!-- col 4 -->
-    <field width='2' value='"Date(s) of Service - (From Day)"' align='right'/>
-    <literal width='1' /> <!-- col 7 -->
-    <field width='2' value='"Date(s) of Service - (From Year)"' align='right'/>
-    <literal width='1' /> <!-- col 10 -->
-    <field width='2' value='"Date(s) of Service - (To Month)"' align='right'/>
-    <literal width='1' /> <!-- col 13 -->
-    <field width='2' value='"Date(s) of Service - (To Day)"' align='right'/>
-    <literal width='1' /> <!-- col 16 -->
-    <field width='2' value='"Date(s) of Service - (To Year)"' align='right'/>
-    <literal width='1' /> <!-- col 19 -->
-    <field width='2' value='"Place of Service"' align='left'/>
-    <literal width='1' /> <!-- col 22 -->
-    <field width='2' value='"EMG"' align='left'/>
-    <literal width='1' /> <!-- col 25 -->
-    <field width='6' value='"Procedures, Svcs or Supplies (CPT/HCPCS)"' align='left'/>
-    <literal width='2' /> <!-- col 33 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 1)"' align='left'/>
-    <literal width='1' /> <!-- col 36 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 2)"' align='left'/>
-    <literal width='1' /> <!-- col 39 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 3)"' align='left'/>
-    <literal width='1' /> <!-- col 42 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 4)"' align='left'/>
-    <literal width='1' /> <!-- col 45 -->
-    <field width='4' value='"Diagnosis Pointer"' align='right'/>
-    <literal width='1' /> <!-- col 50 -->
-    <field width='8' value='"$ Charges"' align='right'/>
-    <literal width='1' /> <!-- col 59 -->
-    <field width='3' value='"Days or Units"' align='right'/>
-    <literal width='1' /> <!-- col 63 -->
-    <field width='1' value='"EPSDT Family Plan"' align='left'/>
-    <literal width='4' /> <!-- col 68 -->
-    <field width='11' value='"Legacy Provider Number Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 46 -->
-    <literal width='64' /> <!-- col 65 -->
-    <field width='2' value='"Legacy Qualifier Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 47 -->
-    <field width='2' value='"Date(s) of Service - (From Month)"' align='right'/>
-    <literal width='1' /> <!-- col 4 -->
-    <field width='2' value='"Date(s) of Service - (From Day)"' align='right'/>
-    <literal width='1' /> <!-- col 7 -->
-    <field width='2' value='"Date(s) of Service - (From Year)"' align='right'/>
-    <literal width='1' /> <!-- col 10 -->
-    <field width='2' value='"Date(s) of Service - (To Month)"' align='right'/>
-    <literal width='1' /> <!-- col 13 -->
-    <field width='2' value='"Date(s) of Service - (To Day)"' align='right'/>
-    <literal width='1' /> <!-- col 16 -->
-    <field width='2' value='"Date(s) of Service - (To Year)"' align='right'/>
-    <literal width='1' /> <!-- col 19 -->
-    <field width='2' value='"Place of Service"' align='left'/>
-    <literal width='1' /> <!-- col 22 -->
-    <field width='2' value='"EMG"' align='left'/>
-    <literal width='1' /> <!-- col 25 -->
-    <field width='6' value='"Procedures, Svcs or Supplies (CPT/HCPCS)"' align='left'/>
-    <literal width='2' /> <!-- col 33 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 1)"' align='left'/>
-    <literal width='1' /> <!-- col 36 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 2)"' align='left'/>
-    <literal width='1' /> <!-- col 39 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 3)"' align='left'/>
-    <literal width='1' /> <!-- col 42 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 4)"' align='left'/>
-    <literal width='1' /> <!-- col 45 -->
-    <field width='4' value='"Diagnosis Pointer"' align='right'/>
-    <literal width='1' /> <!-- col 50 -->
-    <field width='8' value='"$ Charges"' align='right'/>
-    <literal width='1' /> <!-- col 59 -->
-    <field width='3' value='"Days or Units"' align='right'/>
-    <literal width='1' /> <!-- col 63 -->
-    <field width='1' value='"EPSDT Family Plan"' align='left'/>
-    <literal width='4' /> <!-- col 68 -->
-    <field width='11' value='"Legacy Provider Number Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 48 -->
-    <field width='63' value='"Line Detail Narrative"' align='left'/>
-    <literal width='1' /> <!-- col 65 -->
-    <field width='2' value='"Legacy Qualifier Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 49 -->
-    <field width='2' value='"Date(s) of Service - (From Month)"' align='right'/>
-    <literal width='1' /> <!-- col 4 -->
-    <field width='2' value='"Date(s) of Service - (From Day)"' align='right'/>
-    <literal width='1' /> <!-- col 7 -->
-    <field width='2' value='"Date(s) of Service - (From Year)"' align='right'/>
-    <literal width='1' /> <!-- col 10 -->
-    <field width='2' value='"Date(s) of Service - (To Month)"' align='right'/>
-    <literal width='1' /> <!-- col 13 -->
-    <field width='2' value='"Date(s) of Service - (To Day)"' align='right'/>
-    <literal width='1' /> <!-- col 16 -->
-    <field width='2' value='"Date(s) of Service - (To Year)"' align='right'/>
-    <literal width='1' /> <!-- col 19 -->
-    <field width='2' value='"Place of Service"' align='left'/>
-    <literal width='1' /> <!-- col 22 -->
-    <field width='2' value='"EMG"' align='left'/>
-    <literal width='1' /> <!-- col 25 -->
-    <field width='6' value='"Procedures, Svcs or Supplies (CPT/HCPCS)"' align='left'/>
-    <literal width='2' /> <!-- col 33 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 1)"' align='left'/>
-    <literal width='1' /> <!-- col 36 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 2)"' align='left'/>
-    <literal width='1' /> <!-- col 39 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 3)"' align='left'/>
-    <literal width='1' /> <!-- col 42 -->
-    <field width='2' value='"Procedures, Svcs or Supplies (Modifier 4)"' align='left'/>
-    <literal width='1' /> <!-- col 45 -->
-    <field width='4' value='"Diagnosis Pointer"' align='right'/>
-    <literal width='1' /> <!-- col 50 -->
-    <field width='8' value='"$ Charges"' align='right'/>
-    <literal width='1' /> <!-- col 59 -->
-    <field width='3' value='"Days or Units"' align='right'/>
-    <literal width='1' /> <!-- col 63 -->
-    <field width='1' value='"EPSDT Family Plan"' align='left'/>
-    <literal width='4' /> <!-- col 68 -->
-    <field width='11' value='"Legacy Provider Number Rendering Provider"' align='left'/>
-  </Line>
-  <Line> <!-- 50 -->
-  </Line>
+
+
+        </Output>
+      </BreakHeader>
+      <BreakFields>
+        <BreakField value='claim_id'/>
+      </BreakFields>
+      <BreakFooter>
+        <Output>
+<!--@@          <Line>
+            <field width='9' value='v.charge_sum'
+		   align='right' format='"%$.2nd"'/>
+          </Line>
+-->
+
   <Line> <!-- 51 -->
-    <field width='15' value='"Federal Tax ID Number"' align='right'/>
-    <literal width='1' /> <!-- col 17 -->
-    <field width='1' value='"Federal Tax ID Number (SSN)"' align='left'/>
-    <literal width='1' /> <!-- col 19 -->
-    <field width='1' value='"Federal Tax ID Number (EIN)"' align='left'/>
-    <literal width='3' /> <!-- col 23 -->
-    <field width='14' value='"Patient's Account Number"' align='left'/>
-    <literal width='1' /> <!-- col 38 -->
-    <field width='1' value='"Accept Assignment (Yes)"' align='left'/>
-    <literal width='4' /> <!-- col 43 -->
-    <field width='1' value='"Accept Assignment (No)"' align='left'/>
-    <literal width='7' /> <!-- col 51 -->
-    <field width='9' value='"Total Charge"' align='right'/>
-    <literal width='2' /> <!-- col 62 -->
-    <field width='8' value='"Amount Paid"' align='right'/>
-    <literal width='1' /> <!-- col 71 -->
-    <field width='8' value='"Balance Due"' align='right'/>
+    <field width="15" value="'Federal Tax ID Number'" align="right"/>
+    <literal width="1" /> <!-- col 17 -->
+    <field width="1" value="'Federal Tax ID Number (SSN)'" align="left"/>
+    <literal width="1" /> <!-- col 19 -->
+    <field width="1" value="'Federal Tax ID Number (EIN)'" align="left"/>
+    <literal width="3" /> <!-- col 23 -->
+    <field width="14" value="'Patient@@s Account Number'" align="left"/>
+    <literal width="1" /> <!-- col 38 -->
+    <field width="1" value="'Accept Assignment (Yes)'" align="left"/>
+    <literal width="4" /> <!-- col 43 -->
+    <field width="1" value="'Accept Assignment (No)'" align="left"/>
+    <literal width="7" /> <!-- col 51 -->
+    <field width="9" value="'Total Charge'" align="right"/>
+    <literal width="2" /> <!-- col 62 -->
+    <field width="8" value="'Amount Paid'" align="right"/>
+    <literal width="1" /> <!-- col 71 -->
+    <field width="8" value="'Balance Due'" align="right"/>
   </Line>
   <Line> <!-- 52 -->
-    <literal width='65' /> <!-- col 66 -->
-    <field width='3' value='"Billing Provider Phone Number Area Code"' align='right'/>
-    <literal width='1' /> <!-- col 70 -->
-    <field width='9' value='"Billing Provider Phone Number"' align='right'/>
+    <literal width="65" /> <!-- col 66 -->
+    <field width="3" value="'Billing Provider Phone Number Area Code'" align="right"/>
+    <literal width="1" /> <!-- col 70 -->
+    <field width="9" value="'Billing Provider Phone Number'" align="right"/>
   </Line>
   <Line> <!-- 53 -->
-    <literal width='22' /> <!-- col 23 -->
-    <field width='26' value='"Name of Facility Where Svcs Rendered"' align='left'/>
-    <literal width='1' /> <!-- col 50 -->
-    <field width='29' value='"Physician/Supplier Billing Name"' align='left'/>
+    <literal width="22" /> <!-- col 23 -->
+    <field width="26" value="'Name of Facility Where Svcs Rendered'" align="left"/>
+    <literal width="1" /> <!-- col 50 -->
+    <field width="29" value="'Physician/Supplier Billing Name'" align="left"/>
   </Line>
   <Line> <!-- 54 -->
-    <literal width='22' /> <!-- col 23 -->
-    <field width='26' value='"Address of Facility Where Svcs Rendered"' align='left'/>
-    <literal width='1' /> <!-- col 50 -->
-    <field width='29' value='"Physician/Supplier Address"' align='left'/>
+    <literal width="22" /> <!-- col 23 -->
+    <field width="26" value="'Address of Facility Where Svcs Rendered'" align="left"/>
+    <literal width="1" /> <!-- col 50 -->
+    <field width="29" value="'Physician/Supplier Address'" align="left"/>
   </Line>
   <Line> <!-- 55 -->
-    <literal width='22' /> <!-- col 23 -->
-    <field width='26' value='"City, State and ZIP Code of Facility"' align='left'/>
-    <literal width='1' /> <!-- col 50 -->
-    <field width='29' value='"City, State and ZIP Code of Billing Provider"' align='left'/>
+    <literal width="22" /> <!-- col 23 -->
+    <field width="26" value="'City, State and ZIP Code of Facility'" align="left"/>
+    <literal width="1" /> <!-- col 50 -->
+    <field width="29" value="'City, State and ZIP Code of Billing Provider'" align="left"/>
   </Line>
   <Line> <!-- 56 -->
-    <literal width='23' /> <!-- col 24 -->
-    <field width='10' value='"Facility NPI Number"' align='right'/>
-    <literal width='1' /> <!-- col 35 -->
-    <field width='14' value='"Facility Qualifier and Legacy Number"' align='left'/>
-    <literal width='2' /> <!-- col 51 -->
-    <field width='10' value='"Billing Provider NPI Number"' align='right'/>
-    <literal width='1' /> <!-- col 62 -->
-    <field width='17' value='"Billing Provider Qualifier and Legacy Number"' align='left'/>
+    <literal width="23" /> <!-- col 24 -->
+    <field width="10" value="'Facility NPI Number'" align="right"/>
+    <literal width="1" /> <!-- col 35 -->
+    <field width="14" value="'Facility Qualifier and Legacy Number'" align="left"/>
+    <literal width="2" /> <!-- col 51 -->
+    <field width="10" value="'Billing Provider NPI Number'" align="right"/>
+    <literal width="1" /> <!-- col 62 -->
+    <field width="17" value="'Billing Provider Qualifier and Legacy Number'" align="left"/>
   </Line>
+        </Output>
+      </BreakFooter>
+    </Break>
+  </Breaks>
+  <Detail>
+    <FieldDetails>
+      <Output>
+        <Line>
+          <field value='stod(session_date)'/>
+        </Line>
+  <Line> <!-- 39 -->
+    <field width="2" value="format(stod(session_date), '!@%m')" align="right"/>
+    <literal width="1" /> <!-- col 4 -->
+    <field width="2" value="format(stod(session_date), '!@%d')" align="right"/>
+    <literal width="1" /> <!-- col 7 -->
+    <field width="2" value="format(stod(session_date), '!@%y')" align="right"/>
+    <literal width="1" /> <!-- col 10 -->
+    <field width="2" value="format(stod(session_date), '!@%m')" align="right"/>
+    <literal width="1" /> <!-- col 13 -->
+    <field width="2" value="format(stod(session_date), '!@%d')" align="right"/>
+    <literal width="1" /> <!-- col 16 -->
+    <field width="2" value="format(stod(session_date), '!@%y')" align="right"/>
+    <literal width="1" /> <!-- col 19 -->
+    <field width="2" value="'Place of Service'" align="left"/>
+    <literal width="1" /> <!-- col 22 -->
+    <field width="2" value="'EMG'" align="left"/>
+    <literal width="1" /> <!-- col 25 -->
+    <field width="6" value="cpt_code" align="left"/>
+    <literal width="2" /> <!-- col 33 -->
+    <field width="2" value="'Procedures, Svcs or Supplies (Modifier 1)'" align="left"/>
+    <literal width="1" /> <!-- col 36 -->
+    <field width="2" value="'Procedures, Svcs or Supplies (Modifier 2)'" align="left"/>
+    <literal width="1" /> <!-- col 39 -->
+    <field width="2" value="'Procedures, Svcs or Supplies (Modifier 3)'" align="left"/>
+    <literal width="1" /> <!-- col 42 -->
+    <field width="2" value="'Procedures, Svcs or Supplies (Modifier 4)'" align="left"/>
+    <literal width="1" /> <!-- col 45 -->
+    <field width="4" value="'Diagnosis Pointer'" align="right"/>
+    <literal width="1" /> <!-- col 50 -->
+    <field width="8" value="charge" align="right"/> <!-- @@ money format? -->
+    <literal width="1" /> <!-- col 59 -->
+    <field width="3" value="'Days or Units'" align="right"/>
+    <literal width="1" /> <!-- col 63 -->
+    <field width="1" value="'EPSDT Family Plan'" align="left"/>
+    <literal width="4" /> <!-- col 68 -->
+    <field width="11" value="npi" align="left"/>
+  </Line>
+  <Line> <!-- 40 -->
+    <literal width="64" /> <!-- col 65 -->
+    <field width="2" value="'Legacy Qualifier Rendering Provider'" align="left"/>
+  </Line>
+      </Output>
+    </FieldDetails>
+  </Detail>
+  <Variables>
+    <Variable type='sum' resetonbreak='per_claim' name='charge_sum' value='val(charge)'/>
+  </Variables>
+  <Query class='query'>
+select ins.id as claim_id
+     , payer.name, payer.address, payer.city_st_zip
+     , ins.payer_type, ins.id_number
+     , ins.patient_name, ins.patient_dob, ins.patient_sex -- reconcile with c.name, c.DOB
+     , ins.insured_name
+     , ins.patient_address, ins.patient_city, ins.patient_state, ins.patient_zip
+     , ins.patient_rel
+     , ins.insured_address, ins.insured_city, ins.insured_state, ins.insured_zip
+     , ins.patient_status, ins.patient_status2
+     , ins.insured_policy
+     , c.DX
+     , a.session_date
+     , g.cpt_code
+     , a.charge -- why $80?
+     , a.client_paid
+     , p.npi
+     , p.tax_id
+     , p.name
+from health_insurance ins
+join (select id, payer_name as name, payer_address as address, payer_city_st_zip as city_st_zip
+      from health_insurance) payer on ins.id = payer.id
+join Client c on ins.patient_name like concat(c.name, "%")
+join Attendance a on a.Client_id = c.id
+join (select "Individual-Prof Staff" as group_name, "90806" as cpt_code) g
+  on a.group_name = g.group_name
+join (select "Bascom W. Ratliff,DSW" as name, "1689779738" as npi, "270-46-6033" as tax_id) as p 
+where bill_date is null;
+  </Query>
+</Report>
