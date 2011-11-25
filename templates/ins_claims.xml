@@ -541,15 +541,8 @@ union all
   select 'Teen SA Education' as group_name, '90801' as cpt_code
 ) g
   on a.group_name = g.group_name
-join (
-  select 'Bascom W. Ratliff,DSW' as name
-       , '1112223334' as npi
-       , '123-56-4567' as tax_id
-       , 555 as acode
-       , 5551212 as phone
-       , '123 Mulberry St' as address
-       , 'Anytown, NY, 10110' as city_st_zip
-       ) as p 
-where bill_date is null;
+join Therapist p
+where bill_date is null
+and p.tax_id is not null;
   </Query>
 </Report>
