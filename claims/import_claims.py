@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 
 def main(argv):
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     engineurl, files = argv[1], argv[2:]
     engine = create_engine(engineurl)
@@ -216,7 +216,7 @@ class Claim(object):
                 "Patient Status (Part Time Student)"), paren=True),
             insured_policy=(
                 get(('11', "Insured's Policy, Group or FECA Number"))
-                and None)  # don't store ''
+                or None)  # don't store ''
             )
 
 def _yy(yy):
