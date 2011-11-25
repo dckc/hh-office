@@ -362,65 +362,83 @@
       </BreakFields>
       <BreakFooter>
         <Output>
-<!--@@          <Line>
-            <field width='9' value='v.charge_sum'
-		   align='right' format='"%$.2nd"'/>
-          </Line>
--->
+  <Line suppress="r.detailcnt &gt; 5" />
+  <Line suppress="r.detailcnt &gt; 5" />
+  <Line suppress="r.detailcnt &gt; 4" />
+  <Line suppress="r.detailcnt &gt; 4" />
+  <Line suppress="r.detailcnt &gt; 3" />
+  <Line suppress="r.detailcnt &gt; 3" />
+  <Line suppress="r.detailcnt &gt; 2" />
+  <Line suppress="r.detailcnt &gt; 2" />
+  <Line suppress="r.detailcnt &gt; 1" />
+  <Line suppress="r.detailcnt &gt; 1" />
 
   <Line> <!-- 51 -->
-    <field width="15" value="'Federal Tax ID Number'" align="right"/>
+    <field width="15" value="tax_id" align="right"/>
     <literal width="1" /> <!-- col 17 -->
-    <field width="1" value="'Federal Tax ID Number (SSN)'" align="left"/>
+    <literal width="1" value="'Federal Tax ID Number (SSN)'"
+	     align="left">X</literal>
     <literal width="1" /> <!-- col 19 -->
-    <field width="1" value="'Federal Tax ID Number (EIN)'" align="left"/>
+    <literal width="1" value="'Federal Tax ID Number (EIN)'" align="left"/>
     <literal width="3" /> <!-- col 23 -->
-    <field width="14" value="'Patient@@s Account Number'" align="left"/>
+    <!-- TODO: add file number? -->
+    <literal width="14" value="Patient's Account Number" align="left"/>
     <literal width="1" /> <!-- col 38 -->
-    <field width="1" value="'Accept Assignment (Yes)'" align="left"/>
+    <literal width="1" value="'Accept Assignment (Yes)'"
+	     align="left">X</literal>
     <literal width="4" /> <!-- col 43 -->
-    <field width="1" value="'Accept Assignment (No)'" align="left"/>
+    <literal width="1" value="'Accept Assignment (No)'" align="left"/>
     <literal width="7" /> <!-- col 51 -->
-    <field width="9" value="'Total Charge'" align="right"/>
+    <field width="9" value="v.charge_sum" align="right"
+	   format="'%$.2nd'"/>
     <literal width="2" /> <!-- col 62 -->
-    <field width="8" value="'Amount Paid'" align="right"/>
+    <field width="8" value="v.client_paid_sum" align="right"
+	   format="'%$.2nd'"/>
     <literal width="1" /> <!-- col 71 -->
-    <field width="8" value="'Balance Due'" align="right"/>
+    <field width="8" value="v.charge_sum - v.client_paid_sum" align="right"
+	   format="'%$.2nd'"/>
   </Line>
   <Line> <!-- 52 -->
     <literal width="65" /> <!-- col 66 -->
-    <field width="3" value="'Billing Provider Phone Number Area Code'" align="right"/>
+    <field width="3" value="provider_acode" align="right"/>
     <literal width="1" /> <!-- col 70 -->
-    <field width="9" value="'Billing Provider Phone Number'" align="right"/>
+    <field width="9" value="provider_phone" align="right"/>
   </Line>
   <Line> <!-- 53 -->
     <literal width="22" /> <!-- col 23 -->
-    <field width="26" value="'Name of Facility Where Svcs Rendered'" align="left"/>
+    <literal width="26" value="'Name of Facility Where Svcs Rendered'"
+	     align="left"/>
     <literal width="1" /> <!-- col 50 -->
-    <field width="29" value="'Physician/Supplier Billing Name'" align="left"/>
+    <field width="29" value="provider_name" align="left"/>
   </Line>
   <Line> <!-- 54 -->
     <literal width="22" /> <!-- col 23 -->
-    <field width="26" value="'Address of Facility Where Svcs Rendered'" align="left"/>
+    <literal width="26" value="'Address of Facility Where Svcs Rendered'"
+	     align="left"/>
     <literal width="1" /> <!-- col 50 -->
-    <field width="29" value="'Physician/Supplier Address'" align="left"/>
+    <field width="29" value="provider_address"
+	   align="left"/>
   </Line>
   <Line> <!-- 55 -->
     <literal width="22" /> <!-- col 23 -->
-    <field width="26" value="'City, State and ZIP Code of Facility'" align="left"/>
+    <literal width="26" value="'City, State and ZIP Code of Facility'"
+	     align="left"/>
     <literal width="1" /> <!-- col 50 -->
-    <field width="29" value="'City, State and ZIP Code of Billing Provider'" align="left"/>
+    <field width="29" value="provider_city_st_zip" align="left"/>
   </Line>
   <Line> <!-- 56 -->
     <literal width="23" /> <!-- col 24 -->
-    <field width="10" value="'Facility NPI Number'" align="right"/>
+    <literal width="10" value="'Facility NPI Number'" align="right"/>
     <literal width="1" /> <!-- col 35 -->
-    <field width="14" value="'Facility Qualifier and Legacy Number'" align="left"/>
+    <literal width="14" value="'Facility Qualifier and Legacy Number'"
+	     align="left"/>
     <literal width="2" /> <!-- col 51 -->
-    <field width="10" value="'Billing Provider NPI Number'" align="right"/>
+    <field width="10" value="npi" align="right"/>
     <literal width="1" /> <!-- col 62 -->
-    <field width="17" value="'Billing Provider Qualifier and Legacy Number'" align="left"/>
+    <literal width="17" value="'Billing Provider Qualifier and Legacy Number'"
+	     align="left"/>
   </Line>
+
         </Output>
       </BreakFooter>
     </Break>
@@ -474,11 +492,15 @@
     <literal width="4" /> <!-- col 68 -->
     <field width="11" value="npi" align="left"/>
   </Line>
+
       </Output>
     </FieldDetails>
   </Detail>
   <Variables>
-    <Variable type='sum' resetonbreak='per_claim' name='charge_sum' value='val(charge)'/>
+    <Variable type='sum' resetonbreak='per_claim'
+	      name='charge_sum' value='val(charge)'/>
+    <Variable type='sum' resetonbreak='per_claim'
+	      name='client_paid_sum' value='val(client_paid)'/>
   </Variables>
   <Query class='query'>
 select ins.id as claim_id
@@ -503,15 +525,31 @@ select ins.id as claim_id
      , a.client_paid
      , p.npi
      , p.tax_id
-     , p.name
+     , p.name as provider_name
+     , p.acode as provider_acode
+     , p.phone as provider_phone
+     , p.address as provider_address
+     , p.city_st_zip as provider_city_st_zip
 from health_insurance ins
 join (select id, payer_name as name, payer_address as address, payer_city_st_zip as city_st_zip
       from health_insurance) payer on ins.id = payer.id
 join Client c on ins.patient_name like concat(c.name, "%")
 join Attendance a on a.Client_id = c.id
-join (select "Individual-Prof Staff" as group_name, "90806" as cpt_code) g
+join (
+  select 'Individual-Prof Staff' as group_name, '90806' as cpt_code
+union all
+  select 'Teen SA Education' as group_name, '90801' as cpt_code
+) g
   on a.group_name = g.group_name
-join (select "Bascom W. Ratliff,DSW" as name, "1689779738" as npi, "270-46-6033" as tax_id) as p 
+join (
+  select 'Bascom W. Ratliff,DSW' as name
+       , '1112223334' as npi
+       , '123-56-4567' as tax_id
+       , 555 as acode
+       , 5551212 as phone
+       , '123 Mulberry St' as address
+       , 'Anytown, NY, 10110' as city_st_zip
+       ) as p 
 where bill_date is null;
   </Query>
 </Report>
