@@ -200,21 +200,24 @@ class Claim(object):
             payer_type=which('1'),
             id_number=get(('1a', "Insured's ID Number")),
             patient_name=get(('2', "Patient's Name (Last, First, MI)")),
-            patient_dob=datetime.date(
-                _yy(get(('3', "Patient's Birth (Year)"))),
-                int(get(('3', "Patient's Birth Date (Month)"))),
-                int(get(('3', "Patient's Birth Date (Day)")))),
+            patient_dob=_yymmdd(get(('3', "Patient's Birth (Year)")),
+                                get(('3', "Patient's Birth Date (Month)")),
+                                get(('3', "Patient's Birth Date (Day)"))),
             patient_sex=which('3', xlate={'Sex-Male': 'M', 'Sex-Female': 'F'}),
             insured_name=get(('4', 'Insured Name (Last, First, MI)')),
             patient_address=get(('5', "Patient's Address")),
             patient_city=get(('5', "Patient's City")),
             patient_state=get(('5', "Patient's State")),
             patient_zip=str(int(get(('5', "Patient's ZIP Code")))),
+            patient_acode=get(('5', "Patient's Area Code")),
+            patient_phone=get(('5', "Patient's Phone Number")),
             patient_rel=which('6', paren=True),
             insured_address=get(('7', "Insured's Address")),
             insured_city=get(('7', "Insured's City")),
             insured_state=get(('7', "Insured's State")),
             insured_zip=_zip(get(('7', "Insured's ZIP Code"))),
+            insured_acode=get(('7', "Insured's Area Code")),
+            insured_phone=get(('7', "Insured's Phone Number")),
             patient_status=which('8', choices=(
                 "Patient Status (Single)",
                 "Patient Status (Married)",
@@ -225,11 +228,21 @@ class Claim(object):
                 "Patient Status (Part Time Student)"), paren=True),
             insured_policy=(
                 get(('11', "Insured's Policy, Group or FECA Number"))
-                or None)  # don't store ''
+                or None),  # don't store ''
+            insured_dob=_yymmdd(
+                get(('11a', "Insured's Date of Birth (Year)")),
+                get(('11a', "Insured's Date of Birth (Month)")),
+                get(('11a', "Insured's Date of Birth (Day)"))),
+            insured_sex=which('11a',
+                              xlate={'Sex-Male': 'M', 'Sex-Female': 'F'})
             )
 
-def _yy(yy):
-    return int(2000 + yy if yy < 50 else 1900 + yy)
+def _yymmdd(yy, mm, dd):
+    if not (yy and mm and dd):
+        return None
+    y = int(yy)
+    return datetime.date(int(2000 + y if y < 50 else 1900 + y),
+                         int(mm), int(dd))
 
 
 def _zip(z):
@@ -298,6 +311,8 @@ HealthInsurance = Table(
     Column('patient_city', types.String(24), nullable=False),
     Column('patient_state', types.String(3), nullable=False),
     Column('patient_zip', types.String(12), nullable=False),
+    Column('patient_acode', types.String(3)),
+    Column('patient_phone', types.String(7)),
     # Field 6
     Column('patient_rel', types.Enum('Self', 'Spouse', 'Child', 'Other'),
            nullable=False),
@@ -306,6 +321,8 @@ HealthInsurance = Table(
     Column('insured_city', types.String(24), nullable=False),
     Column('insured_state', types.String(3), nullable=False),
     Column('insured_zip', types.String(12), nullable=False),
+    Column('insured_acode', types.String(3)),
+    Column('insured_phone', types.String(7)),
     # Field 8
     Column('patient_status', types.Enum('Single', 'Married', 'Other')),
     Column('patient_status2', types.Enum('Employed',
@@ -314,6 +331,9 @@ HealthInsurance = Table(
     # skip 10
     # Field 11
     Column('insured_policy', types.String(30)),
+    # Field 11a
+    Column('insured_dob', types.Date),
+    Column('insured_sex', types.Enum('M', 'F')),
     # 12, 13 are blank; skip 14-18; 19 is reserved
     # 20 is computed per-claim
     # Field 21
