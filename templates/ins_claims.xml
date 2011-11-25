@@ -8,12 +8,24 @@
     <Break name="per_claim" newpage="yes" headernewpage="yes">
       <BreakHeader>
         <Output>
-	  <!-- todo: insurance company name/address -->
           <Line>
 	    <literal>         1         2         3         4         5         6</literal>
 	  </Line>
           <Line>
 	    <literal>123456789012345678901234567890123456789012345678901234567890</literal>
+	  </Line>
+
+	  <Line>
+	    <literal width="50" />
+	    <field width="30" value="name" />
+	  </Line>
+	  <Line>
+	    <literal width="50" />
+	    <field width="30" value="address" />
+	  </Line>
+	  <Line>
+	    <literal width="50" />
+	    <field width="30" value="city_st_zip" />
 	  </Line>
 
   <Line> <!-- 1 -->
