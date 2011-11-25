@@ -1,0 +1,90 @@
+<Report
+  fontSize="12pt"
+  orientation="portrait" leftMargin="0.4" topMargin="0.4">
+<!--@@margins? -->
+<!--   <ReportHeader> -->
+  <Breaks>
+    <Break name="per_claim" newpage="yes" headernewpage="yes">
+      <BreakHeader>
+        <Output>
+	  <!-- todo: insurance company name/address -->
+          <Line>
+	    <literal>         1         2         3         4         5         6</literal>
+	  </Line>
+          <Line>
+	    <literal>123456789012345678901234567890123456789012345678901234567890</literal>
+	  </Line>
+          <Line>
+            <field width="1" value="iif(payer_type == 'Medicare', 'X', ' ')"/>
+            <literal width="6"/>
+            <field width="1" value="iif(payer_type == 'Medicaid', 'X', ' ')"/>
+            <literal width="6"/>
+            <field width="1" value="iif(payer_type == 'Champus', 'X', ' ')"/>
+            <literal width="8"/>
+            <field width="1" value="iif(payer_type == 'ChampVA', 'X', ' ')"/>
+            <literal width="6"/>
+            <field width="1"
+		   value="iif(payer_type == 'Group Health Plan', 'X', ' ')"/>
+            <literal width="7"/>
+            <field width="1" value="iif(payer_type == 'FECA', 'X', ' ')"/>
+            <literal width="5"/>
+            <field width="1" value="iif(payer_type == 'Other', 'X', ' ')"/>
+            <literal width="5"/>
+            <field width="29" value="id_number"/>
+          </Line>
+        </Output>
+      </BreakHeader>
+      <BreakFields>
+        <BreakField value="claim_id"/>
+      </BreakFields>
+      <BreakFooter>
+        <Output>
+          <Line>
+            <field width="9" value="v.charge_sum"
+		   align="right" format="'%$.2nd'"/>
+          </Line>
+        </Output>
+      </BreakFooter>
+    </Break>
+  </Breaks>
+  <Detail>
+    <FieldDetails>
+      <Output>
+        <Line>
+          <field value="stod(session_date)"/>
+        </Line>
+      </Output>
+    </FieldDetails>
+  </Detail>
+  <Variables>
+    <Variable type="sum" resetonbreak="per_claim" name="charge_sum" value="val(charge)"/>
+  </Variables>
+  <Query class="query">
+select ins.id as claim_id
+     , payer.name, payer.address, payer.city_st_zip
+     , ins.payer_type, ins.id_number
+     , ins.patient_name, ins.patient_dob, ins.patient_sex -- reconcile with c.name, c.DOB
+     , ins.insured_name
+     , ins.patient_address, ins.patient_city, ins.patient_state, ins.patient_zip
+     , ins.patient_rel
+     , ins.insured_address, ins.insured_city, ins.insured_state, ins.insured_zip
+     , ins.patient_status, ins.patient_status2
+     , ins.insured_policy
+     , c.DX
+     , a.session_date
+     , a.charge -- why $80?
+     , a.client_paid
+     , p.npi
+     , p.tax_id
+     , p.name
+from health_insurance ins
+join (select id, payer_name as name, payer_address as address, payer_city_st_zip as city_st_zip
+      from health_insurance) payer on ins.id = payer.id
+join Client c on ins.patient_name like concat(c.name, '%')
+join Attendance a on a.Client_id = c.id
+join (select 'Individual-Prof Staff' as group_name, '90806' as cpt_code) codes
+  on a.group_name = codes.group_name
+join (select 'Bascom W. Ratliff,DSW' as name, '1689779738' as npi, '270-46-6033' as tax_id) as p 
+where bill_date is null;
+  </Query>
+</Report>
