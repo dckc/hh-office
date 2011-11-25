@@ -20,18 +20,18 @@ log = logging.getLogger(__name__)
 
 
 def main(argv):
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
+
+    spec = _the_spec()
+    if '--report-spec' in argv:
+        return rlib_spec(spec)
 
     engineurl, files = argv[1], argv[2:]
     engine = create_engine(engineurl)
-    spec = _the_spec()
 
-    # is this state-of-the-art for 'ensure the table exists'?
-    try:
-        HealthInsurance.drop(bind=engine)
-    except exc.OperationalError:
-        pass
-    HealthInsurance.create(bind=engine)
+    if files and files[0] == '--init':
+        del files[0]
+        init_sql(engine)
 
     for fn in files:
         log.info('claim file: %s', fn)
@@ -44,6 +44,15 @@ def main(argv):
             engine.execute(c.insert())
         except (exc.IntegrityError, exc.OperationalError) as ex:
             log.warn('insert failed for %s', fn, exc_info=ex)
+
+
+def init_sql(engine):
+    # is this state-of-the-art for 'ensure the table exists'?
+    try:
+        HealthInsurance.drop(bind=engine)
+    except exc.OperationalError:
+        pass
+    HealthInsurance.create(bind=engine)
 
 
 def _the_spec(specfn='user_print_file_spec.csv'):
@@ -325,6 +334,33 @@ def _test_schema_sql():
 
     '''
     pass
+
+
+def rlib_spec(spec):
+    line = 1
+    col = 1
+    print "  <Line> <!-- %d -->" % line
+    for fs in sorted(spec.values(), key=lambda e: (e.line, e.columns)):
+        if not fs.field: continue
+
+        while line < fs.line:
+            print "  </Line>"
+            line += 1
+            col = 1
+            print "  <Line> <!-- %d -->" % line
+
+
+        width = fs.columns[0] - col
+        if width > 0:
+            col += width
+            print "    <literal width='%d' /> <!-- col %d -->" % (width, col)
+
+        width = fs.columns[-1] - fs.columns[0] + 1
+        print "    <field width='%d' value='\"%s\"' align='%s'/>" % (
+            width, fs.literal, ('right' if fs.field_type == 'N'
+                             else 'left'))
+        col += width
+    print "  </Line>"
 
 
 if __name__ == '__main__':
