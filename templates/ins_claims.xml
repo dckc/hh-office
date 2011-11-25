@@ -446,27 +446,31 @@
     <literal width="1" /> <!-- col 16 -->
     <field width="2" value="format(stod(session_date), '!@%y')" align="right"/>
     <literal width="1" /> <!-- col 19 -->
-    <field width="2" value="'Place of Service'" align="left"/>
+    <field width="2" value="place_of_service" align="left"/>
     <literal width="1" /> <!-- col 22 -->
-    <field width="2" value="'EMG'" align="left"/>
+    <literal width="2" value="'EMG'" align="left"/>
     <literal width="1" /> <!-- col 25 -->
     <field width="6" value="cpt_code" align="left"/>
     <literal width="2" /> <!-- col 33 -->
-    <field width="2" value="'Procedures, Svcs or Supplies (Modifier 1)'" align="left"/>
+    <literal width="2" value="'Procedures, Svcs or Supplies (Modifier 1)'"
+	     align="left"/>
     <literal width="1" /> <!-- col 36 -->
-    <field width="2" value="'Procedures, Svcs or Supplies (Modifier 2)'" align="left"/>
+    <literal width="2" value="'Procedures, Svcs or Supplies (Modifier 2)'"
+	   align="left"/>
     <literal width="1" /> <!-- col 39 -->
-    <field width="2" value="'Procedures, Svcs or Supplies (Modifier 3)'" align="left"/>
+    <literal width="2" value="'Procedures, Svcs or Supplies (Modifier 3)'"
+	   align="left"/>
     <literal width="1" /> <!-- col 42 -->
-    <field width="2" value="'Procedures, Svcs or Supplies (Modifier 4)'" align="left"/>
+    <literal width="2" value="'Procedures, Svcs or Supplies (Modifier 4)'"
+	   align="left"/>
     <literal width="1" /> <!-- col 45 -->
-    <field width="4" value="'Diagnosis Pointer'" align="right"/>
+    <field width="4" value="diagnosis_pointer" align="right"/>
     <literal width="1" /> <!-- col 50 -->
     <field width="8" value="charge" align="right"/> <!-- @@ money format? -->
     <literal width="1" /> <!-- col 59 -->
-    <field width="3" value="'Days or Units'" align="right"/>
+    <field width="3" value="units" align="right"/>
     <literal width="1" /> <!-- col 63 -->
-    <field width="1" value="'EPSDT Family Plan'" align="left"/>
+    <literal width="1" value="'EPSDT Family Plan'" align="left"/>
     <literal width="4" /> <!-- col 68 -->
     <field width="11" value="npi" align="left"/>
   </Line>
@@ -491,8 +495,11 @@ select ins.id as claim_id
      , ins.insured_policy
      , c.DX
      , a.session_date
+     , '11' as place_of_service
+     , 1 as diagnosis_pointer
      , g.cpt_code
      , a.charge -- why $80?
+     , 1 as units
      , a.client_paid
      , p.npi
      , p.tax_id
