@@ -76,19 +76,11 @@ Index('client_id_zoho', Client.__table__.c.id_zoho, unique=False)
 Index('dab', Client.__table__.c.id_dabble, unique=False)
 
 
-Group =  Table('Group', metadata,
-               Column(u'id', INTEGER(), primary_key=True, nullable=False),
-               Column(u'name', TextLine, nullable=False),
-               Column(u'rate', Money, nullable=False),
-               Column(u'evaluation', BOOLEAN(), server_default=text('0')),
-               Column(u'id_zoho', TextCode),
-               Column(u'id_dabble', TextCode),
-               Column('added_time', TIMESTAMP()),
-               Column('added_user', TextCode),
-               Column('modified_time', TIMESTAMP()),
-               Column('modified_user', TextCode),
-               mysql_engine='InnoDB'
-               )
+class Group(IntId, Migrated, Audited, Base):
+    name = Column(TextLine, nullable=False)
+    rate = Column(Money, nullable=False)
+    evaluation = Column(BOOLEAN(), server_default=text('0'))
+    cpt = Column(types.String(6), ForeignKey('Procedure.cpt'))
 
 
 Office = Table('Office', metadata,

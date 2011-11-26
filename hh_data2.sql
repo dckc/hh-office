@@ -1,23 +1,5 @@
 use hh_office;
 
-CREATE TABLE `Procedure` (
-	cpt VARCHAR(6) NOT NULL, 
-	name VARCHAR(120), 
-	PRIMARY KEY (cpt)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Carrier` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(50) NOT NULL, 
-	address VARCHAR(50) NOT NULL, 
-	city_st_zip VARCHAR(50) NOT NULL, 
-	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
 CREATE TABLE `Therapist` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
@@ -66,23 +48,6 @@ CREATE TABLE users (
 
  ;
 
-CREATE TABLE `Group` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	rate DECIMAL(8, 2) NOT NULL, 
-	evaluation BOOL DEFAULT 0, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id), 
-	CHECK (evaluation IN (0, 1))
-)ENGINE=InnoDB
-
- ;
-
 CREATE TABLE `Diagnosis` (
 	icd9 VARCHAR(8) NOT NULL, 
 	name VARCHAR(120), 
@@ -103,6 +68,43 @@ CREATE TABLE `Batch` (
 
  ;
 
+CREATE TABLE `Carrier` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(50) NOT NULL, 
+	address VARCHAR(50) NOT NULL, 
+	city_st_zip VARCHAR(50) NOT NULL, 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Procedure` (
+	cpt VARCHAR(6) NOT NULL, 
+	name VARCHAR(120), 
+	PRIMARY KEY (cpt)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Group` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP, 
+	modified_user VARCHAR(40), 
+	name VARCHAR(120) NOT NULL, 
+	rate DECIMAL(8, 2) NOT NULL, 
+	evaluation BOOL DEFAULT 0, 
+	cpt VARCHAR(6), 
+	PRIMARY KEY (id), 
+	CHECK (evaluation IN (0, 1)), 
+	FOREIGN KEY(cpt) REFERENCES `Procedure` (cpt)
+)ENGINE=InnoDB
+
+ ;
+
 CREATE TABLE `Officer` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
@@ -116,25 +118,6 @@ CREATE TABLE `Officer` (
 	modified_user VARCHAR(40), 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(`Office_id`) REFERENCES `Office` (id) ON DELETE SET NULL
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Session` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	session_date DATE NOT NULL, 
-	time VARCHAR(40), 
-	`Group_id` INTEGER NOT NULL, 
-	`Therapist_id` INTEGER, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
-	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
@@ -168,6 +151,25 @@ CREATE TABLE `Client` (
 	balance_cached TIMESTAMP NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(`Officer_id`) REFERENCES `Officer` (id) ON DELETE SET NULL
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Session` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	session_date DATE NOT NULL, 
+	time VARCHAR(40), 
+	`Group_id` INTEGER NOT NULL, 
+	`Therapist_id` INTEGER, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
+	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
