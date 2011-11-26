@@ -5,6 +5,7 @@ conf.ini
 ,*
 *~
 *.pyc
+*.egg-info
 
 hh_data2.mwb
 hh_data2.mwb.bak
