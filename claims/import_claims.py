@@ -13,7 +13,9 @@ import os
 
 import xlrd
 from sqlalchemy import MetaData, Table, Column, create_engine
-from sqlalchemy import types, schema, exc
+from sqlalchemy import types, schema, exc, orm
+
+import hh_data2 as db
 
 
 log = logging.getLogger(__name__)
@@ -41,18 +43,27 @@ def main(argv):
         log.info('patient name: %s',
                  c.field(('2', "Patient's Name (Last, First, MI)")))
         try:
-            engine.execute(c.insert())
+            c.load(engine)
+        except KeyError as ex:
+            log.warn('no such client: %s', ex)
+        except ReferenceError as ex:
+            log.warn('insurance already recorded: %s', ex)
         except (exc.IntegrityError, exc.OperationalError) as ex:
             log.warn('insert failed for %s', fn, exc_info=ex)
 
 
 def init_sql(engine):
     # is this state-of-the-art for 'ensure the table exists'?
-    try:
-        HealthInsurance.drop(bind=engine)
-    except exc.OperationalError:
-        pass
-    HealthInsurance.create(bind=engine)
+    tables = (db.Diagnosis, db.Procedure, db.Carrier, db.Insurance)
+
+    for cls in reversed(tables):
+        try:
+            cls.__table__.drop(bind=engine)
+        except exc.OperationalError:
+            pass
+
+    for cls in tables:
+        cls.__table__.create(bind=engine)
 
 
 def _the_spec(specfn='user_print_file_spec.csv'):
@@ -144,6 +155,9 @@ def field_loc(fs):
     return r, c
 
 
+Session = orm.sessionmaker()
+
+
 class Claim(object):
     @classmethod
     def make(cls, book, spec):
@@ -182,27 +196,46 @@ class Claim(object):
         >>> [xlrd.cellname(r, c) for r, c in Claim._payer_rc]
         ['FM6', 'FM10', 'FM14']
         '''
-        return [self._data.cell_value(r, c)
-                for r, c in self._payer_rc]
+        return dict(zip(('name', 'address', 'city_st_zip'),
+                        [self._data.cell_value(r, c)
+                         for r, c in self._payer_rc]))
 
-    def insert(self):
+    def load(self, engine):
+        '''
+        @raises KeyError if there is no client by the given name,
+                ReferenceError if the named client already has
+                an Insurance record.
+        '''
+        session = Session(bind=engine)
+
         get = self.field
+
+        patient_name = get(('2', "Patient's Name (Last, First, MI)"))
+        try:
+            client = session.query(db.Client).filter_by(name=patient_name).one()
+        except orm.exc.NoResultFound:
+            raise KeyError, patient_name
+
+        payer_contact = self.payer_contact()
+
+        try:
+            payer = session.query(db.Carrier).filter_by(
+                name=payer_contact['name']).one()
+        except orm.exc.NoResultFound, ex:
+            payer = db.Carrier(**payer_contact)
+            session.add(payer)
 
         def which(fnum, choices=None, xlate=None, paren=None):
             return pick(get, self._spec.keys(), fnum, choices, xlate, paren)
 
-        pn, pa, pcsz = self.payer_contact()
+        if session.query(db.Insurance).filter_by(Client_id=client.id).first():
+            raise ReferenceError
 
-        return HealthInsurance.insert().values(
-            payer_name=pn,
-            payer_address=pa,
-            payer_city_st_zip=pcsz,
+        policy = db.Insurance(
+            carrier=payer,
             payer_type=which('1'),
             id_number=get(('1a', "Insured's ID Number")),
-            patient_name=get(('2', "Patient's Name (Last, First, MI)")),
-            patient_dob=_yymmdd(get(('3', "Patient's Birth (Year)")),
-                                get(('3', "Patient's Birth Date (Month)")),
-                                get(('3', "Patient's Birth Date (Day)"))),
+            client=client,
             patient_sex=which('3', xlate={'Sex-Male': 'M', 'Sex-Female': 'F'}),
             insured_name=get(('4', 'Insured Name (Last, First, MI)')),
             patient_address=get(('5', "Patient's Address")),
@@ -236,6 +269,24 @@ class Claim(object):
             insured_sex=which('11a',
                               xlate={'Sex-Male': 'M', 'Sex-Female': 'F'})
             )
+
+        # dunno why this doesn't work, but it gives:
+        # sqlalchemy.exc.ProgrammingError: (ProgrammingError) (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') WHERE `Client`.id = 171' at line 1") 'UPDATE `Client` SET `DOB`=%s WHERE `Client`.id = %s' ((datetime.date(1987, 7, 31),), 171L)
+        #client.DOB = _yymmdd(get(('3', "Patient's Birth (Year)")),
+        #                     get(('3', "Patient's Birth Date (Month)")),
+        #                     get(('3', "Patient's Birth Date (Day)"))),
+
+        ct = db.Client.__table__
+        session.execute(ct.update().\
+                        where(ct.c.id == client.id).\
+                        values(DOB=_yymmdd(
+                            get(('3', "Patient's Birth (Year)")),
+                            get(('3', "Patient's Birth Date (Month)")),
+                            get(('3', "Patient's Birth Date (Day)")))))
+
+        session.add(policy)
+        session.commit()
+
 
 def _yymmdd(yy, mm, dd):
     if not (yy and mm and dd):
@@ -284,76 +335,6 @@ def pick(get, keys, fnum, choices=None, xlate=None, paren=False):
         return val if xlate is None else xlate[val]
     else:
         return None
-
-
-Meta = MetaData()
-HealthInsurance = Table(
-    'health_insurance', Meta,
-    Column('id', types.Integer, primary_key=True, nullable=False),
-    Column('payer_name', types.String(50), nullable=False),
-    Column('payer_address', types.String(50), nullable=False),
-    Column('payer_city_st_zip', types.String(50), nullable=False),
-    # Field 1 from user_print_file_spec.csv
-    Column('payer_type', types.Enum('Medicare',
-                                    'Medicaid',
-                                    'Group Health Plan',
-                                    'Other'), nullable=False),
-    Column('id_number', types.String(30), nullable=False),
-    # Field 2
-    Column('patient_name', types.String(30), nullable=False),
-    # Field 3
-    Column('patient_dob', types.Date, nullable=False),
-    Column('patient_sex', types.Enum('M', 'F'), nullable=False),
-    # Field 4
-    Column('insured_name', types.String(30), nullable=False),
-    # Field 5
-    Column('patient_address', types.String(30), nullable=False),
-    Column('patient_city', types.String(24), nullable=False),
-    Column('patient_state', types.String(3), nullable=False),
-    Column('patient_zip', types.String(12), nullable=False),
-    Column('patient_acode', types.String(3)),
-    Column('patient_phone', types.String(7)),
-    # Field 6
-    Column('patient_rel', types.Enum('Self', 'Spouse', 'Child', 'Other'),
-           nullable=False),
-    # Field 7
-    Column('insured_address', types.String(30), nullable=False),
-    Column('insured_city', types.String(24), nullable=False),
-    Column('insured_state', types.String(3), nullable=False),
-    Column('insured_zip', types.String(12), nullable=False),
-    Column('insured_acode', types.String(3)),
-    Column('insured_phone', types.String(7)),
-    # Field 8
-    Column('patient_status', types.Enum('Single', 'Married', 'Other')),
-    Column('patient_status2', types.Enum('Employed',
-                                         'Full Time Student',
-                                         'Part Time Student')),
-    # skip 10
-    # Field 11
-    Column('insured_policy', types.String(30)),
-    # Field 11a
-    Column('insured_dob', types.Date),
-    Column('insured_sex', types.Enum('M', 'F')),
-    # 12, 13 are blank; skip 14-18; 19 is reserved
-    # 20 is computed per-claim
-    # Field 21
-    Column('dx1', types.String(8)),
-    Column('dx2', types.String(8)),
-    Column('dx3', types.String(8)),
-    Column('dx4', types.String(8))
-    )
-
-def _test_schema_sql():
-    '''
-    >>> ddl = schema.CreateTable(HealthInsurance)
-    >>> 'CREATE TABLE' in str(ddl)
-    True
-    
-    >>> 'insured_address' in  str(ddl)
-    True
-
-    '''
-    pass
 
 
 def rlib_spec(spec):
