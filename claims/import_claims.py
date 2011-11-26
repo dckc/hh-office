@@ -16,7 +16,7 @@ from sqlalchemy import MetaData, Table, Column, create_engine
 from sqlalchemy import types, schema, exc, orm
 
 import hh_data2 as db
-
+from cell_spec import CellSpec, user_print_file_spec
 
 log = logging.getLogger(__name__)
 
@@ -24,14 +24,13 @@ log = logging.getLogger(__name__)
 def main(argv):
     logging.basicConfig(level=logging.DEBUG)
 
-    spec = _the_spec()
     if '--report-spec' in argv:
-        return rlib_spec(spec)
+        return rlib_spec(_the_spec())
 
     if '--find-cells' in argv:
         fn = argv[2]
         book = xlrd.open_workbook(fn, formatting_info=True)
-        return find_cells(spec, book)
+        return find_cells(_the_spec(), book)
 
     engineurl, files = argv[1], argv[2:]
     engine = create_engine(engineurl)
@@ -41,9 +40,9 @@ def main(argv):
         init_sql(engine)
 
     for fn in files:
-        log.info('claim file: %s', fn)
+        log.info('\n\nclaim file: %s', fn)
         book = xlrd.open_workbook(fn, formatting_info=True)
-        c = Claim.make(book, spec)
+        c = Claim.make(book)
         #explore_claim(log, spec, c)
         log.info('patient name: %s', c.patient_name())
         try:
@@ -95,10 +94,6 @@ def explore_claim(log, spec, c):
 
 FieldSpec = namedtuple('FieldSpec',
                        'line field literal field_type bytes columns')
-
-CellSpec = namedtuple('CellSpec',
-                      'line field literal field_type bytes columns cell')
-
 
 def make_spec(fp):
     return dict([((r['FIELD'], r['LITERAL']),
@@ -167,16 +162,15 @@ Session = orm.sessionmaker()
 
 class Claim(object):
     @classmethod
-    def make(cls, book, spec):
+    def make(cls, book):
         sheet = [sheet
                  for sheet in book.sheets()
                  if sheet.name == '1500 -TEMPLATE_Grey '][0]
-        return cls(book, sheet, spec)
+        return cls(book, sheet)
         
-    def __init__(self, book, sheet, spec):
+    def __init__(self, book, sheet):
         self._book = book
         self._data = sheet
-        self._spec = spec
 
     def active(self, rx, cx, n=None):
         xf = self._book.xf_list[self._data.cell_xf_index(rx, cx)]
@@ -187,17 +181,34 @@ class Claim(object):
                   out)
         return out
 
-    def _where(self, n):
-        r, c = field_loc(self._spec[n])
-        cv = self._data.cell_value
+    def _where(self, spec, n):
+        r, c = field_loc(spec[n])
         for rx in xrange(r - 1, r + 3):
             for cx in xrange(c - 2, c + 2):
                 if self.active(rx, cx, n):
                     return rx, cx
 
     def field(self, n):
-        rx, cx = self._where(n)
-        return cv(rx, cx)
+        '''
+        >>> n1 = ('21.1', 'Diagnosis or Nature of Illness or Injury (Code)')
+        >>> n2 = ('21.2', 'Diagnosis or Nature of Illness or Injury (Code)')
+        >>> rx, cx = user_print_file_spec[n1].cell
+        >>> xlrd.cellname(rx, cx)
+        'I157'
+        >>> xlrd.cellname(rx, cx + 13)
+        'V157'
+        >>> rx, cx = user_print_file_spec[n2].cell
+        >>> xlrd.cellname(rx, cx)
+        'I165'
+        '''
+        rx, cx = user_print_file_spec[n].cell
+
+        if n[0] in ('21.1', '21.2'):
+            dx123 = self._data.cell_value(rx, cx)
+            dx56 = self._data.cell_value(rx, cx + 13)
+            return '%s.%s' % (dx123, dx56) if dx123 else None
+
+        return self._data.cell_value(rx, cx)
 
 
     _payer_rc = [(5 + 4 * ln, 168)
@@ -232,7 +243,8 @@ class Claim(object):
         payer = self.load_carrier(session)
 
         def which(fnum, choices=None, xlate=None, paren=None):
-            return pick(get, self._spec.keys(), fnum, choices, xlate, paren)
+            return pick(get, user_print_file_spec.keys(),
+                        fnum, choices, xlate, paren)
 
         def which_sex(fnum):
             return which(fnum, xlate={'Sex-Male': 'M', 'Sex-Female': 'F'})
@@ -319,6 +331,8 @@ class Claim(object):
         dxs = [get((f, "Diagnosis or Nature of Illness or Injury (Code)"))
                for f in (('21.1', '21.2'))]
         for dx in dxs:
+            if not dx:
+                continue
             if not session.query(db.Diagnosis).filter_by(icd9=dx).first():
                 session.add(db.Diagnosis(icd9=dx))
         log.debug('dxs: %s', dxs)
