@@ -1,4 +1,9 @@
-{('', 'Left printer alignment block'): CellSpec(line=1, field=(), literal='Left printer alignment block', field_type='M', bytes=3, columns=[1, 3], cell=(23, 3)),
+from collections import namedtuple
+
+CellSpec = namedtuple('CellSpec',
+                      'line field literal field_type bytes columns cell')
+
+user_print_file_spec = {('', 'Left printer alignment block'): CellSpec(line=1, field=(), literal='Left printer alignment block', field_type='M', bytes=3, columns=[1, 3], cell=(23, 3)),
  ('', 'Right printer alignment block'): CellSpec(line=1, field=(), literal='Right printer alignment block', field_type='M', bytes=3, columns=[77, 79], cell=(23, 231)),
  ('1', 'Champva'): CellSpec(line=3, field=(1, '1'), literal='Champva', field_type='M', bytes=1, columns=[24], cell=(31, 71)),
  ('1', 'FECA Blk Lung'): CellSpec(line=3, field=(1, '1'), literal='FECA Blk Lung', field_type='M', bytes=1, columns=[39], cell=(31, 117)),
@@ -52,8 +57,8 @@
  ('20', '$ Charges'): CellSpec(line=31, field=(20, '20'), literal='$ Charges', field_type='N', bytes=8, columns=[62, 78], cell=(143, 185)),
  ('20', 'Outside Lab (No)'): CellSpec(line=31, field=(20, '20'), literal='Outside Lab (No)', field_type='M', bytes=1, columns=[57], cell=None),
  ('20', 'Outside Lab (Yes)'): CellSpec(line=31, field=(20, '20'), literal='Outside Lab (Yes)', field_type='M', bytes=1, columns=[52], cell=None),
- ('21.1', 'Diagnosis or Nature of Illness or Injury (Code)'): CellSpec(line=33, field=(21, '21.1'), literal='Diagnosis or Nature of Illness or Injury (Code)', field_type='A/N', bytes=8, columns=[3, 10], cell=(151, 8)),
- ('21.2', 'Diagnosis or Nature of Illness or Injury (Code)'): CellSpec(line=35, field=(21, '21.2'), literal='Diagnosis or Nature of Illness or Injury (Code)', field_type='A/N', bytes=8, columns=[3, 10], cell=(159, 8)),
+ ('21.1', 'Diagnosis or Nature of Illness or Injury (Code)'): CellSpec(line=33, field=(21, '21.1'), literal='Diagnosis or Nature of Illness or Injury (Code)', field_type='A/N', bytes=8, columns=[3, 10], cell=(156, 8)),
+ ('21.2', 'Diagnosis or Nature of Illness or Injury (Code)'): CellSpec(line=35, field=(21, '21.2'), literal='Diagnosis or Nature of Illness or Injury (Code)', field_type='A/N', bytes=8, columns=[3, 10], cell=(164, 8)),
  ('21.3', 'Diagnosis or Nature of Illness or Injury (Code)'): CellSpec(line=33, field=(21, '21.3'), literal='Diagnosis or Nature of Illness or Injury (Code)', field_type='A/N', bytes=8, columns=[30, 37], cell=(151, 89)),
  ('21.4', 'Diagnosis or Nature of Illness or Injury (Code)'): CellSpec(line=35, field=(21, '21.4'), literal='Diagnosis or Nature of Illness or Injury (Code)', field_type='A/N', bytes=8, columns=[30, 37], cell=(159, 91)),
  ('22', 'Medicaid Resubmission Code'): CellSpec(line=33, field=(22, '22'), literal='Medicaid Resubmission Code', field_type='A/N', bytes=11, columns=[50, 60], cell=None),
