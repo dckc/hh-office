@@ -22,11 +22,16 @@ log = logging.getLogger(__name__)
 
 
 def main(argv):
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     spec = _the_spec()
     if '--report-spec' in argv:
         return rlib_spec(spec)
+
+    if '--find-cells' in argv:
+        fn = argv[2]
+        book = xlrd.open_workbook(fn, formatting_info=True)
+        return find_cells(spec, book)
 
     engineurl, files = argv[1], argv[2:]
     engine = create_engine(engineurl)
@@ -40,8 +45,7 @@ def main(argv):
         book = xlrd.open_workbook(fn, formatting_info=True)
         c = Claim.make(book, spec)
         #explore_claim(log, spec, c)
-        log.info('patient name: %s',
-                 c.field(('2', "Patient's Name (Last, First, MI)")))
+        log.info('patient name: %s', c.patient_name())
         try:
             c.load(engine)
         except KeyError as ex:
@@ -91,6 +95,9 @@ def explore_claim(log, spec, c):
 
 FieldSpec = namedtuple('FieldSpec',
                        'line field literal field_type bytes columns')
+
+CellSpec = namedtuple('CellSpec',
+                      'line field literal field_type bytes columns cell')
 
 
 def make_spec(fp):
@@ -180,13 +187,17 @@ class Claim(object):
                   out)
         return out
 
-    def field(self, n):
+    def _where(self, n):
         r, c = field_loc(self._spec[n])
         cv = self._data.cell_value
         for rx in xrange(r - 1, r + 3):
             for cx in xrange(c - 2, c + 2):
                 if self.active(rx, cx, n):
-                    return cv(rx, cx)
+                    return rx, cx
+
+    def field(self, n):
+        rx, cx = self._where(n)
+        return cv(rx, cx)
 
 
     _payer_rc = [(5 + 4 * ln, 168)
@@ -200,6 +211,9 @@ class Claim(object):
                         [self._data.cell_value(r, c)
                          for r, c in self._payer_rc]))
 
+    def patient_name(self):
+        return self.field(('2', "Patient's Name (Last, First, MI)"))
+
     def load(self, engine):
         '''
         @raises KeyError if there is no client by the given name,
@@ -210,33 +224,33 @@ class Claim(object):
 
         get = self.field
 
-        patient_name = get(('2', "Patient's Name (Last, First, MI)"))
-        try:
-            client = session.query(db.Client).filter_by(name=patient_name).one()
-        except orm.exc.NoResultFound:
-            raise KeyError, patient_name
+        client = self.client(session)
 
-        payer_contact = self.payer_contact()
+        if session.query(db.Insurance).filter_by(Client_id=client.id).first():
+            raise ReferenceError
 
-        try:
-            payer = session.query(db.Carrier).filter_by(
-                name=payer_contact['name']).one()
-        except orm.exc.NoResultFound, ex:
-            payer = db.Carrier(**payer_contact)
-            session.add(payer)
+        payer = self.load_carrier(session)
 
         def which(fnum, choices=None, xlate=None, paren=None):
             return pick(get, self._spec.keys(), fnum, choices, xlate, paren)
 
-        if session.query(db.Insurance).filter_by(Client_id=client.id).first():
-            raise ReferenceError
+        def which_sex(fnum):
+            return which(fnum, xlate={'Sex-Male': 'M', 'Sex-Female': 'F'})
+
+        def get_date(fnum, label, aux=None):
+            return _yymmdd(
+                *[get((fnum, "%s %s(%s)" % (
+                    label, aux + ' ' if aux and part != 'Year' else '',  part)))
+                  for part in ('Year', 'Month', 'Day')])
+            
+        dx = self.load_dx(session)
 
         policy = db.Insurance(
             carrier=payer,
             payer_type=which('1'),
             id_number=get(('1a', "Insured's ID Number")),
             client=client,
-            patient_sex=which('3', xlate={'Sex-Male': 'M', 'Sex-Female': 'F'}),
+            patient_sex=which_sex('3'),
             insured_name=get(('4', 'Insured Name (Last, First, MI)')),
             patient_address=get(('5', "Patient's Address")),
             patient_city=get(('5', "Patient's City")),
@@ -262,30 +276,53 @@ class Claim(object):
             insured_policy=(
                 get(('11', "Insured's Policy, Group or FECA Number"))
                 or None),  # don't store ''
-            insured_dob=_yymmdd(
-                get(('11a', "Insured's Date of Birth (Year)")),
-                get(('11a', "Insured's Date of Birth (Month)")),
-                get(('11a', "Insured's Date of Birth (Day)"))),
-            insured_sex=which('11a',
-                              xlate={'Sex-Male': 'M', 'Sex-Female': 'F'})
+            insured_dob=get_date('11a', "Insured's Date of Birth"),
+            insured_sex=which_sex('11a'),
+            dx1=dx[0],
+            dx2=dx[1],
             )
 
         # dunno why this doesn't work, but it gives:
         # sqlalchemy.exc.ProgrammingError: (ProgrammingError) (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') WHERE `Client`.id = 171' at line 1") 'UPDATE `Client` SET `DOB`=%s WHERE `Client`.id = %s' ((datetime.date(1987, 7, 31),), 171L)
-        #client.DOB = _yymmdd(get(('3', "Patient's Birth (Year)")),
-        #                     get(('3', "Patient's Birth Date (Month)")),
-        #                     get(('3', "Patient's Birth Date (Day)"))),
+        #client.DOB = get_date('3', "Patient's Birth")
 
         ct = db.Client.__table__
         session.execute(ct.update().\
                         where(ct.c.id == client.id).\
-                        values(DOB=_yymmdd(
-                            get(('3', "Patient's Birth (Year)")),
-                            get(('3', "Patient's Birth Date (Month)")),
-                            get(('3', "Patient's Birth Date (Day)")))))
+                        values(DOB=get_date('3', "Patient's Birth", 'Date')))
 
         session.add(policy)
         session.commit()
+
+
+    def load_carrier(self, session):
+        payer_contact = self.payer_contact()
+
+        try:
+            payer = session.query(db.Carrier).filter_by(
+                name=payer_contact['name']).one()
+        except orm.exc.NoResultFound, ex:
+            payer = db.Carrier(**payer_contact)
+            session.add(payer)
+        return payer
+
+    def client(self, session):
+        patient_name = self.patient_name()
+        try:
+            return session.query(db.Client).filter_by(
+                name=patient_name).one()
+        except orm.exc.NoResultFound:
+            raise KeyError, patient_name
+
+    def load_dx(self, session):
+        get = self.field
+        dxs = [get((f, "Diagnosis or Nature of Illness or Injury (Code)"))
+               for f in (('21.1', '21.2'))]
+        for dx in dxs:
+            if not session.query(db.Diagnosis).filter_by(icd9=dx).first():
+                session.add(db.Diagnosis(icd9=dx))
+        log.debug('dxs: %s', dxs)
+        return dxs
 
 
 def _yymmdd(yy, mm, dd):
@@ -362,6 +399,15 @@ def rlib_spec(spec):
                              else 'left'))
         col += width
     print "  </Line>"
+
+
+def find_cells(spec, book):
+    from pprint import pprint
+    
+    c = Claim.make(book, spec)
+    xls_spec = dict([(k, CellSpec._make(v + (c._where(k),)))
+                     for k, v in spec.items()])
+    pprint(xls_spec)
 
 
 if __name__ == '__main__':
