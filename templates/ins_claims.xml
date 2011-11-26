@@ -2,19 +2,24 @@
 <Report
   fontSize="12pt"
   orientation="portrait" leftMargin="0.4" topMargin="0.4">
-<!--@@margins? -->
-<!--   <ReportHeader> -->
+  <!--@@margins? -->
+  <!--   <ReportHeader> -->
+
+  <PageHeader>
+    <Output>
+      <Line>
+	<literal>         1         2         3         4         5         6</literal>
+      </Line>
+      <Line>
+	<literal>123456789012345678901234567890123456789012345678901234567890</literal>
+      </Line>
+    </Output>
+  </PageHeader>
+
   <Breaks>
     <Break name="per_claim" newpage="yes" headernewpage="yes">
       <BreakHeader>
         <Output>
-          <Line>
-	    <literal>         1         2         3         4         5         6</literal>
-	  </Line>
-          <Line>
-	    <literal>123456789012345678901234567890123456789012345678901234567890</literal>
-	  </Line>
-
 	  <Line>
 	    <literal width="50" />
 	    <field width="30" value="name" />
@@ -135,7 +140,7 @@
     <literal width="28" value="Other Insured's Name (Last, First, MI)"
 	     align="left"/>
     <literal width="21" /> <!-- col 50 -->
-    <literal width="29" value="Insured's Policy, Group or FECA Number"
+    <field width="29" value="insured_policy"
 	     align="left"/>
   </Line>
   <Line> <!-- 14 -->
@@ -326,12 +331,9 @@
   </Line>
   <Line> <!-- 33 -->
     <literal width="2" /> <!-- col 3 -->
-    <field width="8" value="DX" align="left"/>
+    <field width="8" value="dx1" align="left"/>
     <literal width="19" /> <!-- col 30 -->
-    <!-- TODO: DX2 -->
-    <literal width="8"
-	     value="'Diagnosis or Nature of Illness or Injury (Code)'"
-	     align="left"/>
+    <field width="8" value="dx2" align="left"/>
     <literal width="12" /> <!-- col 50 -->
     <literal width="11" value="'Medicaid Resubmission Code'" align="left"/>
     <literal width="18" value="'Original Reference Number'" align="left"/>
@@ -348,8 +350,7 @@
 	     value="'Diagnosis or Nature of Illness or Injury (Code)'"
 	     align="left"/>
     <literal width="12" /> <!-- col 50 -->
-    <!-- TODO: authorization number -->
-    <literal width="29" value="'Prior Authorization Number'" align="left"/>
+    <field width="29" value="approval" align="left"/>
   </Line>
   <Line> <!-- 36 -->
   </Line>
@@ -420,7 +421,7 @@
 	   align="left"/>
   </Line>
   <Line> <!-- 55 -->
-    <literal width="22" /> <!-- col 23 -->
+    <literal width="22" align='right'>@@sig date?</literal> <!-- col 23 -->
     <literal width="26" value="'City, State and ZIP Code of Facility'"
 	     align="left"/>
     <literal width="1" /> <!-- col 50 -->
@@ -504,9 +505,9 @@
   </Variables>
   <Query class='query'>
 select ins.id as claim_id
-     , payer.name, payer.address, payer.city_st_zip
+     , co.name, co.address, co.city_st_zip
      , ins.payer_type, ins.id_number
-     , ins.patient_name, ins.patient_dob, ins.patient_sex -- reconcile with c.name, c.DOB
+     , c.name as patient_name, c.DOB as patient_dob, ins.patient_sex
      , ins.insured_name, ins.insured_dob, ins.insured_sex
      , ins.patient_address, ins.patient_city, ins.patient_state, ins.patient_zip
      , ins.patient_acode, ins.patient_phone
@@ -515,34 +516,31 @@ select ins.id as claim_id
      , ins.insured_acode, ins.insured_phone
      , ins.patient_status, ins.patient_status2
      , ins.insured_policy
-     , c.DX
-     , a.session_date
+     , ins.dx1, ins.dx2
+     , ins.approval
+     , s.session_date
      , '11' as place_of_service
      , 1 as diagnosis_pointer
-     , g.cpt_code
-     , a.charge -- why $80?
+     , g.cpt as cpt_code
+     , v.charge -- why $80?
      , 1 as units
-     , a.client_paid
-     , p.npi
-     , p.tax_id
-     , p.name as provider_name
-     , p.acode as provider_acode
-     , p.phone as provider_phone
-     , p.address as provider_address
-     , p.city_st_zip as provider_city_st_zip
-from health_insurance ins
-join (select id, payer_name as name, payer_address as address, payer_city_st_zip as city_st_zip
-      from health_insurance) payer on ins.id = payer.id
-join Client c on ins.patient_name like concat(c.name, "%")
-join Attendance a on a.Client_id = c.id
-join (
-  select 'Individual-Prof Staff' as group_name, '90806' as cpt_code
-union all
-  select 'Teen SA Education' as group_name, '90801' as cpt_code
-) g
-  on a.group_name = g.group_name
-join Therapist p
-where bill_date is null
-and p.tax_id is not null;
+     , v.client_paid
+     , bp.npi
+     , bp.tax_id
+     , bp.name as provider_name
+     , bp.acode as provider_acode
+     , bp.phone as provider_phone
+     , bp.address as provider_address
+     , bp.city_st_zip as provider_city_st_zip
+from Insurance ins
+join Client c on ins.Client_id = c.id
+join Carrier co on ins.Carrier_id = co.id
+join Visit v on v.Client_id = c.id
+join `Session` s on v.Session_id = s.id
+join `Group` g on s.Group_id = g.id
+join Therapist as bp on bp.tax_id is not null
+where v.bill_date is null
+and g.cpt is not null
+order by c.name, s.session_date;
   </Query>
 </Report>
