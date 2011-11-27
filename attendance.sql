@@ -102,6 +102,24 @@ group by t.id
 set t.weight = tw.weight;
 
 
+create or replace view insurance_visits as
+select
+  ins.id as policy_id, c.name, ins.dx1, ins.dx2
+,  year(v.bill_date) as bill_year, month(v.bill_date) as bill_month
+, s.session_date, g.name as group_name, g.cpt
+, co.id as carrier_id, co.name as carrier_name
+from Insurance ins
+join Client c on ins.Client_id = c.id
+join Carrier co on ins.Carrier_id = co.id
+join Visit v on v.Client_id = c.id
+join `Session` s on v.Session_id = s.id
+join `Group` g on s.Group_id = g.id
+and g.cpt is not null
+order by c.name, s.session_date;
+;
+
+-- select * from insurance_visits;
+
 /*
 select * from hh_office.Attendance
 order by group_name, client_name, session_date;
