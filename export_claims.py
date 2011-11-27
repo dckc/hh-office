@@ -94,18 +94,30 @@ def run_report(start_response, opts, section='_database'):
                      'attachment; filename=claims.csv')))
 
     buf = ListWriter()
-    out = csv.DictWriter(buf, COLUMNS,
-                         extrasaction='ignore',  #@@ignore
-                         quoting=csv.QUOTE_ALL)
+    out = csv.DictWriter(buf, COLUMNS, quoting=csv.QUOTE_ALL)
     out.writerow(dict(zip(COLUMNS, COLUMNS)))
     
-    for claim_uid, records in itertools.groupby(cursor.fetchall(),
-                                                lambda r: r['claim_uid']):
-        ## TODO: output headers
-        ## TODO: quote all values
-        ## TODO: grouping
-        ## TODO: formatting of dates, None/null
-        claim = list(records)[0]
+    for claim_uid, group in itertools.groupby(cursor.fetchall(),
+                                              lambda r: r['claim_uid']):
+        records = list(group)
+        claim = records[0]
+        del claim['claim_uid']
+
+        tot = claim['28-TotalCharge']
+        for idx in range(1, len(records)):
+            for k, v in records[idx].items():
+                if k.startswith('24.'):
+                    kk = k.replace('.1.', '.%d.' % (idx + 1))
+                    claim[kk] = v
+                if k == '24.1.f-Charges':
+                    tot += v
+
+        claim['28-TotalCharge'] = tot
+        # is there ever an amount paid?
+        claim['30-BalanceDue'] = tot
+
+        import pprint
+        pprint.pprint(claim)  #@@
         out.writerow(claim)
 
     return buf.parts
@@ -182,9 +194,9 @@ select v.claim_uid
               upper(substr(c.name, instr(c.name, ',') + 2, 3)), '.',
               convert(c.id, char)) as `26-PatientAcctNo`
      , 'YES' as `27-AcceptAssign`
-     , v.charge as `28-TotalCharge` -- @@TODO
-     , 0 -- @@???
-     , v.charge as `30-BalanceDue` -- @@???
+     , v.charge as `28-TotalCharge`
+     , 0 `29-AmountPaid`
+     , v.charge as `30-BalanceDue`
      , bp.name as `31-PhysicianSignature`
      , date_format(current_date, '%m/%d/%Y') `31-Date`
      , bp.name `33-ClinicName`
