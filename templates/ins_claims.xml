@@ -5,21 +5,20 @@
   <!--@@margins? -->
   <!--   <ReportHeader> -->
 
-  <PageHeader>
-    <Output>
+  <Breaks>
+    <Break name="per_claim" newpage="yes" headernewpage="yes">
+      <BreakHeader>
+        <Output>
+      <Line />
+      <Line />
+<!--
       <Line>
 	<literal>         1         2         3         4         5         6</literal>
       </Line>
       <Line>
 	<literal>123456789012345678901234567890123456789012345678901234567890</literal>
       </Line>
-    </Output>
-  </PageHeader>
-
-  <Breaks>
-    <Break name="per_claim" newpage="yes" headernewpage="yes">
-      <BreakHeader>
-        <Output>
+-->
 	  <Line>
 	    <literal width="50" />
 	    <field width="30" value="name" />
@@ -359,7 +358,7 @@
         </Output>
       </BreakHeader>
       <BreakFields>
-        <BreakField value='claim_id'/>
+        <BreakField value='claim_uid'/>
       </BreakFields>
       <BreakFooter>
         <Output>
@@ -421,7 +420,8 @@
 	   align="left"/>
   </Line>
   <Line> <!-- 55 -->
-    <literal width="22" align='right'>@@sig date?</literal> <!-- col 23 -->
+    <!-- TODO: sig date? -->
+    <literal width="22" align='right' /> <!-- col 23 -->
     <literal width="26" value="'City, State and ZIP Code of Facility'"
 	     align="left"/>
     <literal width="1" /> <!-- col 50 -->
@@ -504,7 +504,7 @@
 	      name='client_paid_sum' value='val(client_paid)'/>
   </Variables>
   <Query class='query'>
-select ins.id as claim_id
+select v.claim_uid
      , co.name, co.address, co.city_st_zip
      , ins.payer_type, ins.id_number
      , c.name as patient_name, c.DOB as patient_dob, ins.patient_sex
@@ -521,7 +521,7 @@ select ins.id as claim_id
      , s.session_date
      , '11' as place_of_service
      , 1 as diagnosis_pointer
-     , g.cpt as cpt_code
+     , v.cpt as cpt_code
      , v.charge -- why $80?
      , 1 as units
      , v.client_paid
@@ -539,8 +539,9 @@ join Visit v on v.Client_id = c.id
 join `Session` s on v.Session_id = s.id
 join `Group` g on s.Group_id = g.id
 join Therapist as bp on bp.tax_id is not null
-where v.bill_date is null
-and g.cpt is not null
-order by c.name, s.session_date;
+where v.bill_date is null and v.check_date is null
+and v.cpt is not null
+and v.claim_uid is not null
+order by c.name, v.claim_uid, s.session_date;
   </Query>
 </Report>

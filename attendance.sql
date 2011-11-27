@@ -4,21 +4,33 @@ create or replace view Attendance_all as
 select v.id
      , g.id as group_id, g.name as group_name, g.rate as group_rate
      , c.id as client_id, c.name as client_name, c.billing_cutoff, c.recent
-     , c.insurance
+     , ins.id as policy_id, ins.dx1, ins.dx2
+     , co.id as carrier_id, co.name as carrier_name
      , o.name as officer_name
      , s.id as session_id, s.Therapist_id, s.session_date
      , attend_n, v.charge, v.client_paid
+     , v.claim_uid
      , v.insurance_paid
      , v.bill_date
      , v.check_date
      , v.note
      , v.charge - v.client_paid -
       case when v.insurance_paid is null then 0 else v.insurance_paid end as due
+     , v.cpt
+     , case
+       when v.check_date is not null then 'paid'
+       when v.bill_date is not null then 'billed'
+       when ins.id is null then 'no ins'
+       when v.cpt is null then 'no CPT'
+       else 'billable'
+       end as ins_status
 from Visit as v
 join `Session` as s on v.Session_id = s.id
 join `Group` as g on s.Group_id = g.id
 join Client c on v.Client_id = c.id
 left join Officer o on c.Officer_id = o.id
+left join Insurance ins on ins.Client_id = c.id
+left join Carrier co on ins.Carrier_id = co.id
 ;
 
 
@@ -48,6 +60,13 @@ where v.id is null;
 */
 
 SET SQL_SAFE_UPDATES=0;
+
+update `Visit` v
+join `Session` s on v.Session_id = s.id
+join `Group` g on s.Group_id = g.id
+set v.cpt=g.cpt
+where v.id > 0
+and g.cpt > '';
 
 update Client c
 set balance_cached = null
@@ -101,22 +120,6 @@ group by t.id
 ) tw on tw.id = t.id
 set t.weight = tw.weight;
 
-
-create or replace view insurance_visits as
-select
-  ins.id as policy_id, c.name, ins.dx1, ins.dx2
-,  year(v.bill_date) as bill_year, month(v.bill_date) as bill_month
-, s.session_date, g.name as group_name, g.cpt
-, co.id as carrier_id, co.name as carrier_name
-from Insurance ins
-join Client c on ins.Client_id = c.id
-join Carrier co on ins.Carrier_id = co.id
-join Visit v on v.Client_id = c.id
-join `Session` s on v.Session_id = s.id
-join `Group` g on s.Group_id = g.id
-and g.cpt is not null
-order by c.name, s.session_date;
-;
 
 -- select * from insurance_visits;
 
