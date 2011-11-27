@@ -1,41 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Report
   fontSize="12pt"
-  orientation="portrait" leftMargin="0.4" topMargin="0.4">
-  <!--@@margins? -->
-  <!--   <ReportHeader> -->
+  orientation="portrait">
+  <ReportHeader>
+    <Output>
+      <Line />
+      <Line />
+    </Output>
+  </ReportHeader>
 
   <Breaks>
     <Break name="per_claim" newpage="yes" headernewpage="yes">
       <BreakHeader>
         <Output>
+	  <Line>
+	    <literal width="45" />
+	    <field width="32" value="name" />
+	  </Line>
+	  <Line>
+	    <literal width="45" />
+	    <field width="32" value="address" />
+	  </Line>
+	  <Line>
+	    <literal width="45" />
+	    <field width="32" value="city_st_zip" />
+	  </Line>
       <Line />
       <Line />
-<!--
-      <Line>
-	<literal>         1         2         3         4         5         6</literal>
-      </Line>
-      <Line>
-	<literal>123456789012345678901234567890123456789012345678901234567890</literal>
-      </Line>
--->
-	  <Line>
-	    <literal width="50" />
-	    <field width="30" value="name" />
-	  </Line>
-	  <Line>
-	    <literal width="50" />
-	    <field width="30" value="address" />
-	  </Line>
-	  <Line>
-	    <literal width="50" />
-	    <field width="30" value="city_st_zip" />
-	  </Line>
+      <Line />
+      <Line />
 
-  <Line> <!-- 1 -->
-  </Line>
-  <Line> <!-- 2 -->
-  </Line>
   <Line> <!-- 3 -->
     <field width="1" value="iif(payer_type == 'Medicare', 'X', ' ')"/>
     <literal width="6" /> <!-- col 8 -->
@@ -232,7 +226,10 @@
   </Line>
   <Line> <!-- 24 -->
   </Line>
-  <Line> <!-- 25 -->
+  <Line>
+    <literal align="center" width="30">Signature on file</literal>
+    <field width="20" align="center" value="date()" />
+    <literal align="center" width="30">Signature on file</literal>
   </Line>
   <Line> <!-- 26 -->
   </Line>
@@ -362,19 +359,20 @@
       </BreakFields>
       <BreakFooter>
         <Output>
-  <Line suppress="r.detailcnt &gt; 5" />
-  <Line suppress="r.detailcnt &gt; 5" />
-  <Line suppress="r.detailcnt &gt; 4" />
-  <Line suppress="r.detailcnt &gt; 4" />
-  <Line suppress="r.detailcnt &gt; 3" />
-  <Line suppress="r.detailcnt &gt; 3" />
-  <Line suppress="r.detailcnt &gt; 2" />
-  <Line suppress="r.detailcnt &gt; 2" />
-  <Line suppress="r.detailcnt &gt; 1" />
-  <Line suppress="r.detailcnt &gt; 1" />
+  <Line suppress="v.service_lines &gt; 5" />
+  <Line suppress="v.service_lines &gt; 5" />
+  <Line suppress="v.service_lines &gt; 4" />
+  <Line suppress="v.service_lines &gt; 4" />
+  <Line suppress="v.service_lines &gt; 3" />
+  <Line suppress="v.service_lines &gt; 3" />
+  <Line suppress="v.service_lines &gt; 2" />
+  <Line suppress="v.service_lines &gt; 2" />
+  <Line suppress="v.service_lines &gt; 1" />
+  <Line suppress="v.service_lines &gt; 1" />
 
+  <Line /> <!-- 50 -->
   <Line> <!-- 51 -->
-    <field width="15" value="tax_id" align="right"/>
+    <field width="15" value="tax_id" align="left"/>
     <literal width="1" /> <!-- col 17 -->
     <literal width="1" value="'Federal Tax ID Number (SSN)'"
 	     align="left">X</literal>
@@ -382,7 +380,7 @@
     <literal width="1" value="'Federal Tax ID Number (EIN)'" align="left"/>
     <literal width="3" /> <!-- col 23 -->
     <!-- TODO: add file number? -->
-    <literal width="14" value="Patient's Account Number" align="left"/>
+    <field width="14" value="patient_account" align="left"/>
     <literal width="1" /> <!-- col 38 -->
     <literal width="1" value="'Accept Assignment (Yes)'"
 	     align="left">X</literal>
@@ -412,7 +410,8 @@
     <field width="29" value="provider_name" align="left"/>
   </Line>
   <Line> <!-- 54 -->
-    <literal width="22" /> <!-- col 23 -->
+    <literal width="22" />
+    <!-- col 23 -->
     <literal width="26" value="'Address of Facility Where Svcs Rendered'"
 	     align="left"/>
     <literal width="1" /> <!-- col 50 -->
@@ -420,15 +419,15 @@
 	   align="left"/>
   </Line>
   <Line> <!-- 55 -->
-    <!-- TODO: sig date? -->
-    <literal width="22" align='right' /> <!-- col 23 -->
-    <literal width="26" value="'City, State and ZIP Code of Facility'"
-	     align="left"/>
+    <field width="22" align='left' value='provider_name'/>
+    <!-- col 23 -->
+    <literal width="26" align="left"/>
     <literal width="1" /> <!-- col 50 -->
     <field width="29" value="provider_city_st_zip" align="left"/>
   </Line>
   <Line> <!-- 56 -->
-    <literal width="23" /> <!-- col 24 -->
+    <field width="22" align='right' value='date()'/>
+    <literal width="1" /> <!-- col 24 -->
     <literal width="10" value="'Facility NPI Number'" align="right"/>
     <literal width="1" /> <!-- col 35 -->
     <literal width="14" value="'Facility Qualifier and Legacy Number'"
@@ -439,6 +438,9 @@
     <literal width="17" value="'Billing Provider Qualifier and Legacy Number'"
 	     align="left"/>
   </Line>
+      <Line>
+	<field value="page_break" />
+      </Line>
 
         </Output>
       </BreakFooter>
@@ -459,11 +461,15 @@
     <literal width="1" /> <!-- col 7 -->
     <field width="2" value="format(stod(session_date), '!@%y')" align="right"/>
     <literal width="1" /> <!-- col 10 -->
-    <field width="2" value="format(stod(session_date), '!@%m')" align="right"/>
+    <!-- skip 2nd m/d/y when it's the same as 1st? -->
+    <literal width="2"
+	     value="format(stod(session_date), '!@%m')" align="right"/>
     <literal width="1" /> <!-- col 13 -->
-    <field width="2" value="format(stod(session_date), '!@%d')" align="right"/>
+    <literal width="2"
+	     value="format(stod(session_date), '!@%d')" align="right"/>
     <literal width="1" /> <!-- col 16 -->
-    <field width="2" value="format(stod(session_date), '!@%y')" align="right"/>
+    <literal width="2"
+	     value="format(stod(session_date), '!@%y')" align="right"/>
     <literal width="1" /> <!-- col 19 -->
     <field width="2" value="place_of_service" align="left"/>
     <literal width="1" /> <!-- col 22 -->
@@ -502,6 +508,8 @@
 	      name='charge_sum' value='val(charge)'/>
     <Variable type='sum' resetonbreak='per_claim'
 	      name='client_paid_sum' value='val(client_paid)'/>
+    <Variable type='count' resetonbreak='per_claim'
+	      name='service_lines' value='service_date'/>
   </Variables>
   <Query class='query'>
 select v.claim_uid
@@ -525,6 +533,9 @@ select v.claim_uid
      , v.charge -- why $80?
      , 1 as units
      , v.client_paid
+     , concat(upper(substr(c.name, 1, 3)), '.',
+              upper(substr(c.name, instr(c.name, ',') + 2, 3)), '.',
+              convert(c.id, char)) as patient_account
      , bp.npi
      , bp.tax_id
      , bp.name as provider_name
@@ -532,6 +543,7 @@ select v.claim_uid
      , bp.phone as provider_phone
      , bp.address as provider_address
      , bp.city_st_zip as provider_city_st_zip
+     , char(12) as page_break
 from Insurance ins
 join Client c on ins.Client_id = c.id
 join Carrier co on ins.Carrier_id = co.id
