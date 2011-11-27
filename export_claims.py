@@ -6,6 +6,7 @@ https://sfreeclaims.anvicare.com/docs/forms/Reference-CSV%20Specifications.txt
 from os import path, environ
 import ConfigParser
 import csv
+import itertools
 
 import MySQLdb
 
@@ -84,7 +85,7 @@ class File(Path):
 
 def run_report(start_response, opts, section='_database'):
     conn = xataface_connection(opts, section)
-    cursor = conn.cursor()  #.cursor(MySQLdb.cursors.DictCursor)?
+    cursor = conn.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(QUERY)
 
     start_response('200 ok',
@@ -93,15 +94,19 @@ def run_report(start_response, opts, section='_database'):
                      'attachment; filename=claims.csv')))
 
     buf = ListWriter()
-    out = csv.DictWriter(buf, COLUMNS)
+    out = csv.DictWriter(buf, COLUMNS,
+                         extrasaction='ignore',  #@@ignore
+                         quoting=csv.QUOTE_ALL)
     out.writerow(dict(zip(COLUMNS, COLUMNS)))
     
-    for row in cursor.fetchall():
+    for claim_uid, records in itertools.groupby(cursor.fetchall(),
+                                                lambda r: r['claim_uid']):
         ## TODO: output headers
         ## TODO: quote all values
         ## TODO: grouping
         ## TODO: formatting of dates, None/null
-        out.writerow(dict(zip(COLUMNS, [str(v) for v in row])))
+        claim = list(records)[0]
+        out.writerow(claim)
 
     return buf.parts
 
@@ -123,39 +128,69 @@ def xataface_connection(opts, section):
                            passwd=opt('password'), db=opt('name'))
     
 
-QUERY='''
+QUERY=r'''
 select v.claim_uid
-     , co.name, co.address, co.city_st_zip
-     , ins.payer_type, ins.id_number
-     , c.name as patient_name, c.DOB as patient_dob, ins.patient_sex
-     , ins.insured_name, ins.insured_dob, ins.insured_sex
-     , ins.patient_address, ins.patient_city, ins.patient_state, ins.patient_zip
-     , ins.patient_acode, ins.patient_phone
-     , ins.patient_rel
-     , ins.insured_address, ins.insured_city, ins.insured_state, ins.insured_zip
-     , ins.insured_acode, ins.insured_phone
-     , ins.patient_status, ins.patient_status2
-     , ins.insured_policy
-     , ins.dx1, ins.dx2
-     , ins.approval
-     , s.session_date
-     , '11' as place_of_service
-     , 1 as diagnosis_pointer
-     , v.cpt as cpt_code
-     , v.charge
-     , 1 as units
-     , v.client_paid
+     , co.name as `Insurance Company Name`
+     , co.address `Insurance Company Address 1`
+     , co.city_st_zip `Insurance Company Address 2`
+     , ins.payer_type `1-InsuredPlanName`
+     , ins.id_number `1a-InsuredIDNo`
+     , c.name as `2-PatientName`
+     , date_format(c.DOB, '%m/%d/%Y') as `3-PatientDOB`
+     , ins.patient_sex `3-PatientGender`
+     , ins.insured_name `4-InsuredName`
+     , ins.patient_address `5-PatientAddress`
+     , ins.patient_city `5-PatientCity`
+     , ins.patient_state `5-PatientState`
+     , ins.patient_zip `5-PatientZip`
+     , concat(ins.patient_acode, '-', ins.patient_phone) `5-PatientPhone`
+     , upper(ins.patient_rel) `6-PatientRel`
+     , ins.insured_address `7-InsuredAddr`
+     , ins.insured_city `7-InsAddCity`
+     , ins.insured_state `7-InsAddState`
+     , ins.insured_zip `7-InsAddZip`
+     , concat(ins.insured_acode, '-', ins.insured_phone) `7-InsAddPhone`
+     , ins.patient_status `8-MaritalStatus`
+     , ins.patient_status2 `8-Employed?`
+     , 'NO' as `10a-CondEmployment`
+     , 'NO' as `10b-CondAutoAccident`
+     , 'NO' as `10c-CondOtherAccident`
+     , ins.insured_policy `11-InsuredGroupNo`
+     , date_format(ins.insured_dob, '%m/%d/%Y') `11a-InsuredsDOB`
+     , ins.insured_sex `11a-InsuredsGender`
+     , 'Signature on file' `12-PatientSign`
+     , date_format(current_date, '%m/%d/%Y') `12-Date`
+     , 'Signature on file' as `13-AuthSign`
+     , 'NO' as `20-OutsideLab`
+     , '0.00' as `20-Charges`
+     , ins.dx1 `21.1-Diagnosis`
+     , ins.dx2 `21.2-Diagnosis`
+     , ins.approval `23-PriorAuth`
+
+     , date_format(s.session_date, '%m/%d/%Y') `24.1.a-DOSFrom`
+     , date_format(s.session_date, '%m/%d/%Y') `24.1.a-DOSTo`
+     , v.cpt as `24.1.d-CPT`
+     , '11' as `24.1.b-Place`
+     , 1 as `24.1.e-Code`
+     , v.charge `24.1.f-Charges`
+     , 1 as `24.1.g-Units`
+     , bp.npi `24.1.j-ProvNPI`
+
+     , bp.tax_id `25-TaxID`
+     , 'SSN' as `25-SSN/EIN`
      , concat(upper(substr(c.name, 1, 3)), '.',
               upper(substr(c.name, instr(c.name, ',') + 2, 3)), '.',
-              convert(c.id, char)) as patient_account
-     , bp.npi
-     , bp.tax_id
-     , bp.name as provider_name
-     , bp.acode as provider_acode
-     , bp.phone as provider_phone
-     , bp.address as provider_address
-     , bp.city_st_zip as provider_city_st_zip
-     , char(12) as page_break
+              convert(c.id, char)) as `26-PatientAcctNo`
+     , 'YES' as `27-AcceptAssign`
+     , v.charge as `28-TotalCharge` -- @@TODO
+     , 0 -- @@???
+     , v.charge as `30-BalanceDue` -- @@???
+     , bp.name as `31-PhysicianSignature`
+     , date_format(current_date, '%m/%d/%Y') `31-Date`
+     , bp.name `33-ClinicName`
+     , bp.address as `33-ClinicAddressLine1`
+     , bp.city_st_zip as `33-ClinicCityStateZip`
+     , bp.npi as `33-a-NPI`
 from Insurance ins
 join Client c on ins.Client_id = c.id
 join Carrier co on ins.Carrier_id = co.id
@@ -174,7 +209,6 @@ COLUMNS=[literal.strip()[1:-1] for literal in '''
             "Insurance Company Name 2"
             "Insurance Company Address 1"
             "Insurance Company Address 2"
-
              "1-InsuredPlanName"
              "1a-InsuredIDNo"
              "2-PatientName"
@@ -233,7 +267,6 @@ COLUMNS=[literal.strip()[1:-1] for literal in '''
              "22-MedicaidResubmissionCode"
              "22-MedicaidResubmissionRefNo"
              "23-PriorAuth"
-
              "24.1.a-DOSFrom"
              "24.1.a-DOSTo"
              "24.1.b-Place"
