@@ -6,7 +6,8 @@ https://sfreeclaims.anvicare.com/docs/forms/Reference-CSV%20Specifications.txt
 from os import path, environ
 import ConfigParser
 import csv
-import itertools
+from itertools import groupby
+from operator import itemgetter
 
 import MySQLdb
 
@@ -97,8 +98,8 @@ def run_report(start_response, opts, section='_database'):
     out = csv.DictWriter(buf, COLUMNS, quoting=csv.QUOTE_ALL)
     out.writerow(dict(zip(COLUMNS, COLUMNS)))
     
-    for claim_uid, group in itertools.groupby(cursor.fetchall(),
-                                              lambda r: r['claim_uid']):
+    for claim_uid, group in groupby(cursor.fetchall(),
+                                    itemgetter('claim_uid')):
         records = list(group)
         claim = records[0]
         del claim['claim_uid']
@@ -116,8 +117,8 @@ def run_report(start_response, opts, section='_database'):
         # is there ever an amount paid?
         claim['30-BalanceDue'] = tot
 
-        import pprint
-        pprint.pprint(claim)  #@@
+        #import pprint
+        #pprint.pprint(claim)
         out.writerow(claim)
 
     return buf.parts
@@ -193,7 +194,7 @@ select v.claim_uid
      , concat(upper(substr(c.name, 1, 3)), '.',
               upper(substr(c.name, instr(c.name, ',') + 2, 3)), '.',
               convert(c.id, char)) as `26-PatientAcctNo`
-     , 'YES' as `27-AcceptAssign`
+     , 'Y' as `27-AcceptAssign`
      , v.charge as `28-TotalCharge`
      , 0 `29-AmountPaid`
      , v.charge as `30-BalanceDue`
