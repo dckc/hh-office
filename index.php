@@ -15,7 +15,8 @@ error_reporting(E_ERROR | E_PARSE);
 /* Use Strict-Transport-Security (STS) to force the use of SSL.
  * ack: Nov 2010 http://www.php.net/manual/en/reserved.variables.server.php#100877
  */
-$use_sts = TRUE;
+  //$use_sts = TRUE;
+$use_sts = FALSE;
 
 if ($use_sts && isset($_SERVER['HTTPS'])) {
   header('Strict-Transport-Security: max-age=500');

@@ -1,4 +1,4 @@
-use hopeharborkc;
+
 
 create or replace view Attendance_all as
 select v.id

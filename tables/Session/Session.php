@@ -48,17 +48,18 @@ class tables_Session extends Audited {
   }
 
   // When a session is added, go right to add related visit.
-  function after_action_new (&$record) {
-    $this->visit_redirect();
+  function after_action_new (&$info) {
+    $id = $info['record']->val('id');
+    $this->visit_redirect(false, "&id=%3D$id");
   }
 
   function afterAddRelatedRecord(&$record) {
-    $this->visit_redirect();
+    $this->visit_redirect(true);
   }
 
-  function visit_redirect() {
+  function visit_redirect($useContext, $extra) {
     $app =& Dataface_Application::getInstance();
-    $there = $app->url('-action=new_related_record&-relationship=Visits');
+    $there = $app->url("-action=new_related_record&-table=Session&-relationship=Visits" . $extra, $useContext);
     #error_log('save and add: ' . $there);
     header('Location: '. $there);
     exit;
