@@ -79,6 +79,22 @@ class tables_Visit extends Audited{
     }
   }
 
+  function cpt__default () {
+    $app =& Dataface_Application::getInstance();
+    $record =& $app->getRecord();
+    $gid = $record->val('Group_id');
+    if ($gid) {
+      $res = df_query("select cpt from `Group` g
+                         where g.id = $gid
+                         ", null, true);
+      if ( !$res ) throw new Exception(mysql_error(df_db()));
+      $cpt = $res[0]['cpt'];
+      return $cpt;
+    } else {
+      return null;
+    }
+  }
+
   function block__after_main_section() {
     echo '<script type="text/javascript">
 (function () {

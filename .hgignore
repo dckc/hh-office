@@ -5,6 +5,7 @@ conf.ini
 ,*
 *~
 *.pyc
+*.egg-info
 
 hh_data2.mwb
 hh_data2.mwb.bak
@@ -15,3 +16,11 @@ lib/xataface-1.3rc6/
 hh_office.egg-info
 dist/
 build/
+
+claims/dist/
+claims/build/
+claims/lib/
+claims/include/
+claims/bin
+
+

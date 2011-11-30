@@ -43,8 +43,9 @@ def _test_main(ini='conf.ini'):
         print hdrs
 
     content = run_report(report_name, start_response, opts)
+    outfp = open(outfn, 'w')
     for part in content:
-        open(outfn, 'w').write(part)
+        outfp.write(part)
 
 
 def report_if_key(env, start_response,
@@ -92,9 +93,13 @@ def run_report(report_name, start_response,
     report = rlib.Rlib()
     add_xataface_datasource(report, dsn, opts, section)
 
-    txpath = File(here, tx)
+    if report_name.endswith('.xml'):
+        txpath = None
+        template = File(path.join(here, 'templates'), report_name)
+    else:
+        txpath = File(here, tx)
+        template = File(path.join(here, 'templates'), report_name + '.html')
 
-    template = File(path.join(here, 'templates'), report_name + '.html')
     if not template.exists():
         start_response('404 not found', PLAIN)
         return ['no such report spec\n']
@@ -163,15 +168,22 @@ def serve_report_request(start_response, template, txpath, report, dsn):
     .. todo: cite WSGI
     '''
 
-    tx = libxslt.parseStylesheetDoc(libxml2.parseFile(str(txpath)))
+    if txpath:
+        tx = libxslt.parseStylesheetDoc(libxml2.parseFile(str(txpath)))
 
-    skel = libxml2.parseFile(str(template))
-    ctxt = skel.xpathNewContext()
+        skel = libxml2.parseFile(str(template))
+        ctxt = skel.xpathNewContext()
+        spec = tx.applyStylesheet(skel, None)
+        outfmt = 'PDF'
+    else:
+        spec = libxml2.parseFile(str(template))
+        ctxt = spec.xpathNewContext()
+        outfmt = 'TXT'
+        
     report_dml = ctxt.xpathEval('//*[@class="query"]')[0].content
     log.debug('report dml: %s', report_dml)
     report.add_query_as(dsn, report_dml, 'arbitrary_report_name')
 
-    spec = tx.applyStylesheet(skel, None)
     spec_txt = spec.serialize()
     report.add_report_from_buffer(spec_txt)
 
@@ -182,7 +194,7 @@ def serve_report_request(start_response, template, txpath, report, dsn):
     # encoding is NULL or invalid [C]... using en_US
     # but this doesn't seem to change anything.
     # myreport.set_output_encoding('UTF-8')
-    report.set_output_format_from_text("PDF")
+    report.set_output_format_from_text(outfmt)
     report.execute()
 
     log.debug('raw headers: %s', report.get_content_type_as_text())

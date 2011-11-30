@@ -42,10 +42,6 @@ Near term goals:
 data cleanup:
   - be more rigorous about time? time interval? start/end time?
 
-Eventual goals:
+In progress:
 
- * integrate end-of-month reporting to officers
-   * merging PDF: pdftk__ 
  * integrate insurance billing
-
-__ http://www.pdflabs.com/docs/build-pdftk/
