@@ -152,17 +152,17 @@ select v.claim_uid
      , date_format(c.DOB, '%m/%d/%Y') as `3-PatientDOB`
      , ins.patient_sex `3-PatientGender`
      , ins.insured_name `4-InsuredName`
-     , ins.patient_address `5-PatientAddress`
-     , ins.patient_city `5-PatientCity`
-     , ins.patient_state `5-PatientState`
-     , ins.patient_zip `5-PatientZip`
-     , concat(ins.patient_acode, '-', ins.patient_phone) `5-PatientPhone`
+     , c.address `5-PatientAddress`
+     , c.city `5-PatientCity`
+     , c.state `5-PatientState`
+     , c.zip `5-PatientZip`
+     , c.phone `5-PatientPhone`
      , upper(ins.patient_rel) `6-PatientRel`
      , ins.insured_address `7-InsuredAddr`
      , ins.insured_city `7-InsAddCity`
      , ins.insured_state `7-InsAddState`
      , ins.insured_zip `7-InsAddZip`
-     , concat(ins.insured_acode, '-', ins.insured_phone) `7-InsAddPhone`
+     , ins.insured_phone `7-InsAddPhone`
      , ins.patient_status `8-MaritalStatus`
      , ins.patient_status2 `8-Employed?`
      , 'NO' as `10a-CondEmployment`

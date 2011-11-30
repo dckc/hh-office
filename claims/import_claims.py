@@ -254,6 +254,14 @@ class Claim(object):
                 *[get((fnum, "%s %s(%s)" % (
                     label, aux + ' ' if aux and part != 'Year' else '',  part)))
                   for part in ('Year', 'Month', 'Day')])
+
+        def get_phone(fnum, prefix):
+            acode, rest = [int(x) if type(x) is type(1.0) else x
+                           for x in
+                           [get((fnum, "%s %s" % (prefix, part)))
+                            for part in ("Area Code", "Phone Number")]]
+            
+            return "%s %s" % (acode, rest) if acode else rest
             
         dx = self.load_dx(session)
 
@@ -264,19 +272,12 @@ class Claim(object):
             client=client,
             patient_sex=which_sex('3'),
             insured_name=get(('4', 'Insured Name (Last, First, MI)')),
-            patient_address=get(('5', "Patient's Address")),
-            patient_city=get(('5', "Patient's City")),
-            patient_state=get(('5', "Patient's State")),
-            patient_zip=str(int(get(('5', "Patient's ZIP Code")))),
-            patient_acode=get(('5', "Patient's Area Code")),
-            patient_phone=get(('5', "Patient's Phone Number")),
             patient_rel=which('6', paren=True),
             insured_address=get(('7', "Insured's Address")),
             insured_city=get(('7', "Insured's City")),
             insured_state=get(('7', "Insured's State")),
             insured_zip=_zip(get(('7', "Insured's ZIP Code"))),
-            insured_acode=get(('7', "Insured's Area Code")),
-            insured_phone=get(('7', "Insured's Phone Number")),
+            insured_phone=get_phone('7', "Insured's"),
             patient_status=which('8', choices=(
                 "Patient Status (Single)",
                 "Patient Status (Married)",
@@ -301,7 +302,12 @@ class Claim(object):
         ct = db.Client.__table__
         session.execute(ct.update().\
                         where(ct.c.id == client.id).\
-                        values(DOB=get_date('3', "Patient's Birth", 'Date')))
+                        values(DOB=get_date('3', "Patient's Birth", 'Date'),
+                               address=get(('5', "Patient's Address")),
+                               city=get(('5', "Patient's City")),
+                               state=get(('5', "Patient's State")),
+                               zip=str(int(get(('5', "Patient's ZIP Code")))),
+                               patient_phone=get_phone('5', "Patient's")))
 
         session.add(policy)
         session.commit()

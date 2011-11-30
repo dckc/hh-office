@@ -13,7 +13,6 @@ TextLine = VARCHAR(length=120)
 TextCode = VARCHAR(length=40)
 Money = DECIMAL(precision=8, scale=2)
 
-
 class _Base(object):
     @declared_attr
     def __tablename__(cls):
@@ -48,14 +47,14 @@ class Audited(object):
 class Client(IntId, Migrated, Audited, Base):
     name = Column(TextLine, nullable=False)
 
-    # TODO: migrate these to Insurance
-    insurance = Column(TextLine)
-    approval = Column(TEXT())
-    DX = Column(TextLine)
-    address = Column(TextLine)
-
     note = Column(TEXT())
-    phone = Column(TextLine)
+
+    address = Column(TextLine)
+    city = Column(types.String(24))
+    state = Column(types.String(3))
+    zip = Column(types.String(12))
+
+    phone = Column(types.String(15))
     DOB = Column(DATE)
     Officer_id = Column(INTEGER(),
                         ForeignKey('Officer.id', ondelete="SET NULL"))
@@ -142,8 +141,6 @@ Therapist =  Table('Therapist', metadata,
                    Column('weight', INTEGER()),
                    Column('npi', VARCHAR(length=10)),
                    Column('tax_id', VARCHAR(length=15)),
-                   Column('acode', INTEGER()),
-                   Column('phone', INTEGER()),
                    Column('address', VARCHAR(length=29)),
                    Column('city_st_zip', VARCHAR(length=29)),
                    Column('added_time', TIMESTAMP()),
@@ -229,6 +226,11 @@ class Insurance(IntId, Audited, Base):
            ForeignKey('Carrier.id', ondelete="CASCADE"),
            nullable=False)
     carrier = orm.relationship('Carrier')
+
+    # for office use, reports, etc
+    notice = Column(TextLine)
+    details = Column(TEXT())
+
     # Field 1 from user_print_file_spec.csv
     payer_type = Column(types.Enum('Medicare',
                                    'Medicaid',
@@ -246,13 +248,7 @@ class Insurance(IntId, Audited, Base):
     patient_sex = Column(types.Enum('M', 'F'), nullable=False)
     # Field 4
     insured_name = Column(types.String(30), nullable=False)
-    # Field 5
-    patient_address = Column(types.String(30), nullable=False)
-    patient_city = Column(types.String(24), nullable=False)
-    patient_state = Column(types.String(3), nullable=False)
-    patient_zip = Column(types.String(12), nullable=False)
-    patient_acode = Column(types.String(3))
-    patient_phone = Column(types.String(10))
+    # Field 5: see Client
     # Field 6
     patient_rel = Column(types.Enum('Self', 'Spouse', 'Child', 'Other'),
            nullable=False)
@@ -261,8 +257,7 @@ class Insurance(IntId, Audited, Base):
     insured_city = Column(types.String(24), nullable=False)
     insured_state = Column(types.String(3), nullable=False)
     insured_zip = Column(types.String(12), nullable=False)
-    insured_acode = Column(types.String(3))
-    insured_phone = Column(types.String(10))
+    insured_phone = Column(types.String(15))
     # Field 8
     patient_status = Column(types.Enum('Single', 'Married', 'Other'))
     patient_status2 = Column(types.Enum('Employed',
