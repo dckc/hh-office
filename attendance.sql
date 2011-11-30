@@ -22,6 +22,7 @@ select v.id
        when v.bill_date is not null then 'billed'
        when ins.id is null then 'no ins'
        when v.cpt is null then 'no CPT'
+       when v.attend_n = 0 then 'did not attend'
        else 'billable'
        end as ins_status
 from Visit as v
