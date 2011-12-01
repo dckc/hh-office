@@ -17,7 +17,8 @@ import libxslt
 import rlib  # http://rlib.sicompos.com/
              # 06b3e629c6f99a8b2fd1264f32db8f56  rlib-1.3.7.tar.gz
 
-from ocap import PrefixConfig, DBOpts, dbopts
+from ocap import DBOpts, dbopts
+import hhtcb
 
 
 PLAIN = [('Content-Type', 'text/plain')]
@@ -42,16 +43,11 @@ def _test_main():
         print r
         print hdrs
 
-    content = run_report(report_name, start_response, dbopts(_conf_ini()))
+    content = run_report(report_name, start_response,
+                         dbopts(hhtcb.xataface_config()))
     outfp = open(outfn, 'w')
     for part in content:
         outfp.write(part)
-
-
-def _conf_ini(ini='conf.ini'):
-    from hhtcb import File
-    here = path.dirname(__file__)
-    return PrefixConfig(File(here, ini), '[DEFAULT]').opts()
 
 
 def report_if_key(env, start_response):
@@ -59,11 +55,11 @@ def report_if_key(env, start_response):
 
     @param env: CGI environment; PATH_INFO is used to find
             a report skeleton under `templates`.
-            
+
     See :func:`add_xataface_datasource` for database connection strategy.
 
     '''
-    dbo = DBOpts(_conf_ini())
+    dbo = DBOpts(hhtcb.xataface_config())
     try:
         opts = dbo.webapp_login(env)
     except KeyError:
@@ -85,7 +81,7 @@ def run_report(report_name, start_response, opts,
            a report skeleton under `templates`,
            unless it ends in .xml, in which case
            it is used directly as the report spec.
-            
+
     See :func:`add_xataface_datasource` for database connection strategy.
 
     '''
@@ -152,7 +148,7 @@ def serve_report_request(start_response, templates, report_name,
         spec = template.xml_content()
         ctxt = spec.xpathNewContext()
         outfmt = 'TXT'
-        
+
     report_dml = ctxt.xpathEval('//*[@class="query"]')[0].content
     log.debug('report dml: %s', report_dml)
     report.add_query_as(dsn, report_dml, 'arbitrary_report_name')

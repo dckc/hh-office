@@ -2,6 +2,9 @@ from os import path
 
 import libxml2
 
+from ocap import PrefixConfig
+
+
 class Path(object):
     def __init__(self, dirpath, segment=None):
         self._dp = dirpath
@@ -36,3 +39,8 @@ class File(Path):
 
     def exists(self):
         return path.exists(str(self))
+
+
+def xataface_config(ini='conf.ini'):
+    here = path.dirname(__file__)
+    return PrefixConfig(File(here, ini), '[DEFAULT]').opts()
