@@ -4,6 +4,16 @@ class tables_Visit extends Audited{
     return 1;
   }
 
+
+  function block__tables_menu_head () {
+    $app =& Dataface_Application::getInstance();
+    $key = $app->_conf['_database']['report_key'];
+    echo "<ul class='report_menu'>
+            <li><a href='export_claims?key=$key'
+                target='_new'>Insurance Claims</a></li>
+         </ul>";
+  }
+
   function block__after_Client_id_widget() {
     $client_name = '';
     $app =& Dataface_Application::getInstance();
