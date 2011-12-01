@@ -22,25 +22,31 @@ def _test_main(argv,
     log.debug('2. submit creds.')
     ua.submit()
 
+    log.debug('2. open(%s) to get previous latest batch number.',
+              'ViewBatch.asp')
+    rprev = ua.open('ViewBatch.asp')
+    print '----------------ViewBatch.asp initial', '\n', rprev.get_data()
+
     log.debug('3. open(upload.asp).')
     r3 = ua.open('upload.asp')
-    print r3.get_data()
+    print '----------------upload.asp', '\n', r3.get_data()
     scrub_nested_form(ua, r3)
 
-    log.debug('3.a select_form(0).')
-    ua.select_form(nr=0)
+    log.debug('3.a select_form(%s).', 'Upload')
+    ua.select_form('Upload')
 
     log.debug('3.b add_file(%s).', claim_fn)
-    ua.add_file(open(claim_fn))
+    ua.form.add_file(open(claim_fn), 'text/plain', claim_fn)
     log.debug('4. submit claims.')
-    ua.submit()
+    r4 = ua.submit()
+    print '----------------submit response', '\n', r4.get_data()
 
     while 1:
         time.sleep(1)
         log.debug('5.. open(%s)', 'ViewBatch.asp')
         rbatches = ua.open('ViewBatch.asp')
         content = rbatches.get_data()
-        print content
+        print '----------------ViewBatch.asp', '\n', content
         break  #@@
 
 
