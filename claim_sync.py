@@ -70,7 +70,24 @@ def _test_parse(argv):
     print forms
 
 
+def _test_soup(argv):
+    doc_fn = argv[1]
+    from mechanize._beautifulsoup import BeautifulSoup as Soup
+    doc = Soup(text=open(doc_fn).read())
+    doc.done()
+    print doc.html.name
+    #print [tag.name for tag in doc.html.fetch()]
+    t = doc.html.first('table', 'sortable')  #, recursive=1
+    #print t
+    #print t.prettify()
+    import pprint
+    print [tag.name for tag in t.fetch('tr', recursive=False)]
+    pprint.pprint([(row.name, [cell.name for cell in row('td') + row('th')])
+                   for row in t('tr')])
+
+
 if __name__ == '__main__':
     import sys
+    _test_soup(sys.argv)
     #_test_parse(sys.argv)
-    _test_main(sys.argv)
+    #_test_main(sys.argv)
