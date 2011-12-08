@@ -216,7 +216,7 @@ class Procedure(Base):
     __table_args = dict(mysql_engine='InnoDB')
     cpt = Column(types.String(6), primary_key=True)
     name = Column(TextLine)
-    price = Column(Money)
+    price = Column(Money, nullable=False)
 
 
 class Insurance(IntId, Audited, Base):
@@ -273,7 +273,7 @@ class Insurance(IntId, Audited, Base):
     # 12, 13 are blank; skip 14-18; 19 is reserved
     # 20 is computed per-claim
     # Field 21
-    dx1 = Column(types.String(8), ForeignKey('Diagnosis.icd9'))
+    dx1 = Column(types.String(8), ForeignKey('Diagnosis.icd9'), nullable=False)
     dx2 = Column(types.String(8), ForeignKey('Diagnosis.icd9'))
     # Field 23
     approval = Column(TEXT())

@@ -1,5 +1,30 @@
 use hh_office;
 
+CREATE TABLE `Therapist` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	weight INTEGER, 
+	npi VARCHAR(10), 
+	tax_id VARCHAR(15), 
+	address VARCHAR(29), 
+	city_st_zip VARCHAR(29), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Diagnosis` (
+	icd9 VARCHAR(8) NOT NULL, 
+	name VARCHAR(120), 
+	PRIMARY KEY (icd9)
+)ENGINE=InnoDB
+
+ ;
+
 CREATE TABLE users (
 	username VARCHAR(120) NOT NULL, 
 	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
@@ -9,6 +34,18 @@ CREATE TABLE users (
 	modified_user VARCHAR(40), 
 	PRIMARY KEY (username)
 )ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Batch` (
+	name VARCHAR(120) NOT NULL, 
+	cutoff DATE, 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (name)
+)
 
  ;
 
@@ -42,44 +79,8 @@ CREATE TABLE `Carrier` (
 CREATE TABLE `Procedure` (
 	cpt VARCHAR(6) NOT NULL, 
 	name VARCHAR(120), 
+	price DECIMAL(8, 2) NOT NULL, 
 	PRIMARY KEY (cpt)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Batch` (
-	name VARCHAR(120) NOT NULL, 
-	cutoff DATE, 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (name)
-)
-
- ;
-
-CREATE TABLE `Therapist` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	weight INTEGER, 
-	npi VARCHAR(10), 
-	tax_id VARCHAR(15), 
-	address VARCHAR(29), 
-	city_st_zip VARCHAR(29), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Diagnosis` (
-	icd9 VARCHAR(8) NOT NULL, 
-	name VARCHAR(120), 
-	PRIMARY KEY (icd9)
 )ENGINE=InnoDB
 
  ;
@@ -120,6 +121,25 @@ CREATE TABLE `Officer` (
 
  ;
 
+CREATE TABLE `Session` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	session_date DATE NOT NULL, 
+	time VARCHAR(40), 
+	`Group_id` INTEGER NOT NULL, 
+	`Therapist_id` INTEGER, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
+	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
+)ENGINE=InnoDB
+
+ ;
+
 CREATE TABLE `Client` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	id_zoho VARCHAR(40), 
@@ -153,25 +173,6 @@ CREATE TABLE `Client` (
 
  ;
 
-CREATE TABLE `Session` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	session_date DATE NOT NULL, 
-	time VARCHAR(40), 
-	`Group_id` INTEGER NOT NULL, 
-	`Therapist_id` INTEGER, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
-	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
-)ENGINE=InnoDB
-
- ;
-
 CREATE TABLE `Insurance` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	added_time TIMESTAMP, 
@@ -197,7 +198,7 @@ CREATE TABLE `Insurance` (
 	insured_policy VARCHAR(30), 
 	insured_dob DATE, 
 	insured_sex ENUM('M','F'), 
-	dx1 VARCHAR(8), 
+	dx1 VARCHAR(8) NOT NULL, 
 	dx2 VARCHAR(8), 
 	approval TEXT, 
 	PRIMARY KEY (id), 
