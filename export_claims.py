@@ -159,7 +159,7 @@ select v.claim_uid
      , v.cpt as `24.1.d-CPT`
      , '11' as `24.1.b-Place`
      , 1 as `24.1.e-Code`
-     , v.charge `24.1.f-Charges`
+     , p.price `24.1.f-Charges`
      , 1 as `24.1.g-Units`
      , bp.npi `24.1.j-ProvNPI`
 
@@ -169,9 +169,9 @@ select v.claim_uid
               upper(substr(c.name, instr(c.name, ',') + 2, 3)), '.',
               convert(c.id, char)) as `26-PatientAcctNo`
      , 'Y' as `27-AcceptAssign`
-     , v.charge as `28-TotalCharge`
+     , p.price as `28-TotalCharge`
      , 0 `29-AmountPaid`
-     , v.charge as `30-BalanceDue`
+     , p.price as `30-BalanceDue`
      , bp.name as `31-PhysicianSignature`
      , date_format(current_date, '%m/%d/%Y') `31-Date`
      , bp.name `33-ClinicName`
@@ -182,11 +182,11 @@ from Insurance ins
 join Client c on ins.Client_id = c.id
 join Carrier co on ins.Carrier_id = co.id
 join Visit v on v.Client_id = c.id
+join `Procedure` p on p.cpt = v.cpt
 join `Session` s on v.Session_id = s.id
 join `Group` g on s.Group_id = g.id
 join Therapist as bp on bp.tax_id is not null
 where v.bill_date is null and v.check_date is null
-and v.cpt is not null
 and v.claim_uid is not null
 order by c.name, v.claim_uid, s.session_date
 '''
