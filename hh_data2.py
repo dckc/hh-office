@@ -216,6 +216,7 @@ class Procedure(Base):
     __table_args = dict(mysql_engine='InnoDB')
     cpt = Column(types.String(6), primary_key=True)
     name = Column(TextLine)
+    price = Column(Money)
 
 
 class Insurance(IntId, Audited, Base):
@@ -292,6 +293,39 @@ users =  Table('users', metadata,
                Column('modified_user', TextCode),
                mysql_engine='InnoDB'
                )
+
+
+def add_columns_ddl(engine, table, colnames):
+    r'''
+    Aha... this is how to get a string version of the column type:
+    >>> print Procedure.__table__.columns['price'].type.compile()
+    DECIMAL
+
+    ### e = create_engine('mysql+mysqldb://')
+    >>> e = create_engine('sqlite:///')
+    >>> add_columns_ddl(e, Procedure.__table__, ['price'])
+    'ALTER TABLE "Procedure"\nADD COLUMN price DECIMAL'
+
+    >>> print add_columns_ddl(e, Procedure.__table__, ['name', 'price'])
+    ALTER TABLE "Procedure"
+    ADD COLUMN name VARCHAR(120),
+    ADD COLUMN price DECIMAL
+    '''
+
+    dialect = engine.dialect
+    tablespec = dialect.identifier_preparer.format_table(table)
+    return "ALTER TABLE %s%s" % (
+        tablespec,
+        ','.join(['\nADD COLUMN %s %s' % (
+                    col,
+                    table.columns[col].type.compile())  # dialect
+            for col in colnames])
+        )
+
+
+def migration_add_price():
+    e = create_engine('mysql+mysqldb:///')
+    print add_columns_ddl(e, Procedure.__table__, ['price'])
 
 
 def print_sql(m, schema='hh_office'):

@@ -9,13 +9,14 @@
  */
 
 // Report simple running errors
-  //@@error_reporting(E_ERROR | E_PARSE);
+error_reporting(E_ERROR | E_PARSE);
 
 
 /* Use Strict-Transport-Security (STS) to force the use of SSL.
  * ack: Nov 2010 http://www.php.net/manual/en/reserved.variables.server.php#100877
  */
-$use_sts = TRUE;
+  //$use_sts = TRUE;
+$use_sts = FALSE;
 
 if ($use_sts && isset($_SERVER['HTTPS'])) {
   header('Strict-Transport-Security: max-age=500');
@@ -27,10 +28,10 @@ if ($use_sts && isset($_SERVER['HTTPS'])) {
 
 $time = microtime(true);
 	// use the timer to time how long it takes to generate a page
-require_once '/usr/local/src/xataface-1.3rc6/dataface-public-api.php';
-//require_once '/home/dckc/hh-office.dreamhosters.com/hh-office/lib/xataface-1.3rc6/dataface-public-api.php';
+//require_once '/usr/local/src/xataface-1.3rc6/dataface-public-api.php';
+require_once '/home/dckc/hh-office.dreamhosters.com/hh-office/lib/xataface-1.3rc6/dataface-public-api.php';
 	// include the initialization file
-df_init(__FILE__, '/xataface-1.3rc6');
+df_init(__FILE__, '/hh-office/lib/xataface-1.3rc6');
 	// initialize the site
 
 $app =& Dataface_Application::getInstance();

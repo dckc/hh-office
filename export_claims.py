@@ -1,98 +1,72 @@
+#!/usr/bin/env python
 ''' export_claims -- export claims in CSV format
 
 https://sfreeclaims.anvicare.com/docs/forms/Reference-CSV%20Specifications.txt
 '''
 
-from os import path, environ
-import ConfigParser
 import csv
 from itertools import groupby
 from operator import itemgetter
+import wsgiref.handlers
+import datetime
 
 import MySQLdb
+
+from ocap import DBOpts, dbopts
+import hhtcb
+
+
+PLAIN = [('Content-Type', 'text/plain')]
+
+
+def cgi_main():
+    wsgiref.handlers.CGIHandler().run(report_if_key)
+
 
 def _test_main(ini='conf.ini'):
     import sys
 
-    here = path.dirname(__file__)
-    opts = PrefixConfig(File(here, ini), '[DEFAULT]').opts()
     outfn = sys.argv[1]
+    host, user, password, name = dbopts(hhtcb.xataface_config())
 
     def start_response(r, hdrs):
         print r
         print hdrs
 
-    content = run_report(start_response, opts)
+
+    content = run_report(start_response,
+                         MySQLdb.connect(host=host, user=user,
+                                         passwd=password, db=name),
+                         datetime.date)
     outfp = open(outfn, 'w')
     for part in content:
         outfp.write(part)
 
 
-class PrefixConfig(object):
-    '''work-around: xataface needs options before the 1st [section]
-    '''
-    def __init__(self, fpath, line):
-        self._f = fpath
-        self._l = line
-        self._fp = None
+def report_if_key(env, start_response):
+    dbo = DBOpts(hhtcb.xataface_config())
+    try:
+        host, user, password, name = dbo.webapp_login(env)
+    except KeyError:
+        start_response('400 bad request', PLAIN)
+        return ['missing key parameter ']
+    except OSError:
+        start_response('401 unauthorized', PLAIN)
+        return ['report key does not match.']
 
-    def opts(self):
-        self._fp = self._f.fp()
-        opts = ConfigParser.SafeConfigParser()
-        opts.readfp(self, str(self._f))
-        return opts
+    conn = MySQLdb.connect(host=host, user=user, passwd=password, db=name)
 
-    def readline(self):
-        if self._l:
-            l = self._l
-            self._l = None
-            return l
-        else:
-            return self._fp.readline()
+    return run_report(start_response, conn, datetime.date)
+    
 
-
-class Path(object):
-    def __init__(self, dirpath, segment=None):
-        self._dp = dirpath
-        self._seg = segment
-
-    def __str__(self, segment=None):
-        if segment is None:
-            segment = self._seg
-        return path.join(self._dp, seg_ck(segment))
-
-
-def seg_ck(fn):
-    assert path.sep not in fn
-    assert path.pathsep not in fn
-    return fn
-
-
-class Dir(Path):
-    def subdir(self, segment):
-        return Dir(path.join(self._dp, segment))
-
-    def file(self, fn, ext):
-        return File(self._dp, fn, ext)
-
-
-class File(Path):
-    def fp(self):
-        return open(str(self))
-
-    def exists(self):
-        return path.exists(str(self))
-
-
-def run_report(start_response, opts, section='_database'):
-    conn = xataface_connection(opts, section)
+def run_report(start_response, conn, datesrc):
     cursor = conn.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(QUERY)
 
     start_response('200 ok',
-                   (('content-type', 'text/plain'),
+                   [('content-type', 'text/plain'),
                     ('Content-Disposition',
-                     'attachment; filename=claims.csv')))
+                     'attachment; filename=claims-%s.csv' % datesrc.today())])
 
     buf = ListWriter()
     out = csv.DictWriter(buf, COLUMNS, quoting=csv.QUOTE_ALL)
@@ -383,6 +357,7 @@ COLUMNS=[literal.strip()[1:-1] for literal in '''
 '''.strip().split('\n')]
 
 if __name__ == '__main__':
+    from os import environ
     if 'SCRIPT_NAME' in environ:
         cgi_main()
     else:

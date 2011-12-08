@@ -1,8 +1,15 @@
+# see also hh-office.conf
+
 <FilesMatch "\.ini$">
 Deny from all
 </FilesMatch>
 
 <Files print_report>
+  SetHandler cgi-script
+  Options +ExecCGI
+</Files>
+
+<Files export_claims>
   SetHandler cgi-script
   Options +ExecCGI
 </Files>
