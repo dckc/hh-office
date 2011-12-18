@@ -18,6 +18,8 @@ class tables_Client extends Audited {
                   target='_new'>CWIP</a></li>
            <li><a href='print_report/dup_clients?key=$key'
                   target='_new'><em>Duplicate Clients</em></a></li>
+           <li><a href='upload_insurance?key=$key'
+                  target='_new'><em>Upload Insurance</em></a></li>
          </ul>";
   }
 

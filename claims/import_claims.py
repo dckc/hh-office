@@ -168,6 +168,11 @@ class Claim(object):
                  if sheet.name == '1500 -TEMPLATE_Grey '][0]
         return cls(book, sheet)
         
+    @classmethod
+    def from_contents(cls, contents):
+        book = xlrd.open_workbook(file_contents=contents, formatting_info=True)
+        return cls.make(book)
+        
     def __init__(self, book, sheet):
         self._book = book
         self._data = sheet
@@ -311,6 +316,7 @@ class Claim(object):
 
         session.add(policy)
         session.commit()
+        return policy
 
 
     def load_carrier(self, session):
