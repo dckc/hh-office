@@ -22,7 +22,7 @@ select v.id
        when v.check_date is not null then 'paid'
        when v.bill_date is not null then 'billed'
        when ins.id is null then 'no ins'
-       when v.cpt is null then 'no CPT'
+       when proc.cpt is null then 'no CPT'
        when v.attend_n = 0 then 'did not attend'
        else 'billable'
        end as ins_status
@@ -33,6 +33,7 @@ join Client c on v.Client_id = c.id
 left join Officer o on c.Officer_id = o.id
 left join Insurance ins on ins.Client_id = c.id
 left join Carrier co on ins.Carrier_id = co.id
+left join `Procedure` proc on proc.cpt = v.cpt
 ;
 
 
