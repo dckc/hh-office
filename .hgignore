@@ -1,6 +1,7 @@
 syntax: glob
 templates_c/
 conf.ini
+hh_conf.php
 
 ,*
 *~
