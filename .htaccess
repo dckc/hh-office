@@ -4,12 +4,16 @@
 Deny from all
 </FilesMatch>
 
-<Files print_report>
+RewriteEngine on
+RewriteRule print_report/(.*) print_report.py/$1
+RewriteRule export_claims/(.*) export_claims.py/$1
+
+<Files print_report.py>
   SetHandler cgi-script
   Options +ExecCGI
 </Files>
 
-<Files export_claims>
+<Files export_claims.py>
   SetHandler cgi-script
   Options +ExecCGI
 </Files>
