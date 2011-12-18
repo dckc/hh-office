@@ -90,7 +90,7 @@ join Attendance_all a on a.group_id = g.id
 join Session s on a.Session_id = s.id
 join Therapist t on t.id = s.Therapist_id
 where g.evaluation=1
-  and s.session_date > adddate(current_timestamp, interval -60 day)
+  and s.session_date > adddate(current_timestamp, interval - 30 day)
 order by g.name, s.session_date desc, client_name;
 </code></pre>
 </div>
