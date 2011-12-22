@@ -14,8 +14,6 @@ class tables_Client extends Audited {
  	          target='_new'>Billing Insurance</a></li>
            <li><a href='print_report/amount_due?key=$key'
                   target='_new'>Account Balances</a></li>
-           <li><a href='print_report/cwip-yr?key=$key'
-                  target='_new'>CWIP</a></li>
            <li><a href='print_report/dup_clients?key=$key'
                   target='_new'><em>Duplicate Clients</em></a></li>
            <li><a href='upload_insurance?key=$key'

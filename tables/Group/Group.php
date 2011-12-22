@@ -9,6 +9,10 @@ class tables_Group extends Audited {
                 target='_new'>Attendance by Group</a></li>
             <li><a href='print_report/evaluations?key=$key'
                 target='_new'>Evaluations</a></li>
+           <li><a href='print_report/cwip-yr?key=$key'
+                  target='_new'>CWIP</a></li>
+           <li><a href='print_report/monitoring?key=$key'
+                  target='_new'>Monitoring</a></li>
          </ul>";
   }
 
