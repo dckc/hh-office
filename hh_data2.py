@@ -58,6 +58,10 @@ class Client(IntId, Migrated, Audited, Base):
     DOB = Column(DATE)
     Officer_id = Column(INTEGER(),
                         ForeignKey('Officer.id', ondelete="SET NULL"))
+    Lawyer_id = Column(INTEGER(),
+                       ForeignKey('Officer.id', ondelete="SET NULL"))
+    Court_id = Column(INTEGER(),
+                      ForeignKey('Office.id', ondelete="SET NULL"))
     file = Column(TextCode)
     file_site = Column(Enum('op', 'kck'))
     file_opened = Column(DATE())
@@ -326,6 +330,13 @@ def add_columns_ddl(engine, table, colnames):
 def migration_add_price():
     e = create_engine('mysql+mysqldb:///')
     print add_columns_ddl(e, Procedure.__table__, ['price'])
+
+
+def migration_add_court():
+    e = create_engine('mysql+mysqldb:///')
+    print add_columns_ddl(e, Client.__table__,
+                          ['Lawyer_id',
+                           'Court_id'])
 
 
 def print_sql(m, schema='hh_office'):
