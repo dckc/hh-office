@@ -5,8 +5,8 @@
 from sqlalchemy import (INTEGER, TEXT, VARCHAR, DECIMAL, DATE, TIMESTAMP,
                         BOOLEAN, Enum, types, text)
 from sqlalchemy import Table, Column, ForeignKey, Index, create_engine
-from sqlalchemy import orm, sql
-from sqlalchemy.schema import CreateTable, CreateIndex
+from sqlalchemy import orm
+from sqlalchemy.schema import CreateTable
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 
 TextLine = VARCHAR(length=120)
