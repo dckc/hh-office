@@ -6,8 +6,8 @@ Deny from all
 
 RewriteEngine on
 RewriteRule print_report/(.*) print_report.py/$1
-RewriteRule export_claims/(.*) export_claims.py/$1
-RewriteRule upload_insurance\?(.*) upload_insurance.py\?/$1
+RewriteRule export_claims export_claims.py
+RewriteRule upload_insurance upload_insurance.py
 
 <Files print_report.py>
   SetHandler cgi-script
