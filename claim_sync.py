@@ -17,6 +17,43 @@ from ocap import dbopts
 log = logging.getLogger(__name__)
 
 
+def main(argv):
+    import sys
+    import pprint
+
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stderr)
+    ua = FreeClaimsUA()
+
+    while argv[1:]:
+        action = argv[1]
+        if action == '--login':
+            username, password = argv[2:4]
+            del argv[1:4]
+            ua.login(username, password)
+        elif action == '--match':
+            h, u, p, n = dbopts(hhtcb.xataface_config())
+            conn = MySQLdb.connect(host=h, user=u, passwd=p, db=n)
+            sync_all_claims(ua, conn)
+            del argv[1]
+        elif action == '--upload':
+            claim_fn = argv[2]
+            del argv[1:3]
+            ua.upload(claim_fn)
+        elif action == '--batches':
+            del argv[1]
+            pprint.pprint(ua.batches())
+        elif action == '--batches-local':
+            doc_fn = argv[2]
+            del argv[1:3]
+            pprint.pprint(ua._batches(open(doc_fn).read()))
+        elif action == '--claims':
+            del argv[1]
+            pprint.pprint([(batch, ua.claims(batch))
+                            for batch in ua.batches()])
+        else:
+            raise ValueError('huh? ' + action)
+
+
 class FreeClaimsUA(mechanize.Browser):
     base = 'https://sfreeclaims.anvicare.com/docs/'
 
@@ -47,18 +84,6 @@ class FreeClaimsUA(mechanize.Browser):
         doc.done()
         t = doc.html.first('table', {'align': 'Center'})
         return [claim(row) for row in t('tr')[1:]]
-
-    def match(self, conn):
-        for b in self.batches():
-            for cl in self.claims(b):
-                client_id = int(cl.acc_no.split('.')[-1])
-                q = conn.cursor()
-                q.execute('''
-                  select id from Attendance
-                  where client_id = %s
-                    and session_date = %s and bill_date = %s''',
-                  (client_id, cl.service_date, cl.date_received))
-                yield cl, [row[0] for row in q.fetchall()]
 
     def upload_file(self, claim_fn, pg='upload.asp', form='Upload'):
         log.debug('upload: open(%s).', pg)
@@ -152,42 +177,57 @@ _CLAIM_MARKUP = '''
                             </tr>
 '''
 
-def _test_main(argv):
-    import sys
-    import pprint
 
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stderr)
-    ua = FreeClaimsUA()
+def sync_all_claims(ua, conn):
+    def update(visit_id, cl):
+        log.debug('''Set claim_uid = %s where id = %s ''',
+                  cl.trace_no, visit_id)
+        tx = conn.cursor()
+        tx.execute('''update Visit set claim_uid = %s where id = %s ''',
+                   (cl.trace_no, visit_id))
+        tx.close()
 
-    while argv[1:]:
-        action = argv[1]
-        if action == '--login':
-            username, password = argv[2:4]
-            del argv[1:4]
-            ua.login(username, password)
-        elif action == '--match':
-            h, u, p, n = dbopts(hhtcb.xataface_config())
-            for claim, visit_ids in ua.match(
-                    MySQLdb.connect(host=h, user=u, passwd=p, db=n)):
-                print claim, visit_ids
-            del argv[1]
-        elif action == '--upload':
-            claim_fn = argv[2]
-            del argv[1:3]
-            ua.upload(claim_fn)
-        elif action == '--batches':
-            del argv[1]
-            pprint.pprint(ua.batches())
-        elif action == '--batches-local':
-            doc_fn = argv[2]
-            del argv[1:3]
-            pprint.pprint(ua._batches(open(doc_fn).read()))
-        elif action == '--claims':
-            del argv[1]
-            pprint.pprint([(batch, ua.claims(batch))
-                            for batch in ua.batches()])
+    q = conn.cursor()
+
+    all_claims = [cl for b in ua.batches() for cl in ua.claims(b)]
+    for cl in all_claims:
+        log.debug('\n\n=== %s', cl)
+
+        if cl.status == 'IGNORED':
+            log.debug('ignored.')
+            continue
+
+        try:
+            visit_id, claim_uid = visit_for_claim(q, cl)
+        except (KeyError, ValueError):
+            continue
+
+        if str(cl.trace_no) != claim_uid:
+            update(visit_id, cl)
         else:
-            raise ValueError('huh? ' + action)
+            log.debug('Visit %s already has claim_uid = %s',
+                      visit_id, claim_uid)
+
+    conn.commit()
+
+
+def visit_for_claim(q, cl):
+    client_id = int(cl.acc_no.split('.')[-1])
+    q.execute('''
+      select id, claim_uid from Attendance
+      where client_id = %s
+        and session_date = %s and bill_date = %s''',
+      (client_id, cl.service_date, cl.date_received))
+    answers = q.fetchall()
+
+    if len(answers) == 1:
+        return answers[0]
+    elif not answers:
+        log.info('no match for claim: %s', cl)
+        raise KeyError, cl.trace_no
+    else:
+        log.warn('multiple matches for claim: %s', cl)
+        raise ValueError, cl.trace_no
 
 
 def scrub_nested_form(ua, response):
@@ -208,4 +248,4 @@ def scrub_nested_form(ua, response):
 
 if __name__ == '__main__':
     import sys
-    _test_main(sys.argv)
+    main(sys.argv)
