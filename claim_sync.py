@@ -9,6 +9,10 @@ import datetime
 
 from mechanize._beautifulsoup import BeautifulSoup as HTML
 import mechanize
+import MySQLdb
+
+import hhtcb
+from ocap import dbopts
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +47,18 @@ class FreeClaimsUA(mechanize.Browser):
         doc.done()
         t = doc.html.first('table', {'align': 'Center'})
         return [claim(row) for row in t('tr')[1:]]
+
+    def match(self, conn):
+        for b in self.batches():
+            for cl in self.claims(b):
+                client_id = int(cl.acc_no.split('.')[-1])
+                q = conn.cursor()
+                q.execute('''
+                  select id from Attendance
+                  where client_id = %s
+                    and session_date = %s and bill_date = %s''',
+                  (client_id, cl.service_date, cl.date_received))
+                yield cl, [row[0] for row in q.fetchall()]
 
     def upload_file(self, claim_fn, pg='upload.asp', form='Upload'):
         log.debug('upload: open(%s).', pg)
@@ -89,7 +105,8 @@ def batch(cell):
 
 
 Claim = namedtuple('Claim',
-                   'trace_no href batch status last first service_date')
+                   'trace_no href batch status '
+                   'last first acc_no service_date date_received')
 
 
 def claim(row):
@@ -98,14 +115,16 @@ def claim(row):
     ... # doctest: +NORMALIZE_WHITESPACE
     Claim(trace_no=33298999, href='viewonehcfa.asp?trace_no=33298999',
           batch=2027161, status='ACCEPTED', last='SMITH', first='STEVEN',
-          service_date=datetime.datetime(2011, 11, 10, 0, 0))
-
+          acc_no='JAM.STE.10999',
+          service_date=datetime.datetime(2011, 11, 10, 0, 0),
+          date_received=datetime.datetime(2011, 12, 2, 0, 0))
     '''
     txts = [cell.contents[0].replace('&nbsp;', '') for cell in row('td')]
     trace_cell = row('td')[1]
     return Claim(int(trace_cell.a.contents[0]), trace_cell.a['href'],
-                 int(txts[2]), txts[3], txts[4], txts[5],
-        datetime.datetime.strptime(txts[9], '%m/%d/%Y'))
+                 int(txts[2]), txts[3], txts[4], txts[5], txts[6],
+        datetime.datetime.strptime(txts[9], '%m/%d/%Y'),
+        datetime.datetime.strptime(txts[15], '%m/%d/%Y'))
 
 _CLAIM_MARKUP = '''
                             <tr bgcolor=ddf7f7 >
@@ -146,6 +165,12 @@ def _test_main(argv):
             username, password = argv[2:4]
             del argv[1:4]
             ua.login(username, password)
+        elif action == '--match':
+            h, u, p, n = dbopts(hhtcb.xataface_config())
+            for claim, visit_ids in ua.match(
+                    MySQLdb.connect(host=h, user=u, passwd=p, db=n)):
+                print claim, visit_ids
+            del argv[1]
         elif action == '--upload':
             claim_fn = argv[2]
             del argv[1:3]
