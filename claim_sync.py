@@ -1,6 +1,15 @@
 '''claim_sync -- sync claims between hh-office and FreeClaims
 
-TODO: get batches of claims from hh-office
+TODO:
+  1. 'make claims' redirects to this python app with a list of visit ids
+  2. Response is a confirmation page that
+     a. enumerates the visits (perhaps date, client name, dx, cpt, price)
+     b. includes the CSV data in a textarea
+     c. offers to Submit the CSV data to freeclaims
+  3. Response has either
+     a. a link to the new batch on FreeClaims and a link back to Xata,
+        with the claim_uid and bill_date of the relevant Visits updated, or
+     b. a "try again shortly" link (perhaps it tries again automatically)
 '''
 import time
 import logging
@@ -212,6 +221,9 @@ def sync_all_claims(ua, conn):
 
 
 def visit_for_claim(q, cl):
+    '''@@oops... several visits, with different dates of service,
+    can go on one claim.
+    '''
     client_id = int(cl.acc_no.split('.')[-1])
     q.execute('''
       select id, claim_uid from Attendance

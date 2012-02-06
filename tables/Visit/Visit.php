@@ -73,6 +73,17 @@ class tables_Visit extends Audited{
 
   }
 
+  function block__after_claim_uid_widget () {
+    $app =& Dataface_Application::getInstance();
+    $record =& $app->getRecord();
+    $trace_no = $record->val('claim_uid');
+    if ($trace_no) {
+      echo "<div><a target='_new'
+          href='https://sfreeclaims.anvicare.com/docs/viewonehcfa.asp?trace_no=$trace_no'
+          >CLAIM FORM HCFA-1500 at FreeClaims</a></div>";
+    }
+  }
+
   function charge__default () {
     $app =& Dataface_Application::getInstance();
     $record =& $app->getRecord();

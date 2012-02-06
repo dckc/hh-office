@@ -5,9 +5,14 @@ TODO
 In progress:
 
  * integrate insurance billing
+   * auto-upload insurance report
+     * links to insurance claims on freeclaims
+   * clean up client DX vs. insurance DX
 
 Near term goals:
 
+ * add invoice note
+   * clean up notes in names, various note fields
  * optimize entering sign-in sheets
    * save and add another
    * reduce mouse work
