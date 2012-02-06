@@ -106,15 +106,6 @@ class ListWriter(object):
         self.parts.append(txt)
 
 
-def xataface_connection(opts, section):
-    def opt(n):
-        v = opts.get(section, n)
-        return v[1:-1]  # strip ""s
-
-    return MySQLdb.connect(host=opt('host'), user=opt('user'),
-                           passwd=opt('password'), db=opt('name'))
-    
-
 QUERY=r'''
 select v.claim_uid
      , co.name as `Insurance Company Name`
@@ -125,26 +116,42 @@ select v.claim_uid
      , c.name as `2-PatientName`
      , date_format(c.DOB, '%m/%d/%Y') as `3-PatientDOB`
      , ins.patient_sex `3-PatientGender`
-     , ins.insured_name `4-InsuredName`
+     , case when upper(ins.patient_rel) = 'SELF'
+       then c.name
+       else ins.insured_name end `4-InsuredName`
      , c.address `5-PatientAddress`
      , c.city `5-PatientCity`
      , c.state `5-PatientState`
      , c.zip `5-PatientZip`
      , c.phone `5-PatientPhone`
      , upper(ins.patient_rel) `6-PatientRel`
-     , ins.insured_address `7-InsuredAddr`
-     , ins.insured_city `7-InsAddCity`
-     , ins.insured_state `7-InsAddState`
-     , ins.insured_zip `7-InsAddZip`
-     , ins.insured_phone `7-InsAddPhone`
+     , case when upper(ins.patient_rel) = 'SELF'
+       then c.address
+       else ins.insured_address end `7-InsuredAddr`
+     , case when upper(ins.patient_rel) = 'SELF'
+       then c.city
+       else ins.insured_city end `7-InsAddCity`
+     , case when upper(ins.patient_rel) = 'SELF'
+       then c.state
+       else ins.insured_state end `7-InsAddState`
+     , case when upper(ins.patient_rel) = 'SELF'
+       then c.zip
+       else ins.insured_zip end `7-InsAddZip`
+     , case when upper(ins.patient_rel) = 'SELF'
+       then c.phone
+       else ins.insured_phone end `7-InsAddPhone`
      , ins.patient_status `8-MaritalStatus`
      , ins.patient_status2 `8-Employed?`
      , 'NO' as `10a-CondEmployment`
      , 'NO' as `10b-CondAutoAccident`
      , 'NO' as `10c-CondOtherAccident`
      , ins.insured_policy `11-InsuredGroupNo`
-     , date_format(ins.insured_dob, '%m/%d/%Y') `11a-InsuredsDOB`
-     , ins.insured_sex `11a-InsuredsGender`
+     , date_format(case when upper(ins.patient_rel) = 'SELF'
+                   then c.dob
+                   else ins.insured_dob end, '%m/%d/%Y') `11a-InsuredsDOB`
+     , case when upper(ins.patient_rel) = 'SELF'
+       then ins.patient_sex
+       else ins.insured_sex end `11a-InsuredsGender`
      , 'Signature on file' `12-PatientSign`
      , date_format(current_date, '%m/%d/%Y') `12-Date`
      , 'Signature on file' as `13-AuthSign`
