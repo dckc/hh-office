@@ -9,6 +9,7 @@ setup(name='hh-office',
       packages=find_packages(),
       install_requires=[
           'SQLAlchemy>=0.7',
+          'MySQL-python',
           'mechanize',
           'paste'
           # Paste-1.7.5.1.tar.gz#md5=7ea5fabed7dca48eb46dc613c4b6c4ed
