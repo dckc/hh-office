@@ -47,6 +47,9 @@ class Audited(object):
 class Client(IntId, Migrated, Audited, Base):
     name = Column(TextLine, nullable=False)
 
+    reduced_fee = Column(TextLine)
+
+    # TODO: phase this out.
     note = Column(TEXT())
 
     address = Column(TextLine)
@@ -236,6 +239,10 @@ class Insurance(IntId, Audited, Base):
     notice = Column(TextLine)
     details = Column(TEXT())
 
+    deductible = Column(TextLine)
+    copay = Column(Money)
+    deductible_met = Column(BOOLEAN())
+    
     # Field 1 from user_print_file_spec.csv
     payer_type = Column(types.Enum('Medicare',
                                    'Medicaid',

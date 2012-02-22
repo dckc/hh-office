@@ -12,16 +12,6 @@ CREATE TABLE users (
 
  ;
 
-CREATE TABLE `Carrier` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(50) NOT NULL, 
-	address VARCHAR(50) NOT NULL, 
-	city_st_zip VARCHAR(50) NOT NULL, 
-	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
 CREATE TABLE `Procedure` (
 	cpt VARCHAR(6) NOT NULL, 
 	name VARCHAR(120), 
@@ -43,6 +33,28 @@ CREATE TABLE `Therapist` (
 	added_user VARCHAR(40), 
 	modified_time TIMESTAMP NULL, 
 	modified_user VARCHAR(40), 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Batch` (
+	name VARCHAR(120) NOT NULL, 
+	cutoff DATE, 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (name)
+)
+
+ ;
+
+CREATE TABLE `Carrier` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(50) NOT NULL, 
+	address VARCHAR(50) NOT NULL, 
+	city_st_zip VARCHAR(50) NOT NULL, 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB
 
@@ -73,15 +85,22 @@ CREATE TABLE `Diagnosis` (
 
  ;
 
-CREATE TABLE `Batch` (
-	name VARCHAR(120) NOT NULL, 
-	cutoff DATE, 
-	added_time TIMESTAMP NULL, 
+CREATE TABLE `Group` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP, 
 	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
+	modified_time TIMESTAMP, 
 	modified_user VARCHAR(40), 
-	PRIMARY KEY (name)
-)
+	name VARCHAR(120) NOT NULL, 
+	rate DECIMAL(8, 2) NOT NULL, 
+	evaluation BOOL DEFAULT 0, 
+	cpt VARCHAR(6), 
+	PRIMARY KEY (id), 
+	CHECK (evaluation IN (0, 1)), 
+	FOREIGN KEY(cpt) REFERENCES `Procedure` (cpt)
+)ENGINE=InnoDB
 
  ;
 
@@ -102,21 +121,21 @@ CREATE TABLE `Officer` (
 
  ;
 
-CREATE TABLE `Group` (
+CREATE TABLE `Session` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
+	session_date DATE NOT NULL, 
+	time VARCHAR(40), 
+	`Group_id` INTEGER NOT NULL, 
+	`Therapist_id` INTEGER, 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP, 
+	added_time TIMESTAMP NULL, 
 	added_user VARCHAR(40), 
-	modified_time TIMESTAMP, 
+	modified_time TIMESTAMP NULL, 
 	modified_user VARCHAR(40), 
-	name VARCHAR(120) NOT NULL, 
-	rate DECIMAL(8, 2) NOT NULL, 
-	evaluation BOOL DEFAULT 0, 
-	cpt VARCHAR(6), 
 	PRIMARY KEY (id), 
-	CHECK (evaluation IN (0, 1)), 
-	FOREIGN KEY(cpt) REFERENCES `Procedure` (cpt)
+	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
+	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
@@ -130,6 +149,7 @@ CREATE TABLE `Client` (
 	modified_time TIMESTAMP, 
 	modified_user VARCHAR(40), 
 	name VARCHAR(120) NOT NULL, 
+	reduced_fee VARCHAR(120), 
 	note TEXT, 
 	address VARCHAR(120), 
 	city VARCHAR(24), 
@@ -158,62 +178,6 @@ CREATE TABLE `Client` (
 
  ;
 
-CREATE TABLE `Session` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	session_date DATE NOT NULL, 
-	time VARCHAR(40), 
-	`Group_id` INTEGER NOT NULL, 
-	`Therapist_id` INTEGER, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
-	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Insurance` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	added_time TIMESTAMP, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP, 
-	modified_user VARCHAR(40), 
-	`Carrier_id` INTEGER NOT NULL, 
-	notice VARCHAR(120), 
-	details TEXT, 
-	payer_type ENUM('Medicare','Medicaid','Group Health Plan','Other') NOT NULL, 
-	id_number VARCHAR(30) NOT NULL, 
-	`Client_id` INTEGER NOT NULL, 
-	patient_sex ENUM('M','F') NOT NULL, 
-	insured_name VARCHAR(30) NOT NULL, 
-	patient_rel ENUM('Self','Spouse','Child','Other') NOT NULL, 
-	insured_address VARCHAR(30) NOT NULL, 
-	insured_city VARCHAR(24) NOT NULL, 
-	insured_state VARCHAR(3) NOT NULL, 
-	insured_zip VARCHAR(12) NOT NULL, 
-	insured_phone VARCHAR(15), 
-	patient_status ENUM('Single','Married','Other'), 
-	patient_status2 ENUM('Employed','Full Time Student','Part Time Student'), 
-	insured_policy VARCHAR(30), 
-	insured_dob DATE, 
-	insured_sex ENUM('M','F'), 
-	dx1 VARCHAR(8) NOT NULL, 
-	dx2 VARCHAR(8), 
-	approval TEXT, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(`Carrier_id`) REFERENCES `Carrier` (id) ON DELETE CASCADE, 
-	FOREIGN KEY(`Client_id`) REFERENCES `Client` (id) ON DELETE CASCADE, 
-	FOREIGN KEY(dx1) REFERENCES `Diagnosis` (icd9), 
-	FOREIGN KEY(dx2) REFERENCES `Diagnosis` (icd9)
-)ENGINE=InnoDB
-
- ;
-
 CREATE TABLE `Visit` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	attend_n BOOL DEFAULT 0, 
@@ -238,6 +202,47 @@ CREATE TABLE `Visit` (
 	FOREIGN KEY(cpt) REFERENCES `Procedure` (cpt), 
 	FOREIGN KEY(`Client_id`) REFERENCES `Client` (id) ON DELETE CASCADE, 
 	FOREIGN KEY(`Session_id`) REFERENCES `Session` (id) ON DELETE CASCADE
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Insurance` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	added_time TIMESTAMP, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP, 
+	modified_user VARCHAR(40), 
+	`Carrier_id` INTEGER NOT NULL, 
+	notice VARCHAR(120), 
+	details TEXT, 
+	deductible VARCHAR(120), 
+	copay DECIMAL(8, 2), 
+	deductible_met BOOL, 
+	payer_type ENUM('Medicare','Medicaid','Group Health Plan','Other') NOT NULL, 
+	id_number VARCHAR(30) NOT NULL, 
+	`Client_id` INTEGER NOT NULL, 
+	patient_sex ENUM('M','F') NOT NULL, 
+	insured_name VARCHAR(30) NOT NULL, 
+	patient_rel ENUM('Self','Spouse','Child','Other') NOT NULL, 
+	insured_address VARCHAR(30) NOT NULL, 
+	insured_city VARCHAR(24) NOT NULL, 
+	insured_state VARCHAR(3) NOT NULL, 
+	insured_zip VARCHAR(12) NOT NULL, 
+	insured_phone VARCHAR(15), 
+	patient_status ENUM('Single','Married','Other'), 
+	patient_status2 ENUM('Employed','Full Time Student','Part Time Student'), 
+	insured_policy VARCHAR(30), 
+	insured_dob DATE, 
+	insured_sex ENUM('M','F'), 
+	dx1 VARCHAR(8) NOT NULL, 
+	dx2 VARCHAR(8), 
+	approval TEXT, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(`Carrier_id`) REFERENCES `Carrier` (id) ON DELETE CASCADE, 
+	CHECK (deductible_met IN (0, 1)), 
+	FOREIGN KEY(`Client_id`) REFERENCES `Client` (id) ON DELETE CASCADE, 
+	FOREIGN KEY(dx1) REFERENCES `Diagnosis` (icd9), 
+	FOREIGN KEY(dx2) REFERENCES `Diagnosis` (icd9)
 )ENGINE=InnoDB
 
  ;
