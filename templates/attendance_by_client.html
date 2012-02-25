@@ -23,11 +23,23 @@
     <th id="client_id" title="client_name" align="left" class="field"
 	colspan="2"
 	>Lastname, Firstname ________9_</th>
-    <th class="literal blank">............................</th>
+    <th class="field" title="iif(patient_rel &gt; '', 'Copay: ', '')"
+	>.......</th>
+    <th class="field" align="right"
+	title="copay"         >....</th>
+    <th class="field" title="iif(patient_rel &gt; '', 'Ded: ', '')"
+	>Ded: </th>
+    <th class="field"
+	title="deductible"              >........</th>
+    <th class="field"
+	xtitle="deductible_met"
+	title="iif(deductible_met == '1', '[Y]',
+                   iif(deductible_met == '0', '[n]', ''))"
+	>...</th>
     <th class="field" title="iif(officer_name>'', 'Officer: ', '')"
 	>Officer: </th>
     <th id="client_id" title="officer_name" align="left" class="field"
-	>Officer             ________9_</th>
+	>Officer                      </th>
   </tr>
   <tr id="per_group">
     <th class="literal blank">  </th>
@@ -97,8 +109,9 @@
 <div>
 <h2>Query</h2>
 <pre><code class="query">
-select * from Attendance
-order by client_name, group_name, session_date
+select * from Attendance a
+left join Insurance i on i.client_id = a.client_id
+order by a.client_name, a.group_name, a.session_date
 </code></pre>
 </div>
 
