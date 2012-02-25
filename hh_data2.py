@@ -247,7 +247,8 @@ class Insurance(IntId, Audited, Base):
     payer_type = Column(types.Enum('Medicare',
                                    'Medicaid',
                                    'Group Health Plan',
-                                   'Other'), nullable=False)
+                                   'Other'), nullable=False,
+                        server_default=text('Group Health Plan'))
     id_number = Column(types.String(30), nullable=False)
     # Field 2
     # Column('patient_name', types.String(30), nullable=False),
