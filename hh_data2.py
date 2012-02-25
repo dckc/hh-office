@@ -47,7 +47,7 @@ class Audited(object):
 class Client(IntId, Migrated, Audited, Base):
     name = Column(TextLine, nullable=False)
 
-    reduced_fee = Column(TextLine)
+    reduced_fee = Column(Money)
 
     # TODO: phase this out.
     note = Column(TEXT())
@@ -241,7 +241,7 @@ class Insurance(IntId, Audited, Base):
 
     deductible = Column(TextLine)
     copay = Column(Money)
-    deductible_met = Column(BOOLEAN())
+    deductible_met = Column(BOOLEAN(), server_default=text('0'))
     
     # Field 1 from user_print_file_spec.csv
     payer_type = Column(types.Enum('Medicare',
@@ -259,16 +259,16 @@ class Insurance(IntId, Audited, Base):
     #Column('patient_dob', types.Date, nullable=False),
     patient_sex = Column(types.Enum('M', 'F'), nullable=False)
     # Field 4
-    insured_name = Column(types.String(30), nullable=False)
+    insured_name = Column(types.String(30))
     # Field 5: see Client
     # Field 6
     patient_rel = Column(types.Enum('Self', 'Spouse', 'Child', 'Other'),
            nullable=False)
     # Field 7
-    insured_address = Column(types.String(30), nullable=False)
-    insured_city = Column(types.String(24), nullable=False)
-    insured_state = Column(types.String(3), nullable=False)
-    insured_zip = Column(types.String(12), nullable=False)
+    insured_address = Column(types.String(30))
+    insured_city = Column(types.String(24))
+    insured_state = Column(types.String(3))
+    insured_zip = Column(types.String(12))
     insured_phone = Column(types.String(15))
     # Field 8
     patient_status = Column(types.Enum('Single', 'Married', 'Other'))
