@@ -38,7 +38,8 @@ class tables_Visit extends Audited{
    extraParams: {'-action': 'client_data',
                 '-table': 'Client',
                 '-value': 'id',
-                '-text': 'name'},
+                '-text': 'name',
+		'-aux': 'reduced_fee'},
    onItemSelect: function(item) {
      \$('#Client_id').val(item.data);
      }

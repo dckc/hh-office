@@ -15,6 +15,9 @@ class actions_client_data {
 			
       // Now let's get the text that we are using for this option
       $text = $record->display($query['-text']);
+      if ($query['-aux']) {
+      	 $text = $text . ' ' . $record->display($query['-aux']);
+      }
 
       echo "$text|$value\n";
     }
