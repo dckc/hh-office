@@ -1,55 +1,5 @@
 use hh_office;
 
-CREATE TABLE users (
-	username VARCHAR(120) NOT NULL, 
-	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (username)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Procedure` (
-	cpt VARCHAR(6) NOT NULL, 
-	name VARCHAR(120), 
-	price DECIMAL(8, 2) NOT NULL, 
-	PRIMARY KEY (cpt)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Therapist` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(120) NOT NULL, 
-	weight INTEGER, 
-	npi VARCHAR(10), 
-	tax_id VARCHAR(15), 
-	address VARCHAR(29), 
-	city_st_zip VARCHAR(29), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Batch` (
-	name VARCHAR(120) NOT NULL, 
-	cutoff DATE, 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (name)
-)
-
- ;
-
 CREATE TABLE `Carrier` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(50) NOT NULL, 
@@ -81,6 +31,56 @@ CREATE TABLE `Diagnosis` (
 	icd9 VARCHAR(8) NOT NULL, 
 	name VARCHAR(120), 
 	PRIMARY KEY (icd9)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Batch` (
+	name VARCHAR(120) NOT NULL, 
+	cutoff DATE, 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (name)
+)
+
+ ;
+
+CREATE TABLE `Therapist` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(120) NOT NULL, 
+	weight INTEGER, 
+	npi VARCHAR(10), 
+	tax_id VARCHAR(15), 
+	address VARCHAR(29), 
+	city_st_zip VARCHAR(29), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Procedure` (
+	cpt VARCHAR(6) NOT NULL, 
+	name VARCHAR(120), 
+	price DECIMAL(8, 2) NOT NULL, 
+	PRIMARY KEY (cpt)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE users (
+	username VARCHAR(120) NOT NULL, 
+	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (username)
 )ENGINE=InnoDB
 
  ;
@@ -121,25 +121,6 @@ CREATE TABLE `Officer` (
 
  ;
 
-CREATE TABLE `Session` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	session_date DATE NOT NULL, 
-	time VARCHAR(40), 
-	`Group_id` INTEGER NOT NULL, 
-	`Therapist_id` INTEGER, 
-	id_zoho VARCHAR(40), 
-	id_dabble VARCHAR(40), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
-	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
-)ENGINE=InnoDB
-
- ;
-
 CREATE TABLE `Client` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	id_zoho VARCHAR(40), 
@@ -149,7 +130,7 @@ CREATE TABLE `Client` (
 	modified_time TIMESTAMP, 
 	modified_user VARCHAR(40), 
 	name VARCHAR(120) NOT NULL, 
-	reduced_fee VARCHAR(120), 
+	reduced_fee DECIMAL(8, 2), 
 	note TEXT, 
 	address VARCHAR(120), 
 	city VARCHAR(24), 
@@ -174,6 +155,25 @@ CREATE TABLE `Client` (
 	FOREIGN KEY(`Officer_id`) REFERENCES `Officer` (id) ON DELETE SET NULL, 
 	FOREIGN KEY(`Lawyer_id`) REFERENCES `Officer` (id) ON DELETE SET NULL, 
 	FOREIGN KEY(`Court_id`) REFERENCES `Office` (id) ON DELETE SET NULL
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Session` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	session_date DATE NOT NULL, 
+	time VARCHAR(40), 
+	`Group_id` INTEGER NOT NULL, 
+	`Therapist_id` INTEGER, 
+	id_zoho VARCHAR(40), 
+	id_dabble VARCHAR(40), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(`Group_id`) REFERENCES `Group` (id) ON DELETE CASCADE, 
+	FOREIGN KEY(`Therapist_id`) REFERENCES `Therapist` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
 
  ;
@@ -217,17 +217,17 @@ CREATE TABLE `Insurance` (
 	details TEXT, 
 	deductible VARCHAR(120), 
 	copay DECIMAL(8, 2), 
-	deductible_met BOOL, 
-	payer_type ENUM('Medicare','Medicaid','Group Health Plan','Other') NOT NULL, 
+	deductible_met BOOL DEFAULT 0, 
+	payer_type ENUM('Medicare','Medicaid','Group Health Plan','Other') DEFAULT Group Health Plan NOT NULL, 
 	id_number VARCHAR(30) NOT NULL, 
 	`Client_id` INTEGER NOT NULL, 
 	patient_sex ENUM('M','F') NOT NULL, 
-	insured_name VARCHAR(30) NOT NULL, 
+	insured_name VARCHAR(30), 
 	patient_rel ENUM('Self','Spouse','Child','Other') NOT NULL, 
-	insured_address VARCHAR(30) NOT NULL, 
-	insured_city VARCHAR(24) NOT NULL, 
-	insured_state VARCHAR(3) NOT NULL, 
-	insured_zip VARCHAR(12) NOT NULL, 
+	insured_address VARCHAR(30), 
+	insured_city VARCHAR(24), 
+	insured_state VARCHAR(3), 
+	insured_zip VARCHAR(12), 
 	insured_phone VARCHAR(15), 
 	patient_status ENUM('Single','Married','Other'), 
 	patient_status2 ENUM('Employed','Full Time Student','Part Time Student'), 
