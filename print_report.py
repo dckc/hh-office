@@ -16,6 +16,11 @@ import libxslt
 
 import rlib  # http://rlib.sicompos.com/
              # 06b3e629c6f99a8b2fd1264f32db8f56  rlib-1.3.7.tar.gz
+#Subject: compiling with python
+#For some reason configure does not pick up python unless you supply a prefix.
+#
+#/configure --with-pythonver=2.5 --prefix=/usr
+#http://osdir.com/ml/text.rlib.user/2008-07/msg00002.html
 
 from ocap import DBOpts, dbopts
 import hhtcb
