@@ -20,7 +20,8 @@ PLAIN = [('Content-Type', 'text/plain')]
 
 
 def cgi_main():
-    wsgiref.handlers.CGIHandler().run(report_if_key)
+    app = ReportApp(DBOpts(hhtcb.xataface_config()))
+    wsgiref.handlers.CGIHandler().run(app)
 
 
 def _test_main(ini='conf.ini'):
@@ -43,20 +44,23 @@ def _test_main(ini='conf.ini'):
         outfp.write(part)
 
 
-def report_if_key(env, start_response):
-    dbo = DBOpts(hhtcb.xataface_config())
-    try:
-        host, user, password, name = dbo.webapp_login(env)
-    except KeyError:
-        start_response('400 bad request', PLAIN)
-        return ['missing key parameter ']
-    except OSError:
-        start_response('401 unauthorized', PLAIN)
-        return ['report key does not match.']
+class ReportApp(object):
+    def __init__(self, dbo):
+        self._dbo = dbo
 
-    conn = MySQLdb.connect(host=host, user=user, passwd=password, db=name)
+    def __call__(self, env, start_response):
+        try:
+            host, user, password, name = self._dbo.webapp_login(env)
+        except KeyError:
+            start_response('400 bad request', PLAIN)
+            return ['missing key parameter ']
+        except OSError:
+            start_response('401 unauthorized', PLAIN)
+            return ['report key does not match.']
 
-    return run_report(start_response, conn, datetime.date)
+        conn = MySQLdb.connect(host=host, user=user, passwd=password, db=name)
+
+        return run_report(start_response, conn, datetime.date)
     
 
 def run_report(start_response, conn, datesrc):
