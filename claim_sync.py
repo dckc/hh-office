@@ -22,13 +22,15 @@ import mechanize
 import MySQLdb
 
 import hhtcb
-from ocap import dbopts
+from ocap import DBOpts, dbopts
 
 log = logging.getLogger(__name__)
 
 
 def app_factory(config):
-    return SyncApp()
+    logging.basicConfig(level=logging.INFO)
+    dbo = DBOpts(hhtcb.xataface_config())
+    return SyncApp(dbo)
 
 
 def test_main(argv):
@@ -72,15 +74,49 @@ class SyncApp(object):
     PLAIN = [('Content-Type', 'text/plain')]
     HTML8 = [('Content-Type', 'text/html; charset=utf-8')]
 
+    def __init__(self, dbo):
+        self._dbo = dbo
+
     def __call__(self, env, start_response):
         '''a. enumerates the visits (perhaps date, client name, dx, cpt, price)
         '''
-        start_response('200 ok', self.HTML8)
+        try:
+            host, user, password, name = self._dbo.webapp_login(env)
+        except KeyError:
+            start_response('400 bad request', self.PLAIN)
+            return ['missing key parameter ']
+        except OSError:
+            start_response('401 unauthorized', self.PLAIN)
+            return ['report key does not match.']
+
+        # scrub user input
         params = parse_qs(env.get('QUERY_STRING', ''))
-        return ['<ul>\n'] + [
-            '  <li>%d</li>\n' % int(visit_id)
+        visits_expr = ', '.join([
+            str(int(visit_id))
             for visits in params.get('visits')
             for visit_id in visits.split(',')
+            ])
+        log.debug('visits_expr: %s', visits_expr)
+
+        conn = MySQLdb.connect(host=host, user=user, passwd=password, db=name)
+
+        sql = ('select v.id, s.session_date, c.name,'
+               ' ins.dx1, ins.dx2, v.cpt, p.price'
+               ' from Visit v'
+               ' join Client c on v.client_id = c.id'
+               ' join Insurance ins on ins.Client_id = c.id'
+               ' join `Session` s on v.session_id = s.id'
+               ' join `Procedure` p on p.cpt = v.cpt'
+               ' where v.id in (%s)'
+               ' order by c.name, s.session_date' % visits_expr)
+        log.debug('query: %s', sql)
+        q = conn.cursor()
+        q.execute(sql)
+        start_response('200 ok', self.HTML8)
+        return ['<ul>\n'] + [
+            '  <li>%d: on %s for %s DXs: %s %s CPT: %s $%s</li>\n' % (
+                v_id, svc_date, name, dx1, dx2, cpt, price)
+            for v_id, svc_date, name, dx1, dx2, cpt, price in q.fetchall()
             ] + ['</ul>\n']
 
 
