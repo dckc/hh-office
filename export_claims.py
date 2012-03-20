@@ -20,33 +20,28 @@ PLAIN = [('Content-Type', 'text/plain')]
 
 
 def cgi_main():
-    app = ReportApp(DBOpts(hhtcb.xataface_config()))
+    app = ReportApp(DBOpts(hhtcb.xataface_config()), datetime.date)
     wsgiref.handlers.CGIHandler().run(app)
 
 
 def _test_main(ini='conf.ini'):
     import sys
 
-    outfn = sys.argv[1]
+    outfn, visits = sys.argv[1], sys.argv[2:]
     host, user, password, name = dbopts(hhtcb.xataface_config())
 
-    def start_response(r, hdrs):
-        print r
-        print hdrs
-
-
-    content = run_report(start_response,
-                         MySQLdb.connect(host=host, user=user,
-                                         passwd=password, db=name),
-                         datetime.date)
+    content = format_claims(MySQLdb.connect(host=host, user=user,
+                                            passwd=password, db=name),
+                            map(int, visits))
     outfp = open(outfn, 'w')
     for part in content:
         outfp.write(part)
 
 
 class ReportApp(object):
-    def __init__(self, dbo):
+    def __init__(self, dbo, datesrc):
         self._dbo = dbo
+        self._datesrc = datesrc
 
     def __call__(self, env, start_response):
         try:
@@ -60,27 +55,29 @@ class ReportApp(object):
 
         conn = MySQLdb.connect(host=host, user=user, passwd=password, db=name)
 
-        return run_report(start_response, conn, datetime.date)
+        start_response('200 ok',
+                       [('content-type', 'text/plain'),
+                        ('Content-Disposition',
+                         'attachment; filename=claims-%s.csv'
+                         % self._datesrc.today())])
+
+        return format_claims(conn)
     
 
-def run_report(start_response, conn, datesrc):
+def format_claims(conn, visit_ids):
     cursor = conn.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute(QUERY)
-
-    start_response('200 ok',
-                   [('content-type', 'text/plain'),
-                    ('Content-Disposition',
-                     'attachment; filename=claims-%s.csv' % datesrc.today())])
+    cursor.execute(QUERY % dict(
+            visit_ids=', '.join([str(i) for i in visit_ids])))
 
     buf = ListWriter()
     out = csv.DictWriter(buf, COLUMNS, quoting=csv.QUOTE_ALL)
     out.writerow(dict(zip(COLUMNS, COLUMNS)))
     
-    for claim_uid, group in groupby(cursor.fetchall(),
-                                    itemgetter('claim_uid')):
-        records = list(group)
+    for client_id, records in by_page(groupby(cursor.fetchall(),
+                                            itemgetter('client_id')),
+                                    pg_size=6):
         claim = records[0]
-        del claim['claim_uid']
+        del claim['client_id']
 
         tot = claim['28-TotalCharge']
         for idx in range(1, len(records)):
@@ -102,6 +99,15 @@ def run_report(start_response, conn, datesrc):
     return buf.parts
 
 
+def by_page(record_groups, pg_size):
+    for k, group in record_groups:
+        gl = list(group)
+        offset = 0
+        while offset < len(gl):
+            yield k, gl[offset:offset + pg_size]
+            offset += pg_size
+
+
 class ListWriter(object):
     def __init__(self):
         self.parts = []
@@ -111,14 +117,14 @@ class ListWriter(object):
 
 
 QUERY=r'''
-select v.claim_uid
+select c.id client_id
      , co.name as `Insurance Company Name`
      , co.address `Insurance Company Address 1`
      , co.city_st_zip `Insurance Company Address 2`
      , ins.payer_type `1-InsuredPlanName`
      , ins.id_number `1a-InsuredIDNo`
      , c.name as `2-PatientName`
-     , date_format(c.DOB, '%m/%d/%Y') as `3-PatientDOB`
+     , date_format(c.DOB, '%%m/%%d/%%Y') as `3-PatientDOB`
      , ins.patient_sex `3-PatientGender`
      , case when upper(ins.patient_rel) = 'SELF'
        then c.name
@@ -152,12 +158,12 @@ select v.claim_uid
      , ins.insured_policy `11-InsuredGroupNo`
      , date_format(case when upper(ins.patient_rel) = 'SELF'
                    then c.dob
-                   else ins.insured_dob end, '%m/%d/%Y') `11a-InsuredsDOB`
+                   else ins.insured_dob end, '%%m/%%d/%%Y') `11a-InsuredsDOB`
      , case when upper(ins.patient_rel) = 'SELF'
        then ins.patient_sex
        else ins.insured_sex end `11a-InsuredsGender`
      , 'Signature on file' `12-PatientSign`
-     , date_format(current_date, '%m/%d/%Y') `12-Date`
+     , date_format(current_date, '%%m/%%d/%%Y') `12-Date`
      , 'Signature on file' as `13-AuthSign`
      , 'NO' as `20-OutsideLab`
      , '0.00' as `20-Charges`
@@ -165,8 +171,8 @@ select v.claim_uid
      , ins.dx2 `21.2-Diagnosis`
      , ins.approval `23-PriorAuth`
 
-     , date_format(s.session_date, '%m/%d/%Y') `24.1.a-DOSFrom`
-     , date_format(s.session_date, '%m/%d/%Y') `24.1.a-DOSTo`
+     , date_format(s.session_date, '%%m/%%d/%%Y') `24.1.a-DOSFrom`
+     , date_format(s.session_date, '%%m/%%d/%%Y') `24.1.a-DOSTo`
      , v.cpt as `24.1.d-CPT`
      , '11' as `24.1.b-Place`
      , 1 as `24.1.e-Code`
@@ -184,7 +190,7 @@ select v.claim_uid
      , 0 `29-AmountPaid`
      , p.price as `30-BalanceDue`
      , bp.name as `31-PhysicianSignature`
-     , date_format(current_date, '%m/%d/%Y') `31-Date`
+     , date_format(current_date, '%%m/%%d/%%Y') `31-Date`
      , bp.name `33-ClinicName`
      , bp.address as `33-ClinicAddressLine1`
      , bp.city_st_zip as `33-ClinicCityStateZip`
@@ -198,8 +204,8 @@ join `Session` s on v.Session_id = s.id
 join `Group` g on s.Group_id = g.id
 join Therapist as bp on bp.tax_id is not null
 where v.bill_date is null and v.check_date is null
-and v.claim_uid is not null
-order by c.name, v.claim_uid, s.session_date
+and v.id in (%(visit_ids)s)
+order by c.name, c.id, s.session_date, v.id
 '''
 
 COLUMNS=[literal.strip()[1:-1] for literal in '''
