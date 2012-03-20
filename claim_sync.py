@@ -16,6 +16,7 @@ import logging
 from collections import namedtuple
 import datetime
 from urlparse import parse_qs
+from xml.sax import saxutils
 
 from mechanize._beautifulsoup import BeautifulSoup as HTML
 import mechanize
@@ -23,6 +24,7 @@ import MySQLdb
 
 import hhtcb
 from ocap import DBOpts, dbopts
+from export_claims import format_claims
 
 log = logging.getLogger(__name__)
 
@@ -91,33 +93,42 @@ class SyncApp(object):
 
         # scrub user input
         params = parse_qs(env.get('QUERY_STRING', ''))
-        visits_expr = ', '.join([
-            str(int(visit_id))
-            for visits in params.get('visits')
-            for visit_id in visits.split(',')
-            ])
-        log.debug('visits_expr: %s', visits_expr)
+        visit_ids = [int(visit_id)
+                     for visits in params.get('visits')
+                     for visit_id in visits.split(',')]
+        log.debug('visit_ids: %s', visit_ids)
 
         conn = MySQLdb.connect(host=host, user=user, passwd=password, db=name)
+        content, claims = format_claims(conn, visit_ids)
 
-        sql = ('select v.id, s.session_date, c.name,'
-               ' ins.dx1, ins.dx2, v.cpt, p.price'
-               ' from Visit v'
-               ' join Client c on v.client_id = c.id'
-               ' join Insurance ins on ins.Client_id = c.id'
-               ' join `Session` s on v.session_id = s.id'
-               ' join `Procedure` p on p.cpt = v.cpt'
-               ' where v.id in (%s)'
-               ' order by c.name, s.session_date' % visits_expr)
-        log.debug('query: %s', sql)
-        q = conn.cursor()
-        q.execute(sql)
         start_response('200 ok', self.HTML8)
-        return ['<ul>\n'] + [
-            '  <li>%d: on %s for %s DXs: %s %s CPT: %s $%s</li>\n' % (
-                v_id, svc_date, name, dx1, dx2, cpt, price)
-            for v_id, svc_date, name, dx1, dx2, cpt, price in q.fetchall()
-            ] + ['</ul>\n']
+        return (['<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml">\n',
+                 '<head><title>@@</title></head>\n',
+                 '<body>\n',
+                 '<h1>Insurance Claim Batch</h1>\n',
+                 '<ol>\n'] +
+                [piece for claim in claims
+                 for piece in
+                 (['  <li>%s $%s<br />DX: %s %s <ol>\n' % (
+                        saxutils.escape(claim['detail']['2-PatientName']),
+                        claim['detail']['28-TotalCharge'],
+                        claim['detail']['21.1-Diagnosis'],
+                        claim['detail']['21.2-Diagnosis'] or '')] +
+                  ['    <li>on %s CPT: %s $%s</li>\n' % (
+                            item['24.1.a-DOSFrom'],
+                            item['24.1.d-CPT'],
+                            item['24.1.f-Charges'])
+                   for item in claim['items']] +
+                  ['</ol>\n', '</li>\n'])] +
+                ['</ol>\n',
+                 '<form>\n',
+                 '<label>FreeClaims code:'
+                 '<textarea name="claim_data">\n'] +
+                [saxutils.escape(piece) for piece in content] +
+                ['</textarea></label>\n',
+                 '</form>\n',
+                 '</body>\n',
+                 '</html>\n'])
 
 
 class FreeClaimsUA(mechanize.Browser):

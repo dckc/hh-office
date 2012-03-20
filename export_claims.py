@@ -30,12 +30,13 @@ def _test_main(ini='conf.ini'):
     outfn, visits = sys.argv[1], sys.argv[2:]
     host, user, password, name = dbopts(hhtcb.xataface_config())
 
-    content = format_claims(MySQLdb.connect(host=host, user=user,
-                                            passwd=password, db=name),
-                            map(int, visits))
+    content, pages = format_claims(MySQLdb.connect(host=host, user=user,
+                                                   passwd=password, db=name),
+                                   map(int, visits))
     outfp = open(outfn, 'w')
     for part in content:
         outfp.write(part)
+    print pages
 
 
 class ReportApp(object):
@@ -61,14 +62,16 @@ class ReportApp(object):
                          'attachment; filename=claims-%s.csv'
                          % self._datesrc.today())])
 
-        return format_claims(conn)
-    
+        content, pages = format_claims(conn)
+        return content
+
 
 def format_claims(conn, visit_ids):
     cursor = conn.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(QUERY % dict(
             visit_ids=', '.join([str(i) for i in visit_ids])))
 
+    pages = []
     buf = ListWriter()
     out = csv.DictWriter(buf, COLUMNS, quoting=csv.QUOTE_ALL)
     out.writerow(dict(zip(COLUMNS, COLUMNS)))
@@ -77,7 +80,6 @@ def format_claims(conn, visit_ids):
                                             itemgetter('client_id')),
                                     pg_size=6):
         claim = records[0]
-        del claim['client_id']
 
         tot = claim['28-TotalCharge']
         for idx in range(1, len(records)):
@@ -94,9 +96,17 @@ def format_claims(conn, visit_ids):
 
         #import pprint
         #pprint.pprint(claim)
+        visit_ids = [r['visit_id'] for r in records]
+        pages.append(dict(client_id=client_id,
+                          total=tot,
+                          visit_ids=visit_ids,
+                          items=records,
+                          detail=claim))
+        del claim['client_id']
+        del claim['visit_id']
         out.writerow(claim)
 
-    return buf.parts
+    return buf.parts, pages
 
 
 def by_page(record_groups, pg_size):
@@ -117,7 +127,7 @@ class ListWriter(object):
 
 
 QUERY=r'''
-select c.id client_id
+select c.id client_id, v.id visit_id
      , co.name as `Insurance Company Name`
      , co.address `Insurance Company Address 1`
      , co.city_st_zip `Insurance Company Address 2`
