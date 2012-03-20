@@ -26,7 +26,11 @@ from ocap import dbopts
 log = logging.getLogger(__name__)
 
 
-def main(argv):
+def app_factory(config):
+    return SyncApp()
+
+
+def test_main(argv):
     import sys
     import pprint
 
@@ -61,6 +65,14 @@ def main(argv):
                             for batch in ua.batches()])
         else:
             raise ValueError('huh? ' + action)
+
+
+class SyncApp(object):
+    PLAIN = [('Content-Type', 'text/plain')]
+
+    def __call__(self, env, start_response):
+        start_response('200 ok', self.PLAIN)
+        return ['WSGI env:', str(env)]
 
 
 class FreeClaimsUA(mechanize.Browser):
@@ -260,4 +272,4 @@ def scrub_nested_form(ua, response):
 
 if __name__ == '__main__':
     import sys
-    main(sys.argv)
+    test_main(sys.argv)

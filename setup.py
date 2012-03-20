@@ -11,7 +11,8 @@ setup(name='hh-office',
           'SQLAlchemy>=0.7',
           'MySQL-python',
           'mechanize',
-          'paste'
+          'paste',
+          'PasteDeploy'
           # Paste-1.7.5.1.tar.gz#md5=7ea5fabed7dca48eb46dc613c4b6c4ed
           # ClientForm-0.2.10-py2.6.egg#md5=86f1cca840d245e2612cc558492f5eb3
     ])
