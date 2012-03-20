@@ -15,12 +15,13 @@ import time
 import logging
 from collections import namedtuple
 import datetime
-from urlparse import parse_qs
 from xml.sax import saxutils
+import StringIO
 
 from mechanize._beautifulsoup import BeautifulSoup as HTML
 import mechanize
 import MySQLdb
+import paste
 
 import hhtcb
 from ocap import DBOpts, dbopts
@@ -92,20 +93,34 @@ class SyncApp(object):
             return ['report key does not match.']
 
         # scrub user input
-        params = parse_qs(env.get('QUERY_STRING', ''))
+        params = paste.request.parse_formvars(env)
         visit_ids = [int(visit_id)
-                     for visits in params.get('visits')
-                     for visit_id in visits.split(',')]
+                     for visit_id in params.get('visits').split(',')]
         log.debug('visit_ids: %s', visit_ids)
 
         conn = MySQLdb.connect(host=host, user=user, passwd=password, db=name)
         content, claims = format_claims(conn, visit_ids)
 
-        start_response('200 ok', self.HTML8)
+        if env['REQUEST_METHOD'] == 'POST':
+            u, p = params.get('user'), params.get('password')
+            batches, results = self.upload(u, p, content, claims)
+            start_response('200 ok', self.HTML8)
+            return format_upload_results(batches[0], results)
+        else:
+            start_response('200 ok', self.HTML8)
+            base = env['SCRIPT_NAME'] + env['PATH_INFO']
+            key = params.get('key')
+            return self.show(base, key, visit_ids, content, claims)
+
+    def show(self, base, key, visit_ids, content, claims,
+             default_user='4482',
+             title='Hope Harbor FreeClaims Helper'):
         return (['<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml">\n',
-                 '<head><title>@@</title></head>\n',
+                 '<head><title>%s</title></head>\n' % title,
                  '<body>\n',
                  '<h1>Insurance Claim Batch</h1>\n',
+                 '<form method="POST" action="?key=%s&visits=%s">\n' % (
+                    key, ','.join(map(str, visit_ids))),
                  '<ol>\n'] +
                 [piece for claim in claims
                  for piece in
@@ -123,14 +138,55 @@ class SyncApp(object):
                    for item in claim['items']] +
                   ['</ol>\n', '</li>\n'])] +
                 ['</ol>\n',
-                 '<form>\n',
-                 '<label>FreeClaims code:'
+                 '<p><em>Submitting this form will upload a "file"',
+                 '  to FreeClaims and wait for acknowledgement.',
+                 ' It may take a few minutes.</em></p>',
+                 '<label>FreeClaims file data:'
                  '<textarea name="claim_data">\n'] +
                 [saxutils.escape(piece) for piece in content] +
                 ['</textarea></label>\n',
+                 '<p>FreeClaims user id: ',
+                 '<input name="user" value="%s"/></p>' % default_user,
+                 '<p>FreeClaims password: ',
+                 '<input name="password" type="password" /></p>',
+                 '<input type="submit" value="Upload" /></p>',
                  '</form>\n',
                  '</body>\n',
                  '</html>\n'])
+
+    def upload(self, u, p, content, claims, fn='claim_sync.csv'):
+        ua = FreeClaimsUA()
+        ua.login(u, p)
+        data = StringIO.StringIO(''.join(content))
+        batches = ua.upload_batch_data(data, fn)
+        results = ua.claims(batches[0])
+        return batches, results
+
+
+def format_upload_results(batch, results):
+    return (['<table border="1">\n',
+             '<tr>\n',
+             '<th>Trace</th><th>Batch</th><th>Status</th>',
+             '<th>Last</th><th>First</th><th>Acct</th>',
+             '<th>Service Date</th><th>Date Received</th>',
+             '</tr>\n'] +
+            [piece for cout in results for piece in
+             ['<tr>',
+              '<td><a href="%s%s">#%s</a></td>' % (
+                    FreeClaimsUA.base, cout.href, cout.trace_no),
+              '<td><a href="%s%s">Batch #%s</a></td>' % (
+                FreeClaimsUA.base, batch.href, batch.batch_no),
+              '<td>%s</td>' % cout.status,
+              '<td>%s</td>' % cout.last,
+              '<td>%s</td>' % cout.first,
+              '<td>%s</td>' % cout.acc_no,
+              '<td>%s</td>' % cout.service_date,
+              '<td>%s</td>' % cout.date_received,
+              '</tr>'
+              ]] +
+            ['</table>',
+             '<p><em>@@TODO: offer to update billing date in Xata',
+             ' and maintain the links above.</em></p>'])
 
 
 class FreeClaimsUA(mechanize.Browser):
@@ -164,7 +220,10 @@ class FreeClaimsUA(mechanize.Browser):
         t = doc.html.first('table', {'align': 'Center'})
         return [claim(row) for row in t('tr')[1:]]
 
-    def upload_file(self, claim_fn, pg='upload.asp', form='Upload'):
+    def upload_file(self, claim_fn):
+        self.upload_data(open(claim_fn), claim_fn)
+
+    def upload_data(self, claim_fp, claim_fn, pg='upload.asp', form='Upload'):
         log.debug('upload: open(%s).', pg)
         r3 = self.open(pg)
         scrub_nested_form(self, r3)
@@ -172,13 +231,16 @@ class FreeClaimsUA(mechanize.Browser):
         self.select_form(form)
 
         log.debug('upload: add_file(%s).', claim_fn)
-        self.form.add_file(open(claim_fn), 'text/plain', claim_fn)
+        self.form.add_file(claim_fp, 'text/plain', claim_fn)
         log.debug('upload: submit claims.')
         r4 = self.submit()
         # @@TODO: parse server-assigned name
         return r4.get_data()
 
     def upload_batch(self, claim_fn):
+        self.upload_batch_data(open(claim_fn), claim_fn)
+
+    def upload_batch_data(self, claim_fp, claim_fn):
         '''Upload a file of claims and wait for the new batch number.
 
         @return: list of batches for this account, starting with the new one.
@@ -186,7 +248,7 @@ class FreeClaimsUA(mechanize.Browser):
         We assume noone else is uploading concurrently.
         '''
         before = self.batches()
-        self.upload_file(claim_fn)
+        self.upload_data(claim_fp, claim_fn)
         while 1:
             log.debug('wait: sleep 2')
             time.sleep(2)
