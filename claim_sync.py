@@ -15,6 +15,7 @@ import time
 import logging
 from collections import namedtuple
 import datetime
+from urlparse import parse_qs
 
 from mechanize._beautifulsoup import BeautifulSoup as HTML
 import mechanize
@@ -69,10 +70,18 @@ def test_main(argv):
 
 class SyncApp(object):
     PLAIN = [('Content-Type', 'text/plain')]
+    HTML8 = [('Content-Type', 'text/html; charset=utf-8')]
 
     def __call__(self, env, start_response):
-        start_response('200 ok', self.PLAIN)
-        return ['WSGI env:', str(env)]
+        '''a. enumerates the visits (perhaps date, client name, dx, cpt, price)
+        '''
+        start_response('200 ok', self.HTML8)
+        params = parse_qs(env.get('QUERY_STRING', ''))
+        return ['<ul>\n'] + [
+            '  <li>%d</li>\n' % int(visit_id)
+            for visits in params.get('visits')
+            for visit_id in visits.split(',')
+            ] + ['</ul>\n']
 
 
 class FreeClaimsUA(mechanize.Browser):
