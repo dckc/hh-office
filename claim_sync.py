@@ -109,7 +109,9 @@ class SyncApp(object):
                  '<ol>\n'] +
                 [piece for claim in claims
                  for piece in
-                 (['  <li>%s $%s<br />DX: %s %s <ol>\n' % (
+                 (['  <li>%s<br />%s $%s<br />DX: %s %s <ol>\n' % (
+                        saxutils.escape(claim['detail'][
+                                    'Insurance Company Name']),
                         saxutils.escape(claim['detail']['2-PatientName']),
                         claim['detail']['28-TotalCharge'],
                         claim['detail']['21.1-Diagnosis'],
