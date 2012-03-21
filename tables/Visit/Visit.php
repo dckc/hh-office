@@ -79,9 +79,21 @@ class tables_Visit extends Audited{
     $record =& $app->getRecord();
     $trace_no = $record->val('claim_uid');
     if ($trace_no) {
+      if (stristr($trace_no, ',')) {
+        list($trace_no, $batch_no) = explode(",", $trace_no);
+      } else {
+	$batch_no = "";
+      }
+
       echo "<div><a target='_new'
           href='https://sfreeclaims.anvicare.com/docs/viewonehcfa.asp?trace_no=$trace_no'
-          >CLAIM FORM HCFA-1500 at FreeClaims</a></div>";
+          >FreeClaims trace #$trace_no HCFA-1500</a>";
+
+      if ($batch_no) {
+	echo "<br /><a target='_new'
+          href='https://sfreeclaims.anvicare.com/docs/ViewClaims.asp?batch_no=$batch_no'>FreeClaims batch #$batch_no</a>";
+      }
+      echo "</div>";
     }
   }
 

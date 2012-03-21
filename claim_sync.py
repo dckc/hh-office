@@ -17,6 +17,7 @@ from collections import namedtuple
 import datetime
 from xml.sax import saxutils
 import StringIO
+import csv
 
 from mechanize._beautifulsoup import BeautifulSoup as HTML
 import mechanize
@@ -24,7 +25,7 @@ import MySQLdb
 import paste
 
 import hhtcb
-from ocap import DBOpts, dbopts
+from ocap import DBOpts
 from export_claims import format_claims
 
 log = logging.getLogger(__name__)
@@ -49,11 +50,6 @@ def test_main(argv):
             username, password = argv[2:4]
             del argv[1:4]
             ua.login(username, password)
-        elif action == '--match':
-            h, u, p, n = dbopts(hhtcb.xataface_config())
-            conn = MySQLdb.connect(host=h, user=u, passwd=p, db=n)
-            sync_all_claims(ua, conn)
-            del argv[1]
         elif action == '--upload':
             claim_fn = argv[2]
             del argv[1:3]
@@ -67,8 +63,9 @@ def test_main(argv):
             pprint.pprint(ua._batches(open(doc_fn).read()))
         elif action == '--claims':
             del argv[1]
-            pprint.pprint([(batch, ua.claims(batch))
-                            for batch in ua.batches()])
+            batches_flatten(sys.stdout,
+                            [(batch, ua.claims(batch))
+                             for batch in ua.batches()])
         else:
             raise ValueError('huh? ' + action)
 
@@ -77,11 +74,13 @@ class SyncApp(object):
     PLAIN = [('Content-Type', 'text/plain')]
     HTML8 = [('Content-Type', 'text/html; charset=utf-8')]
 
-    def __init__(self, dbo):
+    def __init__(self, dbo,
+                 title='Hope Harbor FreeClaims Helper'):
         self._dbo = dbo
+        self._title = title
 
     def __call__(self, env, start_response):
-        '''a. enumerates the visits (perhaps date, client name, dx, cpt, price)
+        '''Check authorization, login to the DB, and dispatch to show/upload.
         '''
         try:
             host, user, password, name = self._dbo.webapp_login(env)
@@ -104,8 +103,9 @@ class SyncApp(object):
         if env['REQUEST_METHOD'] == 'POST':
             u, p = params.get('user'), params.get('password')
             batches, results = self.upload(u, p, content, claims)
+            update_visits(conn, claims, results)
             start_response('200 ok', self.HTML8)
-            return format_upload_results(batches[0], results)
+            return format_upload_results(self._title, batches[0], results)
         else:
             start_response('200 ok', self.HTML8)
             base = env['SCRIPT_NAME'] + env['PATH_INFO']
@@ -113,80 +113,104 @@ class SyncApp(object):
             return self.show(base, key, visit_ids, content, claims)
 
     def show(self, base, key, visit_ids, content, claims,
-             default_user='4482',
-             title='Hope Harbor FreeClaims Helper'):
-        return (['<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml">\n',
-                 '<head><title>%s</title></head>\n' % title,
-                 '<body>\n',
-                 '<h1>Insurance Claim Batch</h1>\n',
-                 '<form method="POST" action="?key=%s&visits=%s">\n' % (
+             default_user='4482'):
+        return doc_with(
+            self._title,
+            ['<h1>Insurance Claim Batch</h1>\n',
+             '<form method="POST" action="?key=%s&visits=%s">\n' % (
                     key, ','.join(map(str, visit_ids))),
-                 '<ol>\n'] +
-                [piece for claim in claims
-                 for piece in
-                 (['  <li>%s<br />%s $%s<br />DX: %s %s <ol>\n' % (
-                        saxutils.escape(claim['detail'][
+             '<ol>\n'] +
+            [piece for claim in claims
+             for piece in
+             (['  <li>%s<br />%s $%s<br />DX: %s %s <ol>\n' % (
+                            saxutils.escape(claim['detail'][
                                     'Insurance Company Name']),
-                        saxutils.escape(claim['detail']['2-PatientName']),
-                        claim['detail']['28-TotalCharge'],
-                        claim['detail']['21.1-Diagnosis'],
-                        claim['detail']['21.2-Diagnosis'] or '')] +
-                  ['    <li>on %s CPT: %s $%s</li>\n' % (
+                            saxutils.escape(claim['detail']['2-PatientName']),
+                            claim['detail']['28-TotalCharge'],
+                            claim['detail']['21.1-Diagnosis'],
+                            claim['detail']['21.2-Diagnosis'] or '')] +
+              ['    <li>on %s CPT: %s $%s</li>\n' % (
                             item['24.1.a-DOSFrom'],
                             item['24.1.d-CPT'],
                             item['24.1.f-Charges'])
-                   for item in claim['items']] +
-                  ['</ol>\n', '</li>\n'])] +
-                ['</ol>\n',
-                 '<p><em>Submitting this form will upload a "file"',
-                 '  to FreeClaims and wait for acknowledgement.',
-                 ' It may take a few minutes.</em></p>',
-                 '<label>FreeClaims file data:'
-                 '<textarea name="claim_data">\n'] +
-                [saxutils.escape(piece) for piece in content] +
-                ['</textarea></label>\n',
-                 '<p>FreeClaims user id: ',
-                 '<input name="user" value="%s"/></p>' % default_user,
-                 '<p>FreeClaims password: ',
-                 '<input name="password" type="password" /></p>',
-                 '<input type="submit" value="Upload" /></p>',
-                 '</form>\n',
-                 '</body>\n',
-                 '</html>\n'])
+               for item in claim['items']] +
+              ['</ol>\n', '</li>\n'])] +
+            ['</ol>\n',
+             '<p><em>Submitting this form will upload a "file"',
+             '  to FreeClaims and wait for acknowledgement.',
+             ' It may take a few minutes.</em></p>',
+             '<label>FreeClaims file data:'
+             '<textarea name="claim_data">\n'] +
+            [saxutils.escape(piece) for piece in content] +
+            ['</textarea></label>\n',
+             '<p>FreeClaims user id: ',
+             '<input name="user" value="%s"/></p>' % default_user,
+             '<p>FreeClaims password: ',
+             '<input name="password" type="password" /></p>',
+             '<input type="submit" value="Upload" /></p>',
+             '</form>\n'])
 
     def upload(self, u, p, content, claims, fn='claim_sync.csv'):
         ua = FreeClaimsUA()
         ua.login(u, p)
-        data = StringIO.StringIO(''.join(content))
+        txt = ''.join(content)
+        data = StringIO.StringIO(txt)
+        log.info('uploading %d bytes', len(txt))
         batches = ua.upload_batch_data(data, fn)
+        log.info('found batch: %s; getting claims', batches[0].batch_no)
         results = ua.claims(batches[0])
+        log.info('found %d claims', len(results))
         return batches, results
 
 
-def format_upload_results(batch, results):
-    return (['<table border="1">\n',
-             '<tr>\n',
-             '<th>Trace</th><th>Batch</th><th>Status</th>',
-             '<th>Last</th><th>First</th><th>Acct</th>',
-             '<th>Service Date</th><th>Date Received</th>',
-             '</tr>\n'] +
-            [piece for cout in results for piece in
-             ['<tr>',
-              '<td><a href="%s%s">#%s</a></td>' % (
+def update_visits(conn, claims, results):
+    for cin, cout in zip(claims, results):
+        visit_ids = cin['visit_ids']
+        sql = ("""update Visit v
+               set claim_uid = concat(%%s, ',', %%s) 
+               where v.id in (%s)""" % ', '.join(map(str, visit_ids)))
+        log.info('Updating (%s) to trace %s, batch %s\nSQL:%s',
+                 visit_ids, cout.trace_no, cout.batch, sql)
+        work = conn.cursor()
+        work.execute(sql, (cout.trace_no, cout.batch))
+        conn.commit()
+
+
+def doc_with(title, body):
+    return (['<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml">\n',
+             '<head><title>%s</title></head>\n' % title,
+             '<body>\n'] + body +
+            ['</body>\n',
+             '</html>\n'])
+
+
+def format_upload_results(title, batch, results):
+    return doc_with(
+        title,
+        ['<table border="1">\n',
+         '<tr>\n',
+         '<th>Trace</th><th>Batch</th><th>Status</th>',
+         '<th>Last</th><th>First</th><th>Acct</th>',
+         '<th>Service Date</th><th>Date Received</th>',
+         '</tr>\n'] +
+        [piece for cout in results for piece in
+         ['<tr>',
+          '<td><a href="%s%s">%s</a></td>' % (
                     FreeClaimsUA.base, cout.href, cout.trace_no),
-              '<td><a href="%s%s">Batch #%s</a></td>' % (
-                FreeClaimsUA.base, batch.href, batch.batch_no),
-              '<td>%s</td>' % cout.status,
-              '<td>%s</td>' % cout.last,
-              '<td>%s</td>' % cout.first,
-              '<td>%s</td>' % cout.acc_no,
-              '<td>%s</td>' % cout.service_date,
-              '<td>%s</td>' % cout.date_received,
-              '</tr>'
-              ]] +
-            ['</table>',
-             '<p><em>@@TODO: offer to update billing date in Xata',
-             ' and maintain the links above.</em></p>'])
+          '<td><a href="%s%s">%s</a></td>' % (
+                    FreeClaimsUA.base, batch.href, batch.batch_no),
+          '<td>%s</td>' % cout.status,
+          '<td>%s</td>' % cout.last,
+          '<td>%s</td>' % cout.first,
+          '<td>%s</td>' % cout.acc_no,
+          '<td>%s</td>' % cout.service_date,
+          '<td>%s</td>' % cout.date_received,
+          '</tr>'
+          ]] +
+        ['</table>',
+         '<p><strong>To update billing dates, return to Hope Harbor Attendance',
+         ' using the back button and choose the Update action button.',
+         '</strong></p>'])
 
 
 class FreeClaimsUA(mechanize.Browser):
@@ -275,6 +299,22 @@ Claim = namedtuple('Claim',
                    'last first acc_no service_date date_received')
 
 
+def batches_flatten(out, batches_claims):
+    co = csv.writer(out)
+    co.writerow('''batch_no trace_no status
+                   last first acc_no client_id
+                   service_date date_received'''.split())
+
+    co.writerows([
+            (batch.batch_no,
+             claim.trace_no, claim.status,
+             claim.last, claim.first,
+             claim.acc_no, claim.acc_no.split('.')[-1],
+             claim.service_date, claim.date_received)
+        for batch, claims in batches_claims
+        for claim in claims])
+
+
 def claim(row):
     '''
     >>> claim(HTML(_CLAIM_MARKUP))
@@ -317,61 +357,6 @@ _CLAIM_MARKUP = '''
                          <td class="g" align="right">&nbsp;12/2/2011</td>
                             </tr>
 '''
-
-
-def sync_all_claims(ua, conn):
-    def update(visit_id, cl):
-        log.debug('''Set claim_uid = %s where id = %s ''',
-                  cl.trace_no, visit_id)
-        tx = conn.cursor()
-        tx.execute('''update Visit set claim_uid = %s where id = %s ''',
-                   (cl.trace_no, visit_id))
-        tx.close()
-
-    q = conn.cursor()
-
-    all_claims = [cl for b in ua.batches() for cl in ua.claims(b)]
-    for cl in all_claims:
-        log.debug('\n\n=== %s', cl)
-
-        if cl.status == 'IGNORED':
-            log.debug('ignored.')
-            continue
-
-        try:
-            visit_id, claim_uid = visit_for_claim(q, cl)
-        except (KeyError, ValueError):
-            continue
-
-        if str(cl.trace_no) != claim_uid:
-            update(visit_id, cl)
-        else:
-            log.debug('Visit %s already has claim_uid = %s',
-                      visit_id, claim_uid)
-
-    conn.commit()
-
-
-def visit_for_claim(q, cl):
-    '''@@oops... several visits, with different dates of service,
-    can go on one claim.
-    '''
-    client_id = int(cl.acc_no.split('.')[-1])
-    q.execute('''
-      select id, claim_uid from Attendance
-      where client_id = %s
-        and session_date = %s and bill_date = %s''',
-      (client_id, cl.service_date, cl.date_received))
-    answers = q.fetchall()
-
-    if len(answers) == 1:
-        return answers[0]
-    elif not answers:
-        log.info('no match for claim: %s', cl)
-        raise KeyError, cl.trace_no
-    else:
-        log.warn('multiple matches for claim: %s', cl)
-        raise ValueError, cl.trace_no
 
 
 def scrub_nested_form(ua, response):

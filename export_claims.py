@@ -77,7 +77,7 @@ def format_claims(conn, visit_ids):
     out.writerow(dict(zip(COLUMNS, COLUMNS)))
     
     for client_id, records in by_page(groupby(cursor.fetchall(),
-                                            itemgetter('client_id')),
+                                              itemgetter('client_id')),
                                     pg_size=6):
         claim = records[0]
 
