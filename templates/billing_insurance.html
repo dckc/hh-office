@@ -25,7 +25,9 @@
 	>Lastname, Firstname ________9_</th>
     <th class="literal"
 	>Insurance: </th>
-    <th id="client_id" title="insurance" align="left" class="field"
+    <th id="client_id" title="iif(carrier_name &gt; '',
+                                  carrier_name, insurance)"
+        align="left" class="field"
 	>Insurance             ________9_</th>
   </tr>
 </thead>
@@ -102,8 +104,8 @@
 <div>
 <h2>Query</h2>
 <pre><code class="query">
-select * from Attendance
-where insurance > ''
+select a.* from Attendance a
+where insurance > '' or carrier_name > ''
 order by client_name, session_date desc, group_name
 </code></pre>
 </div>
