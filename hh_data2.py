@@ -193,6 +193,7 @@ Index(u'visit_match', Visit.c.Session_id, Visit.c.Client_id, unique=False)
 Batch = Table('Batch', metadata,
               Column('name', TextLine, primary_key=True),
               Column('cutoff', DATE()),
+              Column('invoice_threshold' = Column(Money)),
               Column('added_time', TIMESTAMP()),
               Column('added_user', TextCode),
               Column('modified_time', TIMESTAMP()),

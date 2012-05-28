@@ -104,9 +104,19 @@ insert into Batch (name, cutoff)
 values ('current', '2011-06-01');
 
 create or replace view Batch_Clients as
-select b.name as batch_name, c.id as client_id
+select b.name as batch_name, b.invoice_threshold, c.id as client_id
 from Batch b
 join Client c on c.recent >= b.cutoff;
+
+create or replace view Bulk_Invoices as
+select c.id as client_id, c.name, c.balance, c.recent
+from Client c
+join Batch_Clients bc
+ on bc.client_id = c.id
+where c.balance > bc.invoice_threshold
+and bc.batch_name = 'current'
+order by c.balance desc;
+
 
 create or replace view Attendance as
 select att.*
