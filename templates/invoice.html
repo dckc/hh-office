@@ -126,6 +126,7 @@ address {
  <th>Service Date</th>
  <th>Description</th>
  <th>Amount Billed</th>
+ <th>Client Paid</th>
 </tr>
 <tr><td>&#160;</td><td> </td><td> </td></tr>
 </thead>
@@ -135,17 +136,14 @@ address {
 <tr>
   <th class="tot">SUBTOTAL</th><td> </td>
   <td id="subtot" class="amt">{$summary.charges}</td>
-</tr>
-<tr>
-  <th class="tot">Paid by Client</th><td> </td>
   <td id="pd" class="amt">{$summary.client_paid}</td>
 </tr>
 <tr>
-  <th class="tot">Paid by Insurance</th><td> </td>
+  <th class="tot">Paid by Insurance</th><td> </td><td></td>
   <td id="ins" class="amt">{$summary.insurance_paid}</td>
 </tr>
 <tr>
-  <th class="tot">Amount Due:</th><td> </td>
+  <th class="tot">Amount Due:</th><td> </td><td></td>
   <td id="due" class="amt">{$summary.balance}</td>
 </tr>
 </tfoot>
@@ -157,6 +155,7 @@ address {
       <td>{$detail.session_date|date_format}</td>
       <td>{$detail.group_name}</td>
       <td class="amt">{$detail.charge|string_format:"%.2f"}</td>
+      <td class="amt">{$detail.client_paid|string_format:"%.2f"}</td>
     </tr>
     {/if}
     {/foreach}
