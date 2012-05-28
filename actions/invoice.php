@@ -12,7 +12,7 @@ class actions_invoice {
 
       $summary = query_result($app->db(), "
 select name, charges, client_paid, insurance_paid, balance
-     , current_timestamp as invoice_date
+     , current_timestamp as invoice_date, invoice_note
 from Client c
 where c.id = '$id'");
 

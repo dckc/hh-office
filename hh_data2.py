@@ -75,6 +75,7 @@ class Client(IntId, Migrated, Audited, Base):
     insurance_paid = Column(Money)
     balance = Column(Money)
     balance_cached = Column(TIMESTAMP())
+    invoice_note = Column(TEXT())
 
 
 # Indexes for restoring from backup
