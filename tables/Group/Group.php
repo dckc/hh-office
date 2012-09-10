@@ -8,7 +8,10 @@ class tables_Group extends Audited {
             <li><a href='print_report/attendance_by_group?key=$key'
                 target='_new'>Attendance by Group</a></li>
             <li><a href='print_report/last_30?key=$key'
-                target='_new'>30 Day Attendance by Group</a></li>
+                target='_new'>30 Day Attendance by Group</a>
+                (<em><a href='print_report/last_30_blank?key=$key'
+                target='_new'>w/blank</a></em>)
+            </li>
             <li><a href='print_report/evaluations?key=$key'
                 target='_new'>Evaluations</a></li>
            <li><a href='print_report/cwip-yr?key=$key'

@@ -205,6 +205,11 @@
 	  <xsl:with-param name="col" select="1" />
 	</xsl:call-template>
       </Line>
+      <xsl:if test='@rowspan="2"'> <!-- a bit of a kludge, but oh well... -->
+        <Line>
+  	  <literal width="2"/> <!-- not sure what it takes to make a blank line -->
+        </Line>
+      </xsl:if>
     </Output>
   </FieldDetails>
 </xsl:template>

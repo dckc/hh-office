@@ -1,0 +1,94 @@
+<!DOCTYPE html> <!-- -*- nxml -*- -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Hope Harbor 30 Day by Group Skeleton</title>
+<link rel="stylesheet" href="office.css" />
+</head>
+
+<body class="rlib medium-print portrait">
+<h1 class="ReportHeader reversed">Hope Harbor</h1>
+<h2 class="PageHeader">
+  <span class="literal"
+	>30 Day Attendance by Group</span>
+  <span class="literal blank">0.........0.........0.........0</span>
+  <span class="field" title="date()">mm/dd/yyyy</span>
+  <span class="literal blank">          </span>
+  <span class="literal">pg. </span>
+  <span class="field" title="r.pageno">##</span>
+</h2>
+
+<table class="Breaks">
+<thead>
+  <tr id="per_group">
+    <th id="group_id" title="group_name" align="left" class="field"
+        colspan="2"
+	>Group X..0.........0.........0</th>
+  </tr>
+</thead>
+<tbody><tr><td colspan="9">
+
+
+<table class="Detail">
+  <thead>
+    <tr>
+      <th align="left">Client</th>
+      <th align="right">Recent</th>
+      <th align="right">Charges</th>
+      <th align="right">Client Pd</th>
+      <th align="right">Ins. Pd</th>
+      <th align="right">Due</th>
+      <th align="left">Officer</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr rowspan="2">
+      <td id="client_id" title="client_name" align="left" class="field"
+	  >Barnet-Sanchez, Michelle  </td>
+      <td title="stod(recent)" align="right"
+	  >&#160;&#160;|&#160;&#160;01/01/2011</td>
+      <td title="charges" align="right"
+	  > 1,000.00</td>
+      <td title="client_paid" align="right"
+	  > 1,000.00</td>
+      <td title="insurance_paid" align="right"
+	  > 1,000.00</td>
+      <td title="balance" align="right"
+	  > 1,000.00</td>
+      <td title="officer_name" align="left"
+	  >Officer             ________9_</td>
+    </tr>
+  </tbody>
+</table>
+
+</td></tr></tbody></table>
+
+<hr />
+
+<div>
+<h2>Query</h2>
+<pre><code class="query">
+select t.group_id, t.group_name, t.client_name
+  , c.recent
+  , c.charges, c.client_paid, c.insurance_paid, c.balance
+  , o.name officer_name
+from (
+select a.group_id, a.group_name, a.client_id, a.client_name
+from Attendance a
+join `Group` g on g.id = a.group_id
+where a.session_date > adddate(current_timestamp, interval - 30 day)
+and g.evaluation = 0
+and g.name not like '%Education%'
+and g.name not like 'Substance Abuse Ed%'
+and g.name not like 'Financial Crimes Ed%'
+and g.name not like 'CWIP%'
+group by a.group_id, a.group_name, a.client_id, a.client_name
+) t
+join Client c on c.id = t.client_id
+left join Officer o on c.officer_id = o.id
+order by t.group_name, t.client_name
+</code></pre>
+</div>
+
+</body>
+</html>
