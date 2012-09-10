@@ -9,8 +9,8 @@ class tables_Group extends Audited {
                 target='_new'>Attendance by Group</a></li>
             <li><a href='print_report/last_30?key=$key'
                 target='_new'>30 Day Attendance by Group</a>
-                (<em><a href='print_report/last_30_blank?key=$key'
-                target='_new'>w/blank</a></em>)
+            <li><a href='print_report/last_30_blank?key=$key'
+                target='_new'>30 Day ... w/blank</a>
             </li>
             <li><a href='print_report/evaluations?key=$key'
                 target='_new'>Evaluations</a></li>
