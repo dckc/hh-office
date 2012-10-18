@@ -75,10 +75,10 @@ def format_claims(conn, visit_ids):
     buf = ListWriter()
     out = csv.DictWriter(buf, COLUMNS, quoting=csv.QUOTE_ALL)
     out.writerow(dict(zip(COLUMNS, COLUMNS)))
-    
+
     for client_id, records in by_page(groupby(cursor.fetchall(),
                                               itemgetter('client_id')),
-                                    pg_size=6):
+                                      pg_size=6):
         claim = records[0]
 
         tot = claim['28-TotalCharge']
@@ -126,7 +126,7 @@ class ListWriter(object):
         self.parts.append(txt)
 
 
-QUERY=r'''
+QUERY = r'''
 select c.id client_id, v.id visit_id
      , co.name as `Insurance Company Name`
      , co.address `Insurance Company Address 1`
@@ -218,7 +218,7 @@ and v.id in (%(visit_ids)s)
 order by c.name, c.id, s.session_date, v.id
 '''
 
-COLUMNS=[literal.strip()[1:-1] for literal in '''
+COLUMNS = [literal.strip()[1:-1] for literal in '''
             "Insurance Company Name"
             "Insurance Company Name 2"
             "Insurance Company Address 1"
