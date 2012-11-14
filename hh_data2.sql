@@ -1,15 +1,5 @@
 use hh_office;
 
-CREATE TABLE `Carrier` (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	name VARCHAR(50) NOT NULL, 
-	address VARCHAR(50) NOT NULL, 
-	city_st_zip VARCHAR(50) NOT NULL, 
-	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
 CREATE TABLE `Office` (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(120) NOT NULL, 
@@ -27,6 +17,27 @@ CREATE TABLE `Office` (
 
  ;
 
+CREATE TABLE users (
+	username VARCHAR(120) NOT NULL, 
+	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
+	added_time TIMESTAMP NULL, 
+	added_user VARCHAR(40), 
+	modified_time TIMESTAMP NULL, 
+	modified_user VARCHAR(40), 
+	PRIMARY KEY (username)
+)ENGINE=InnoDB
+
+ ;
+
+CREATE TABLE `Procedure` (
+	cpt VARCHAR(6) NOT NULL, 
+	name VARCHAR(120), 
+	price DECIMAL(8, 2) NOT NULL, 
+	PRIMARY KEY (cpt)
+)ENGINE=InnoDB
+
+ ;
+
 CREATE TABLE `Diagnosis` (
 	icd9 VARCHAR(8) NOT NULL, 
 	name VARCHAR(120), 
@@ -35,9 +46,20 @@ CREATE TABLE `Diagnosis` (
 
  ;
 
+CREATE TABLE `Carrier` (
+	id INTEGER NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(50) NOT NULL, 
+	address VARCHAR(50) NOT NULL, 
+	city_st_zip VARCHAR(50) NOT NULL, 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB
+
+ ;
+
 CREATE TABLE `Batch` (
 	name VARCHAR(120) NOT NULL, 
 	cutoff DATE, 
+	invoice_threshold DECIMAL(8, 2), 
 	added_time TIMESTAMP NULL, 
 	added_user VARCHAR(40), 
 	modified_time TIMESTAMP NULL, 
@@ -60,27 +82,6 @@ CREATE TABLE `Therapist` (
 	modified_time TIMESTAMP NULL, 
 	modified_user VARCHAR(40), 
 	PRIMARY KEY (id)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE `Procedure` (
-	cpt VARCHAR(6) NOT NULL, 
-	name VARCHAR(120), 
-	price DECIMAL(8, 2) NOT NULL, 
-	PRIMARY KEY (cpt)
-)ENGINE=InnoDB
-
- ;
-
-CREATE TABLE users (
-	username VARCHAR(120) NOT NULL, 
-	role ENUM('READ ONLY','EDIT','DELETE','OWNER','REVIEWER','USER','ADMIN','MANAGER'), 
-	added_time TIMESTAMP NULL, 
-	added_user VARCHAR(40), 
-	modified_time TIMESTAMP NULL, 
-	modified_user VARCHAR(40), 
-	PRIMARY KEY (username)
 )ENGINE=InnoDB
 
  ;
@@ -139,6 +140,7 @@ CREATE TABLE `Client` (
 	phone VARCHAR(15), 
 	`DOB` DATE, 
 	`Officer_id` INTEGER, 
+	`Officer2_id` INTEGER, 
 	`Lawyer_id` INTEGER, 
 	`Court_id` INTEGER, 
 	file VARCHAR(40), 
@@ -151,8 +153,10 @@ CREATE TABLE `Client` (
 	insurance_paid DECIMAL(8, 2), 
 	balance DECIMAL(8, 2), 
 	balance_cached TIMESTAMP NULL, 
+	invoice_note TEXT, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(`Officer_id`) REFERENCES `Officer` (id) ON DELETE SET NULL, 
+	FOREIGN KEY(`Officer2_id`) REFERENCES `Officer` (id) ON DELETE SET NULL, 
 	FOREIGN KEY(`Lawyer_id`) REFERENCES `Officer` (id) ON DELETE SET NULL, 
 	FOREIGN KEY(`Court_id`) REFERENCES `Office` (id) ON DELETE SET NULL
 )ENGINE=InnoDB
@@ -191,6 +195,7 @@ CREATE TABLE `Visit` (
 	check_date DATE, 
 	`Client_id` INTEGER NOT NULL, 
 	`Session_id` INTEGER NOT NULL, 
+	discharge_status ENUM('U','S'), 
 	id_zoho VARCHAR(40), 
 	id_dabble VARCHAR(40), 
 	added_time TIMESTAMP NULL, 

@@ -13,6 +13,7 @@ TextLine = VARCHAR(length=120)
 TextCode = VARCHAR(length=40)
 Money = DECIMAL(precision=8, scale=2)
 
+
 class _Base(object):
     @declared_attr
     def __tablename__(cls):
@@ -27,6 +28,7 @@ class _Base(object):
 
 Base = declarative_base(cls=_Base)
 metadata = Base.metadata
+
 
 class IntId(object):
     id = Column(types.Integer, primary_key=True)
@@ -61,6 +63,8 @@ class Client(IntId, Migrated, Audited, Base):
     DOB = Column(DATE)
     Officer_id = Column(INTEGER(),
                         ForeignKey('Officer.id', ondelete="SET NULL"))
+    Officer2_id = Column(INTEGER(),
+                         ForeignKey('Officer.id', ondelete="SET NULL"))
     Lawyer_id = Column(INTEGER(),
                        ForeignKey('Officer.id', ondelete="SET NULL"))
     Court_id = Column(INTEGER(),
@@ -178,6 +182,7 @@ Visit =  Table('Visit', metadata,
                Column(u'Session_id', INTEGER(),
                       ForeignKey('Session.id', ondelete="CASCADE"),
                       nullable=False),
+               Column('discharge_status', Enum('U', 'S')),
                Column(u'id_zoho', TextCode),
                Column(u'id_dabble', TextCode),
                Column('added_time', TIMESTAMP()),
@@ -193,7 +198,7 @@ Index(u'visit_match', Visit.c.Session_id, Visit.c.Client_id, unique=False)
 Batch = Table('Batch', metadata,
               Column('name', TextLine, primary_key=True),
               Column('cutoff', DATE()),
-              Column('invoice_threshold' = Column(Money)),
+              Column('invoice_threshold', Money),
               Column('added_time', TIMESTAMP()),
               Column('added_user', TextCode),
               Column('modified_time', TIMESTAMP()),
@@ -244,7 +249,7 @@ class Insurance(IntId, Audited, Base):
     deductible = Column(TextLine)
     copay = Column(Money)
     deductible_met = Column(BOOLEAN(), server_default=text('0'))
-    
+
     # Field 1 from user_print_file_spec.csv
     payer_type = Column(types.Enum('Medicare',
                                    'Medicaid',
@@ -347,6 +352,14 @@ def migration_add_court():
     print add_columns_ddl(e, Client.__table__,
                           ['Lawyer_id',
                            'Court_id'])
+
+
+def migration_add_2nd_officer():
+    e = create_engine('mysql+mysqldb:///')
+    print add_columns_ddl(e, Client.__table__,
+                          ['Officer2_id'])
+    print add_columns_ddl(e, Visit,
+                          ['discharge_status'])
 
 
 def print_sql(m, schema='hh_office'):
