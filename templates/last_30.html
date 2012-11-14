@@ -37,26 +37,30 @@
       <th align="right">Client Pd</th>
       <th align="right">Ins. Pd</th>
       <th align="right">Due</th>
-      <th align="left">Officer</th>
+      <th align="left"> </th>
+      <th align="left">Disch.</th>
+      <th align="left">Officer(s)</th>
     </tr>
   </thead>
 
   <tbody>
     <tr>
       <td id="client_id" title="client_name" align="left" class="field"
-	  >Barnet-Sanchez, Michelle  </td>
-      <td title="stod(recent)" align="right"
-	  >&#160;&#160;|&#160;&#160;01/01/2011</td>
-      <td title="charges" align="right"
-	  > 1,000.00</td>
-      <td title="client_paid" align="right"
-	  > 1,000.00</td>
-      <td title="insurance_paid" align="right"
-	  > 1,000.00</td>
-      <td title="balance" align="right"
-	  > 1,000.00</td>
-      <td title="officer_name" align="left"
-	  >Officer             ________9_</td>
+	  >Barnet-Sanchez, Michelle </td>
+      <td title="format(stod(recent), '!@%e %b%y')" align="right"
+	  >|&#160;01 Nov12</td>
+      <td title="val(charges)" align="right"
+	  >  1000</td>
+      <td title="val(client_paid)" align="right"
+	  >  1000</td>
+      <td title="val(insurance_paid)" align="right"
+	  >  1000</td>
+      <td title="val(balance)" align="right"
+	  >  1000</td>
+      <td title="discharge_status" align="right">  </td>
+      <td title="iif(discharge_date &gt; '', format(stod(discharge_date), '!@%e %b%y'), '')">03 Nov12</td>
+      <td title="officer_names" align="left"
+	  >Officer89012345678901234567890</td>
     </tr>
   </tbody>
 </table>
@@ -71,7 +75,12 @@
 select t.group_id, t.group_name, t.client_name
   , c.recent
   , c.charges, c.client_paid, c.insurance_paid, c.balance
-  , o.name officer_name
+  , case when o2.name is null
+    then o.name
+    else concat(o.name, '/', o2.name)
+    end officer_names
+  , disch.session_date discharge_date
+  , disch.discharge_status
 from (
 select a.group_id, a.group_name, a.client_id, a.client_name
 from Attendance a
@@ -86,6 +95,15 @@ group by a.group_id, a.group_name, a.client_id, a.client_name
 ) t
 join Client c on c.id = t.client_id
 left join Officer o on c.officer_id = o.id
+left join Officer o2 on c.officer2_id = o2.id
+left join (
+ select s.Group_id, v.Client_id, s.session_date, v.discharge_status
+ from Visit v
+ join `Session` s on v.Session_id = s.id
+ where v.discharge_status is not null
+ and s.session_date > adddate(current_timestamp, interval - 30 day)
+) disch on disch.Group_id = t.group_id
+       and disch.Client_id = t.client_id
 order by t.group_name, t.client_name
 </code></pre>
 </div>
