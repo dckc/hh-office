@@ -92,7 +92,7 @@
 	</BreakHeader>
 
 	<BreakFields>
-	  <xsl:for-each select='h:th[contains(@class, "field")]'>
+	  <xsl:for-each select='h:th[contains(@class, "field") and @id]'>
 	    <BreakField value="{@id}"/>
 	  </xsl:for-each>
 	</BreakFields>
