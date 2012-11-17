@@ -38,13 +38,19 @@
 	>...</th>
     <th class="field" title="iif(officer_name>'', 'Officer: ', '')"
 	>Officer: </th>
-    <th id="client_id" title="officer_name" align="left" class="field"
+    <th title="officer_name" align="left" class="field"
 	>Officer                      </th>
   </tr>
   <tr id="per_group">
     <th class="literal blank">  </th>
-    <th id="group_id" title="group_name" align="left" class="field"
+    <th id="group_id" title="group_name" class="field"
 	>Group X..0.........0.........0</th>
+    <th class="field" title="iif(discharge_status &gt; '', 'Discharge: (', '')"
+	>discharge: (</th>
+    <th class="field" title="discharge_status">.</th>
+    <th class="field" title="iif(discharge_status &gt; '', ') ', '')">..</th>
+    <th class="field"
+	title="iif(discharge_status &gt; '', format(stod(discharge_date), '!@%e %b %Y'), '')">10 Nov 2012</th>
   </tr>
 </thead>
 <tbody><tr><td colspan="9">
@@ -111,6 +117,12 @@
 <pre><code class="query">
 select * from Attendance a
 left join Insurance i on i.client_id = a.client_id
+left join (
+  select v.Client_id cid, s.group_id, s.session_date discharge_date, v.discharge_status
+  from Visit v
+  join `Session` s on v.session_id = s.id
+  where v.discharge_status is not null
+) ds on ds.cid = a.client_id and a.group_id = ds.group_id
 order by a.client_name, a.group_name, a.session_date
 </code></pre>
 </div>
