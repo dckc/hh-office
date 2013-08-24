@@ -1,0 +1,91 @@
+<!DOCTYPE html> <!-- -*- nxml -*- -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Hope Harbor Weekly Groups Skeleton</title>
+<link rel="stylesheet" href="office.css" />
+</head>
+
+<body class="rlib medium-print portrait">
+<h1 class="ReportHeader reversed">Hope Harbor</h1>
+<h2 class="PageHeader">
+  <span class="literal"
+	>Weekly Groups</span>
+  <span class="literal blank">0.........0.........0.........0</span>
+  <span class="field" title="date()">mm/dd/yyyy</span>
+  <span class="literal blank">        </span>
+  <span class="literal">pg. </span>
+  <span class="field" title="r.pageno">####</span>
+</h2>
+
+<table class="Breaks" border="1">
+<thead>
+  <tr id="per_day">
+    <th id="session_date" title="session_day" align="left" class="field"
+        colspan="2"
+	>Sun, 23 Jan 2013</th>
+  </tr>
+  <tr id="per_group">
+    <th class="literal blank">  </th>
+    <th id="group_id" title="group_name" align="left" class="field"
+	>Big Long Group Name</th>
+  </tr>
+  <tr id="per_session">
+    <th class="literal blank">  </th>
+    <th class="literal blank">  </th>
+    <th id="session_id" title="time" align="left" class="field"
+	> 12:00 </th>
+    <th id="session_id" title="therapist_name" align="left" class="field"
+	>Big Long Therapist Name</th>
+  </tr>
+</thead>
+<tbody><tr><td colspan="9">
+
+
+<table class="Detail">
+  <thead>
+    <tr>
+      <th align="left">Client</th>
+      <th align="right">Client Pd</th>
+      <th align="left">  Note</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <!-- todo: literal | in detail row -->
+      <td title="client_name" align="left"
+	  >Smith, John William</td>
+      <td title="client_paid" align="right"
+	  > 1,000</td>
+      <!-- todo: more space before note -->
+      <td title="note" align="left"
+	  >....................................<!--
+      todo: handle multi-line notes --></td>
+    </tr>
+  </tbody>
+</table>
+
+</td></tr></tbody></table>
+
+<hr />
+
+<div>
+<h2>Query</h2>
+<pre><code class="query">
+select
+  date_format(s.session_date, '%a, %b %d, %Y') session_day,
+  s.session_date, g.name group_name, s.time,
+  th.name therapist_name, v.client_paid,
+  c.name client_name, s.id session_id, g.id group_id
+from Session s
+join Therapist th on s.Therapist_id = th.id
+join `Group` g on s.Group_id = g.id
+join Visit v on s.id = v.Session_id
+join Client c on v.Client_id = c.id
+where datediff('2012-03-12', s.session_date) &lt;= 20
+order by s.session_date desc, g.name, s.time, c.name
+</code></pre>
+</div>
+
+</body>
+</html>
