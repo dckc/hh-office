@@ -10,7 +10,8 @@
 <h2 class="PageHeader">
   <span class="literal"
 	>Weekly Groups</span>
-  <span class="literal blank">0.........0.........0.........0</span>
+  <span class="literal blank">0.........0.......</span>
+  <span class="literal">Report Date: </span>
   <span class="field" title="date()">mm/dd/yyyy</span>
   <span class="literal blank">        </span>
   <span class="literal">pg. </span>
@@ -22,17 +23,16 @@
   <tr id="per_day">
     <th id="session_date" title="session_day" align="left" class="field"
         colspan="2"
-	>Sun, 23 Jan 2013</th>
+	> Thursday, 23 September 2013 </th>
   </tr>
   <tr id="per_group">
     <th class="literal blank">  </th>
     <th id="group_id" title="group_name" align="left" class="field"
-	>Big Long Group Name</th>
+	>Really Big Long Group Name</th>
   </tr>
   <tr id="per_session">
-    <th class="literal blank">  </th>
-    <th class="literal blank">  </th>
-    <th id="session_id" title="time" align="left" class="field"
+    <th class="literal blank">         </th>
+    <th id="session_id" title="time" align="right" class="field"
 	> 12:00 </th>
     <th id="session_id" title="therapist_name" align="left" class="field"
 	>Big Long Therapist Name</th>
@@ -44,7 +44,9 @@
 <table class="Detail">
   <thead>
     <tr>
+      <th align="left">          </th>
       <th align="left">Client</th>
+      <th align="right">   Charge</th>
       <th align="right">Client Pd</th>
       <th align="left">  Note</th>
     </tr>
@@ -52,11 +54,14 @@
 
   <tbody>
     <tr>
+      <td title="''">0........9</td>
       <!-- todo: literal | in detail row -->
       <td title="client_name" align="left"
 	  >Smith, John William</td>
+      <td title="charge" align="right"
+	  >     1,000</td>
       <td title="client_paid" align="right"
-	  > 1,000</td>
+	  >     1,000</td>
       <!-- todo: more space before note -->
       <td title="note" align="left"
 	  >....................................<!--
@@ -73,16 +78,17 @@
 <h2>Query</h2>
 <pre><code class="query">
 select
-  date_format(s.session_date, '%a, %b %d, %Y') session_day,
-  s.session_date, g.name group_name, s.time,
-  th.name therapist_name, v.client_paid,
+  date_format(s.session_date, '%W, %M %d, %Y') session_day,
+  s.session_date, g.name group_name,
+  case when s.time is null then 'time?' else s.time end time,
+  th.name therapist_name, v.charge, v.client_paid, v.note,
   c.name client_name, s.id session_id, g.id group_id
 from Session s
 join Therapist th on s.Therapist_id = th.id
 join `Group` g on s.Group_id = g.id
 join Visit v on s.id = v.Session_id
 join Client c on v.Client_id = c.id
-where datediff('2012-03-12', s.session_date) &lt;= 20
+where datediff(current_date, s.session_date) &lt;= 10
 order by s.session_date desc, g.name, s.time, c.name
 </code></pre>
 </div>
