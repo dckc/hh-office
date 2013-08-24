@@ -12,6 +12,8 @@ class tables_Group extends Audited {
             <li><a href='print_report/last_30_blank?key=$key'
                 target='_new'>30 Day ... w/blank</a>
             </li>
+            <li><a href='print_report/weekly_groups?key=$key'
+                  target='_new'>Weekly Groups</a></li>
             <li><a href='print_report/evaluations?key=$key'
                 target='_new'>Evaluations</a></li>
            <li><a href='print_report/cwip-yr?key=$key'
