@@ -49,7 +49,7 @@ class Audited(object):
 class Client(IntId, Migrated, Audited, Base):
     name = Column(TextLine, nullable=False)
 
-    reduced_fee = Column(Money)
+    reduced_fee = Column(types.String(20))
 
     # TODO: phase this out.
     note = Column(TEXT())
