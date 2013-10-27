@@ -12,6 +12,8 @@ class tables_Client extends Audited {
 	          target='_new'>Attendance by Client</a></li>
            <li><a href='print_report/billing_insurance?key=$key'
  	          target='_new'>Billing Insurance</a></li>
+           <li><a href='print_report/ins_summary?key=$key'
+ 	          target='_new'>Insurance Summary</a></li>
            <li><a href='print_report/amount_due_by_name?key=$key'
                   target='_new'>Account Balances by Name</a></li>
            <li><a href='print_report/amount_due?key=$key'
