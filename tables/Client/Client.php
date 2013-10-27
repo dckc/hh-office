@@ -16,6 +16,8 @@ class tables_Client extends Audited {
  	          target='_new'>Insurance Summary</a></li>
            <li><a href='print_report/amount_due_by_name?key=$key'
                   target='_new'>Account Balances by Name</a></li>
+           <li><a href='print_report/reduced_balances?key=$key'
+                  target='_new'>Reduced Fees</a></li>
            <li><a href='print_report/amount_due?key=$key'
                   target='_new'>Account Balances by Amount Due</a></li>
            <li><a href='print_report/dup_clients?key=$key'
