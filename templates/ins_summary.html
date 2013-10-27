@@ -1,0 +1,62 @@
+<!DOCTYPE html> <!-- -*- nxml -*- -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Hope Harbor Amount Due Report Skeleton</title>
+<link rel="stylesheet" href="office.css" />
+</head>
+
+<body class="rlib medium-print landscape">
+<h1 class="ReportHeader reversed">Hope Harbor</h1>
+<h2 class="PageHeader">
+  <span class="literal"
+	>Insurance Summary</span>
+  <span class="literal blank">_________0_________0</span>
+  <span class="literal blank">_________0</span>
+  <span class="field" title="date()">mm/dd/yyyy</span>
+  <span class="literal blank">_________0</span>
+  <span class="literal">pg. </span>
+  <span class="field" title="r.pageno">##</span>
+</h2>
+
+<table class="Detail">
+  <thead>
+    <tr>
+      <th>Client</th>
+      <th>Ins. Carrier</th>
+      <th>Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td title="client_name" align="left"
+	  >Lastname, Firstname ...</td>
+      <td title="carrier_name" align="left"
+	  >Carrier Name ..._</td>
+      <td title="details" align="left"
+	  >Lots of details and more and more and really lots and lots. and more and lots more.... whee! fun fun fun!</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<div>
+<h2>Query</h2>
+<pre><code class="query">
+select c.name client_name, ca.name carrier_name,
+ case when i.details is null
+   then concat("*", c.note)
+   else i.details
+ end details
+from Insurance i
+join Client c on c.id = i.Client_id
+join Carrier ca on ca.id = i.carrier_id
+where c.recent >= (
+ select cutoff from Batch
+  where name = 'current')
+order by c.name
+</code></pre>
+</div>
+
+</body>
+</html>
