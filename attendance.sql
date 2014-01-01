@@ -37,6 +37,22 @@ left join `Procedure` proc on proc.cpt = v.cpt
 ;
 
 
+create or replace view group_attendance_trend as
+select year(session_date) year
+     , round(week(session_date) / 13) quarter
+     , group_id, group_name
+     , count(*) visits
+from Attendance_all
+where attend_n = 1
+  and datediff(current_date, session_date) < (4*365)
+group by group_id
+       , group_name
+       , year(session_date)
+       , round(week(session_date) / 13)
+order by 1 desc, 2 desc
+;
+
+
 create or replace view Client_Balances as
 select client_id
      , min(session_date) as oldest_session_date
