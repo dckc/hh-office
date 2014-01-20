@@ -3,8 +3,8 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def main(argv, environ, mkBrowser):
-    panel_user, passwd_key, db, db_user = argv[1:5]
+def main(argv, arg_wr, environ, mkBrowser):
+    panel_user, passwd_key, db, db_user, out = argv[1:6]
 
     ua = mkBrowser()
 
@@ -12,6 +12,31 @@ def main(argv, environ, mkBrowser):
     login(ua, panel_user, password)
 
     admin_db(ua, db, db_user, password)
+    db_export(ua, out=arg_wr(out))
+
+
+def db_export(ua, out,
+              structure=True, data=False,
+              compression='zip'):
+    log.info('Content frame...')
+    ua.follow_link(
+        predicate=lambda e: (e.tag == 'frame'
+                             and ('id', 'frame_content') in e.attrs))
+    log.info('to Export...')
+    ua.follow_link(text='[IMG]Export')
+
+    ua.select_form(nr=0)
+
+    for name, val in [('sql_structure', structure),
+                      ('sql_data', data)]:
+        ua.find_control(name).items[0].selected = val
+
+    ua.find_control('asfile').items[0].selected = True
+    ua['compression'] = [compression]
+
+    log.info('Export! structure? %s data? %s', structure, data)
+    ans = ua.submit()
+    out.write(ans.read())
 
 
 def admin_db(ua, db, db_user, password,
@@ -43,8 +68,15 @@ if __name__ == '__main__':
         from os import environ
         from mechanize import Browser
 
+        def arg_wr(n):
+            if n not in argv:
+                raise IOError
+            else:
+                return open(n, 'w')
+
         main(argv=argv,
              environ=environ,
+             arg_wr=arg_wr,
              mkBrowser=lambda: Browser(),
              )
 
