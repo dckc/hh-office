@@ -1,29 +1,26 @@
 #!/usr/bin/env python
 '''Handle web requests for printed reports from a database.
 
-'''
-
-from os import path, environ
-import logging
-import traceback
-import wsgiref.handlers
-
-# a bit of a KLUDGE...
-import sys
-sys.path.append(path.expanduser('~/run/lib/python2.5/site-packages/'))
-
-import libxslt
-
-import rlib  # http://rlib.sicompos.com/
+  # http://rlib.sicompos.com/
              # 06b3e629c6f99a8b2fd1264f32db8f56  rlib-1.3.7.tar.gz
 #Subject: compiling with python
 #For some reason configure does not pick up python unless you supply a prefix.
 #
 #/configure --with-pythonver=2.5 --prefix=/usr
 #http://osdir.com/ml/text.rlib.user/2008-07/msg00002.html
+'''
 
-from ocap import DBOpts, dbopts
-import hhtcb
+from ConfigParser import SafeConfigParser
+from cgi import parse_qs
+import logging
+
+import ocap
+
+
+def _kludge_pkg_path():
+    import sys
+    from os import path as p
+    sys.path.append(p.expanduser('~/run/lib/python2.5/site-packages/'))
 
 
 PLAIN = [('Content-Type', 'text/plain')]
@@ -33,23 +30,19 @@ PDF = [('Content-Type', 'application/pdf')]
 log = logging.getLogger(__name__)
 
 
-def cgi_main():
-    wsgiref.handlers.CGIHandler().run(report_if_key)
+def cgi_main(mkCGIHandler):
+    mkCGIHandler().run(report_if_key)
 
 
-def _test_main():
-    import sys
-
-    report_name, outfn = sys.argv[1:3]
-
-    logging.basicConfig(level=logging.DEBUG)
+def _test_main(argv, stdout):
+    report_name, outfn = argv[1:3]
 
     def start_response(r, hdrs):
-        print r
-        print hdrs
+        print >>stdout, r
+        print >>stdout, hdrs
 
     content = run_report(report_name, start_response,
-                         dbopts(hhtcb.xataface_config()))
+                         dbopts(xataface_config()))  #@@
     outfp = open(outfn, 'w')
     for part in content:
         outfp.write(part)
@@ -64,7 +57,7 @@ def report_if_key(env, start_response):
     See :func:`add_xataface_datasource` for database connection strategy.
 
     '''
-    dbo = DBOpts(hhtcb.xataface_config())
+    dbo = DBOpts(xataface_config())  #@@
     try:
         opts = dbo.webapp_login(env)
     except KeyError:
@@ -78,8 +71,7 @@ def report_if_key(env, start_response):
 
 
 def run_report(report_name, start_response, opts,
-               tx='reportspec.xsl',
-               dsn='local_mysql'):
+               tx='reportspec.xsl'):
     '''Common TCB part of report generation
 
     @param report_name: used to find
@@ -90,7 +82,7 @@ def run_report(report_name, start_response, opts,
     See :func:`add_xataface_datasource` for database connection strategy.
 
     '''
-    from hhtcb import Dir
+    #@@from hhtcb import Dir
 
     here = Dir(path.dirname(__file__))
     templates = here.subdir('templates')
@@ -180,8 +172,125 @@ def serve_report_request(start_response, templates, report_name,
     return [report.get_output()]
 
 
+class Prefix(object):
+    '''work-around: xataface needs options before the 1st [section]
+    '''
+    def __init__(self, fp, line):
+        self._fp = fp
+        self._l = line
+
+    def readline(self):
+        if self._l:
+            l = self._l
+            self._l = None
+            return l
+        else:
+            return self._fp.readline()
+
+
+class Mock(object):
+    def __init__(self):
+        self._ds = {}
+
+    content = {'/here/conf.ini':
+               '\n'.join([line.strip()
+                          for line in '''
+               [_database]
+               report_key=sekret
+               host="localhost"
+               user="mickey_mouse"
+               password="club"
+               name="all_my_friends"
+                          '''.split('\n')])}
+
+    @classmethod
+    def open_rd(cls, n):
+        from StringIO import StringIO
+        return StringIO(cls.content[n])
+
+    @classmethod
+    def abspath(cls, p):
+        import posixpath
+        return posixpath.abspath(p)
+
+    @classmethod
+    def join(cls, *paths):
+        import posixpath
+        return posixpath.join(*paths)
+
+    def add_datasource_mysql(self, dsn, host, username, password, name):
+        self._ds[dsn] = (host, username, password, name)
+
+
+def mkReportMaker(mkRlib, configRd,
+                  DB_SECTION='_database',
+                  dsn='local_mysql'):
+    r'''
+    >>> here = ocap.Rd('/here', Mock, Mock.open_rd)
+    >>> configRd = xataface_config(here)
+    >>> rm = mkReportMaker(lambda: Mock(), configRd)
+
+    >>> report = rm({'QUERY_STRING': 'key=sekret'})
+    >>> report._ds['local_mysql']
+    ('localhost', 'mickey_mouse', 'club', 'all_my_friends')
+
+    >>> rm({'QUERY_STRING': ''})
+    Traceback (most recent call last):
+      ...
+    KeyError: 'missing key parameter'
+
+    >>> rm({'QUERY_STRING': 'key=secret'})
+    Traceback (most recent call last):
+      ...
+    IOError: report key does not match.
+    '''
+
+    def reportMaker(env):
+        k = parse_qs(env.get('QUERY_STRING', '')).get('key')
+        if not k:
+            raise KeyError('missing key parameter')
+
+        config = patched_config(configRd)
+        if config.get(DB_SECTION, 'report_key') not in k:
+            raise IOError('report key does not match.')
+
+        opts = [config.get(DB_SECTION, k)[1:-1]
+                for k in ['host', 'user', 'password', 'name']]
+        log.debug('db opts: %s', opts)
+        report = mkRlib()
+        report.add_datasource_mysql(dsn, *opts)
+
+        return report
+
+    return reportMaker
+
+
+def xataface_config(here,
+                    ini='conf.ini'):
+    return here.subRd(ini)
+
+
+def patched_config(configRd):
+    config = SafeConfigParser()
+    config.readfp(Prefix(configRd.fp(), '[DEFAULT]'), str(configRd))
+    return config
+
+
 if __name__ == '__main__':
-    if 'SCRIPT_NAME' in environ:
-        cgi_main()
-    else:
-        _test_main()
+    def _with_caps():
+        #import traceback
+        from wsgiref.handlers import CGIHandler
+
+        from os import environ
+
+        #@@import rlib
+        #@@import libxslt
+        #@@here = path.dirname(__file__)
+
+        if 'SCRIPT_NAME' in environ:
+            cgi_main(mkCGIHandler=lambda: CGIHandler())
+        else:
+            from sys import argv, stdout
+
+            logging.basicConfig(level=logging.DEBUG)
+            _test_main(argv[:], stdout)
