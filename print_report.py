@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 '''Handle web requests for printed reports from a database.
 
+uses xsltproc
+
+TODO: move xsltproc processing to design time with make
+
   # http://rlib.sicompos.com/
              # 06b3e629c6f99a8b2fd1264f32db8f56  rlib-1.3.7.tar.gz
 #Subject: compiling with python
@@ -12,6 +16,8 @@
 
 from ConfigParser import SafeConfigParser
 from cgi import parse_qs
+from subprocess import PIPE
+from xml.etree import ElementTree as ET
 import logging
 
 import ocap
@@ -30,90 +36,149 @@ PDF = [('Content-Type', 'application/pdf')]
 log = logging.getLogger(__name__)
 
 
-def cgi_main(mkCGIHandler):
-    mkCGIHandler().run(report_if_key)
+def cgi_main(mkCGIHandler, report_app):
+    r'''
+    >>> from wsgiref.handlers import CGIHandler
+    >>> logging.basicConfig(level=logging.INFO)
+
+    >>> report_app = Mock.report_app()
+    >>> from os import environ
+    >>> environ['QUERY_STRING'] = 'key=sekret'
+    >>> environ['PATH_INFO'] = '/weekly_groups'
+
+    >>> cgi_main(lambda: CGIHandler(), report_app)
+    ... # normalize CRLF vs LF
+    ... # doctest: +NORMALIZE_WHITESPACE
+    Status: 200 ok
+    Content-type: application/pdf
+    Content-Length: 15
+    <BLANKLINE>
+    pdf stuff here
+
+    '''
+    mkCGIHandler().run(report_app)
 
 
-def _test_main(argv, stdout):
+def _test_main(argv, stdout, argv_wr, report_app):
     report_name, outfn = argv[1:3]
 
     def start_response(r, hdrs):
         print >>stdout, r
         print >>stdout, hdrs
 
-    content = run_report(report_name, start_response,
-                         dbopts(xataface_config()))  #@@
-    outfp = open(outfn, 'w')
+    content = report_app(dict(PATH_INFO='/' + report_name), start_response)
+
+    outfp = argv_wr(outfn)
     for part in content:
         outfp.write(part)
 
 
-def report_if_key(env, start_response):
-    '''TCB part of the WSGI handler
+def mk_report_app(format_exc, report_authz, reportSpec):
 
-    @param env: CGI environment; PATH_INFO is used to find
-            a report skeleton under `templates`.
+    def report_app(env, start_response):
+        '''
+        @param env: CGI environment; PATH_INFO is used to find
+                    a report skeleton under `templates`.
+        '''
+        try:
+            report, dsn = report_authz(env)
+        except IOError as e:
+            start_response('403 not authorized', PLAIN)
+            return [str(e)]
 
-    See :func:`add_xataface_datasource` for database connection strategy.
+        report_name = env.get('PATH_INFO', '')[1:]
+        try:
+            return serve_report_request(start_response, report_name,
+                                        reportSpec, report, dsn)
+        except:  # pylint: disable-msg=W0703,W0702
+            start_response('500 internal error', PLAIN)
+            return [format_exc()]
 
+    return report_app
+
+
+def report_if_key(configRd, reportMaker):
+    r'''
+    >>> here = ocap.Rd('/here', Mock, Mock.open_rd)
+    >>> configRd = xataface_config(here)
+    >>> reportMaker = mkReportMaker(lambda: Mock(), configRd)
+    >>> ck = report_if_key(configRd, reportMaker)
+
+    >>> report, dsn = ck({'QUERY_STRING': 'key=sekret'})
+    >>> report._ds['local_mysql']
+    ('localhost', 'mickey_mouse', 'club', 'all_my_friends')
+
+    >>> ck({'QUERY_STRING': ''})
+    Traceback (most recent call last):
+      ...
+    KeyError: 'missing key parameter'
+
+    >>> ck({'QUERY_STRING': 'key=secret'})
+    Traceback (most recent call last):
+      ...
+    IOError: report key does not match.
     '''
-    dbo = DBOpts(xataface_config())  #@@
-    try:
-        opts = dbo.webapp_login(env)
-    except KeyError:
-        start_response('400 bad request', PLAIN)
-        return ['missing key parameter ']
-    except OSError:
-        start_response('401 unauthorized', PLAIN)
-        return ['report key does not match.']
+    def check_config(env):
+        '''
+        @param env: CGI environment; PATH_INFO is used to find
+                    a report skeleton under `templates`.
+        '''
+        k = parse_qs(env.get('QUERY_STRING', '')).get('key')
+        if not k:
+            raise KeyError('missing key parameter')
 
-    return run_report(env.get('PATH_INFO', '')[1:], start_response, opts)
+        config = patched_config(configRd)
 
+        if config.get(DB_SECTION, 'report_key') not in k:
+            raise IOError('report key does not match.')
 
-def run_report(report_name, start_response, opts,
-               tx='reportspec.xsl'):
-    '''Common TCB part of report generation
+        return reportMaker()
 
-    @param report_name: used to find
-           a report skeleton under `templates`,
-           unless it ends in .xml, in which case
-           it is used directly as the report spec.
-
-    See :func:`add_xataface_datasource` for database connection strategy.
-
-    '''
-    #@@from hhtcb import Dir
-
-    here = Dir(path.dirname(__file__))
-    templates = here.subdir('templates')
-    txpath = here.file(tx)
-
-    report = rlib.Rlib()
-    log.debug('db opts: %s', opts)
-    report.add_datasource_mysql(dsn, *opts)
-
-    try:
-        return serve_report_request(start_response, templates, report_name,
-                                    txpath, report, dsn)
-    except:  # pylint: disable-msg=W0703,W0702
-        start_response('500 internal error', PLAIN)
-        return [traceback.format_exc()]
+    return check_config
 
 
-def serve_report_request(start_response, templates, report_name,
-                         txpath, report, dsn):
-    '''Less trusted part of the WSGI handler.
+def mkReportSpec(Popen, here,
+                 tx='reportspec.xsl',
+                 xsltproc='xsltproc'):
+    templates = here.subRd('templates')
+    txpath = here.subRd(tx)
+    log.debug('templates: %s txpath: %s', templates, txpath)
+
+    def xslt(tx, doc):
+        p = Popen([xsltproc, '--novalid', str(tx), str(doc)],
+                  stdout=PIPE)
+        out, err = p.communicate()
+        return out
+
+    def reportSpec(report_name):
+        tx, template, fmt = (
+            (None, templates.subRd(report_name), 'TXT')
+            if report_name.endswith('.xml') else
+            (txpath, templates.subRd(report_name + '.html'), 'PDF'))
+
+        log.debug('template exists? %s', template)
+        if not template.exists():
+            return None, None, None
+
+        qdoc = ET.XML(template.fp().read())
+        q = qdoc.find('.//*[@class="query"]').text
+
+        spec_text = (xslt(tx, template) if tx
+                     else template.fp().read())
+
+        return spec_text, fmt, q
+
+    return reportSpec
+
+
+def serve_report_request(start_response, report_name,
+                         reportSpec, report, dsn):
+    '''Serve the request, now that we have a report with datasource.
 
     The caller is responsible to make 5xx responses out of any
     exceptions raised.
 
     @param start_response: as per WSGI; called with 200 OK.
-    @param templates: a directory of report skeletons or specs;
-                     The skeleton/spec also specifies
-                     the mysql query to run in an element with
-                     @class="query".
-    @param txpath: File of an XSLT transformation that produces
-                  `rlib report definitions`__ from HTML skeletons.
     @param report: an intilized rlib__ report with datasource.
     @param dsn: data source name to associate with query.
 
@@ -124,33 +189,14 @@ def serve_report_request(start_response, templates, report_name,
 
     .. todo: cite WSGI
     '''
-
-    if report_name.endswith('.xml'):
-        tx = None
-        template = templates.file(report_name)
-    else:
-        tx = libxslt.parseStylesheetDoc(txpath.xml_content())
-        template = templates.file(report_name + '.html')
-
-    if not template.exists():
+    spec_txt, outfmt, report_dml = reportSpec(report_name)
+    if not spec_txt:
         start_response('404 not found', PLAIN)
         return ['no such report spec\n']
 
-    if tx:
-        skel = template.xml_content()
-        ctxt = skel.xpathNewContext()
-        spec = tx.applyStylesheet(skel, None)
-        outfmt = 'PDF'
-    else:
-        spec = template.xml_content()
-        ctxt = spec.xpathNewContext()
-        outfmt = 'TXT'
-
-    report_dml = ctxt.xpathEval('//*[@class="query"]')[0].content
     log.debug('report dml: %s', report_dml)
     report.add_query_as(dsn, report_dml, 'arbitrary_report_name')
 
-    spec_txt = spec.serialize()
     report.add_report_from_buffer(spec_txt)
 
     # todo: try different font:
@@ -189,8 +235,7 @@ class Prefix(object):
 
 
 class Mock(object):
-    def __init__(self):
-        self._ds = {}
+    import pkg_resources as pkg
 
     content = {'/here/conf.ini':
                '\n'.join([line.strip()
@@ -201,7 +246,35 @@ class Mock(object):
                user="mickey_mouse"
                password="club"
                name="all_my_friends"
-                          '''.split('\n')])}
+                          '''.split('\n')]),
+               '/here/templates/weekly_groups.html':
+               pkg.resource_string(__name__, 'templates/weekly_groups.html')}
+
+    def __init__(self):
+        self._ds = {}
+
+    @classmethod
+    def report_app(cls):
+        from traceback import format_exc
+
+        here = ocap.Rd('/here', Mock, Mock.open_rd)
+
+        configRd = xataface_config(here)
+        reportMaker = mkReportMaker(mkRlib=lambda: cls(),
+                                    configRd=configRd)
+        reportSpec = mkReportSpec(cls.popen, here)
+
+        return mk_report_app(
+            format_exc,
+            report_authz=report_if_key(configRd, reportMaker),
+            reportSpec=reportSpec)
+
+    @classmethod
+    def popen(cls, args, stdout=None):
+        return cls()
+
+    def communicate(self, input=None):
+        return 'communicate stuff', ''
 
     @classmethod
     def open_rd(cls, n):
@@ -218,49 +291,43 @@ class Mock(object):
         import posixpath
         return posixpath.join(*paths)
 
+    @classmethod
+    def exists(cls, path):
+        return path in cls.content
+
     def add_datasource_mysql(self, dsn, host, username, password, name):
         self._ds[dsn] = (host, username, password, name)
 
+    def add_query_as(self, dsn, q, report_name):
+        pass
+
+    def add_report_from_buffer(self, txt):
+        pass
+
+    def set_output_format_from_text(self, fmt):
+        pass
+
+    def execute(self):
+        pass
+
+    def get_content_type_as_text(self):
+        return 'Content-type: application/pdf\n'
+
+    def get_output(self):
+        return 'pdf stuff here\n'
+
 
 def mkReportMaker(mkRlib, configRd,
-                  DB_SECTION='_database',
                   dsn='local_mysql'):
-    r'''
-    >>> here = ocap.Rd('/here', Mock, Mock.open_rd)
-    >>> configRd = xataface_config(here)
-    >>> rm = mkReportMaker(lambda: Mock(), configRd)
-
-    >>> report = rm({'QUERY_STRING': 'key=sekret'})
-    >>> report._ds['local_mysql']
-    ('localhost', 'mickey_mouse', 'club', 'all_my_friends')
-
-    >>> rm({'QUERY_STRING': ''})
-    Traceback (most recent call last):
-      ...
-    KeyError: 'missing key parameter'
-
-    >>> rm({'QUERY_STRING': 'key=secret'})
-    Traceback (most recent call last):
-      ...
-    IOError: report key does not match.
-    '''
-
-    def reportMaker(env):
-        k = parse_qs(env.get('QUERY_STRING', '')).get('key')
-        if not k:
-            raise KeyError('missing key parameter')
-
+    def reportMaker():
         config = patched_config(configRd)
-        if config.get(DB_SECTION, 'report_key') not in k:
-            raise IOError('report key does not match.')
-
         opts = [config.get(DB_SECTION, k)[1:-1]
                 for k in ['host', 'user', 'password', 'name']]
         log.debug('db opts: %s', opts)
         report = mkRlib()
         report.add_datasource_mysql(dsn, *opts)
 
-        return report
+        return report, dsn
 
     return reportMaker
 
@@ -268,6 +335,9 @@ def mkReportMaker(mkRlib, configRd,
 def xataface_config(here,
                     ini='conf.ini'):
     return here.subRd(ini)
+
+
+DB_SECTION = '_database'
 
 
 def patched_config(configRd):
@@ -281,16 +351,44 @@ if __name__ == '__main__':
         #import traceback
         from wsgiref.handlers import CGIHandler
 
-        from os import environ
+        from os import environ, path
+        from subprocess import Popen
+        from traceback import format_exc
 
-        #@@import rlib
-        #@@import libxslt
-        #@@here = path.dirname(__file__)
+        def mkRlib():
+            from rlib import Rlib
+            return Rlib()
+
+        here = ocap.Rd(path.dirname(__file__), path,
+                       lambda n: open(n))
+        configRd = xataface_config(here)
+        reportMaker = mkReportMaker(mkRlib=mkRlib,
+                                    configRd=configRd)
+        reportSpec = mkReportSpec(Popen, here)
 
         if 'SCRIPT_NAME' in environ:
-            cgi_main(mkCGIHandler=lambda: CGIHandler())
+            report_app = mk_report_app(
+                format_exc,
+                report_authz=report_if_key(configRd, reportMaker),
+                reportSpec=reportSpec)
+
+            cgi_main(mkCGIHandler=lambda: CGIHandler(),
+                     report_app=report_app)
         else:
             from sys import argv, stdout
 
             logging.basicConfig(level=logging.DEBUG)
-            _test_main(argv[:], stdout)
+
+            def argv_wr(n):
+                if n not in argv:
+                    raise IOError()
+                return open(n, 'w')
+
+            report_app = mk_report_app(
+                format_exc,
+                report_authz=lambda config: reportMaker(),
+                reportSpec=reportSpec)
+
+            _test_main(argv[:], stdout, argv_wr, report_app)
+
+    _with_caps()
