@@ -27,7 +27,7 @@ class dataface_modules_gapp {
       if (!isset( $_REQUEST['-return'] )) {
 	$ah = $this->loadAssociationHandle($app);
 
-	$addr = (($_SERVER['HTTPS'] ? "https://" : "http://") . $_SERVER['HTTP_HOST'] .
+	$addr = (((!empty($s['HTTPS']) && $_SERVER['HTTPS']) ? "https://" : "http://") . $_SERVER['HTTP_HOST'] .
 	      DATAFACE_SITE_HREF . '?-action=login&-return=1');
 	//error_log('loging redirect: ' . $addr . "\n", 3, 'gapp.log');
 	$googleLogin = GoogleOpenID::createRequest($addr, $ah, true);
@@ -75,7 +75,7 @@ class dataface_modules_gapp {
      Make sure ours is less than 1 week old. */
     $a_week = 7 * 24 * 60 * 60;
     if (time() - filemtime($apath) < $a_week) {
-      $afh = fopen($apath);
+      $afh = fopen($apath, 'r');
       if ($afh) {
 	$handle = fread($afh, filesize($apath));
 	fclose($afh);
