@@ -3,6 +3,8 @@ templates_c/
 conf.ini
 hh_conf.php
 
+php_errorlog
+
 ,*
 *~
 *.pyc
