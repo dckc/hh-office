@@ -14,13 +14,12 @@ TODO: move xsltproc processing to design time with make
 #http://osdir.com/ml/text.rlib.user/2008-07/msg00002.html
 '''
 
-from ConfigParser import SafeConfigParser
-from cgi import parse_qs
 from subprocess import PIPE
 from xml.etree import ElementTree as ET
 import logging
 
 import ocap
+from hhtcb import Xataface, WSGI, MockXF
 
 
 def _kludge_pkg_path():
@@ -28,10 +27,6 @@ def _kludge_pkg_path():
     from os import path as p
     sys.path.append(p.expanduser('~/run/lib/python2.5/site-packages/'))
 
-
-PLAIN = [('Content-Type', 'text/plain')]
-HTML8 = [('Content-Type', 'text/html; charset=utf-8')]
-PDF = [('Content-Type', 'application/pdf')]
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +36,7 @@ def cgi_main(mkCGIHandler, report_app):
     >>> from wsgiref.handlers import CGIHandler
     >>> logging.basicConfig(level=logging.INFO)
 
-    >>> report_app = Mock.report_app()
+    >>> report_app = MockReportApp.make()
     >>> from os import environ
     >>> environ['QUERY_STRING'] = 'key=sekret'
     >>> environ['PATH_INFO'] = '/weekly_groups'
@@ -73,7 +68,7 @@ def _test_main(argv, stdout, argv_wr, report_app):
         outfp.write(part)
 
 
-def mk_report_app(format_exc, report_authz, reportSpec):
+def mk_report_app(report_authz, reportSpec):
 
     def report_app(env, start_response):
         '''
@@ -83,58 +78,14 @@ def mk_report_app(format_exc, report_authz, reportSpec):
         try:
             report, dsn = report_authz(env)
         except IOError as e:
-            start_response('403 not authorized', PLAIN)
+            start_response('403 not authorized', WSGI.PLAIN)
             return [str(e)]
 
         report_name = env.get('PATH_INFO', '')[1:]
-        try:
-            return serve_report_request(start_response, report_name,
-                                        reportSpec, report, dsn)
-        except:  # pylint: disable-msg=W0703,W0702
-            start_response('500 internal error', PLAIN)
-            return [format_exc()]
+        return serve_report_request(start_response, report_name,
+                                    reportSpec, report, dsn)
 
     return report_app
-
-
-def report_if_key(configRd, reportMaker):
-    r'''
-    >>> here = ocap.Rd('/here', Mock, Mock.open_rd)
-    >>> configRd = xataface_config(here)
-    >>> reportMaker = mkReportMaker(lambda: Mock(), configRd)
-    >>> ck = report_if_key(configRd, reportMaker)
-
-    >>> report, dsn = ck({'QUERY_STRING': 'key=sekret'})
-    >>> report._ds['local_mysql']
-    ('localhost', 'mickey_mouse', 'club', 'all_my_friends')
-
-    >>> ck({'QUERY_STRING': ''})
-    Traceback (most recent call last):
-      ...
-    KeyError: 'missing key parameter'
-
-    >>> ck({'QUERY_STRING': 'key=secret'})
-    Traceback (most recent call last):
-      ...
-    IOError: report key does not match.
-    '''
-    def check_config(env):
-        '''
-        @param env: CGI environment; PATH_INFO is used to find
-                    a report skeleton under `templates`.
-        '''
-        k = parse_qs(env.get('QUERY_STRING', '')).get('key')
-        if not k:
-            raise KeyError('missing key parameter')
-
-        config = patched_config(configRd)
-
-        if config.get(DB_SECTION, 'report_key') not in k:
-            raise IOError('report key does not match.')
-
-        return reportMaker()
-
-    return check_config
 
 
 def mkReportSpec(Popen, here,
@@ -191,7 +142,7 @@ def serve_report_request(start_response, report_name,
     '''
     spec_txt, outfmt, report_dml = reportSpec(report_name)
     if not spec_txt:
-        start_response('404 not found', PLAIN)
+        start_response('404 not found', WSGI.PLAIN)
         return ['no such report spec\n']
 
     log.debug('report dml: %s', report_dml)
@@ -218,82 +169,9 @@ def serve_report_request(start_response, report_name,
     return [report.get_output()]
 
 
-class Prefix(object):
-    '''work-around: xataface needs options before the 1st [section]
-    '''
-    def __init__(self, fp, line):
-        self._fp = fp
-        self._l = line
-
-    def readline(self):
-        if self._l:
-            l = self._l
-            self._l = None
-            return l
-        else:
-            return self._fp.readline()
-
-
-class Mock(object):
-    import pkg_resources as pkg
-
-    content = {'/here/conf.ini':
-               '\n'.join([line.strip()
-                          for line in '''
-               [_database]
-               report_key=sekret
-               host="localhost"
-               user="mickey_mouse"
-               password="club"
-               name="all_my_friends"
-                          '''.split('\n')]),
-               '/here/templates/weekly_groups.html':
-               pkg.resource_string(__name__, 'templates/weekly_groups.html')}
-
+class MockReport(object):
     def __init__(self):
         self._ds = {}
-
-    @classmethod
-    def report_app(cls):
-        from traceback import format_exc
-
-        here = ocap.Rd('/here', Mock, Mock.open_rd)
-
-        configRd = xataface_config(here)
-        reportMaker = mkReportMaker(mkRlib=lambda: cls(),
-                                    configRd=configRd)
-        reportSpec = mkReportSpec(cls.popen, here)
-
-        return mk_report_app(
-            format_exc,
-            report_authz=report_if_key(configRd, reportMaker),
-            reportSpec=reportSpec)
-
-    @classmethod
-    def popen(cls, args, stdout=None):
-        return cls()
-
-    def communicate(self, input=None):
-        return 'communicate stuff', ''
-
-    @classmethod
-    def open_rd(cls, n):
-        from StringIO import StringIO
-        return StringIO(cls.content[n])
-
-    @classmethod
-    def abspath(cls, p):
-        import posixpath
-        return posixpath.abspath(p)
-
-    @classmethod
-    def join(cls, *paths):
-        import posixpath
-        return posixpath.join(*paths)
-
-    @classmethod
-    def exists(cls, path):
-        return path in cls.content
 
     def add_datasource_mysql(self, dsn, host, username, password, name):
         self._ds[dsn] = (host, username, password, name)
@@ -317,12 +195,31 @@ class Mock(object):
         return 'pdf stuff here\n'
 
 
-def mkReportMaker(mkRlib, configRd,
+class MockReportApp(object):
+    @classmethod
+    def make(cls):
+        from traceback import format_exc
+
+        report_app = mk_caps('/here', MockXF, MockXF.open_rd,
+                             mkRlib=lambda: MockReport(),
+                             Popen=MockOS.popen)
+
+        return WSGI.error_middleware(format_exc, report_app)
+
+
+class MockOS(object):
+    @classmethod
+    def popen(cls, args, stdout=None):
+        return cls()
+
+    def communicate(self, input=None):
+        return 'communicate stuff', ''
+
+
+def mkReportMaker(mkRlib, xf,
                   dsn='local_mysql'):
     def reportMaker():
-        config = patched_config(configRd)
-        opts = [config.get(DB_SECTION, k)[1:-1]
-                for k in ['host', 'user', 'password', 'name']]
+        opts = xf.dbopts()
         log.debug('db opts: %s', opts)
         report = mkRlib()
         report.add_datasource_mysql(dsn, *opts)
@@ -332,18 +229,15 @@ def mkReportMaker(mkRlib, configRd,
     return reportMaker
 
 
-def xataface_config(here,
-                    ini='conf.ini'):
-    return here.subRd(ini)
+def mk_caps(cwd, os_path, open_rd, mkRlib, Popen):
+    here = ocap.Rd(cwd, os_path, open_rd)
+    xf = Xataface.make(here)
+    reportMaker = mkReportMaker(mkRlib=mkRlib, xf=xf)
+    reportSpec = mkReportSpec(Popen, here)
 
-
-DB_SECTION = '_database'
-
-
-def patched_config(configRd):
-    config = SafeConfigParser()
-    config.readfp(Prefix(configRd.fp(), '[DEFAULT]'), str(configRd))
-    return config
+    return mk_report_app(
+        report_authz=xf.mk_qs_facet(reportMaker),
+        reportSpec=reportSpec)
 
 
 if __name__ == '__main__':
@@ -359,21 +253,17 @@ if __name__ == '__main__':
             from rlib import Rlib
             return Rlib()
 
-        here = ocap.Rd(path.dirname(__file__), path,
-                       lambda n: open(n))
-        configRd = xataface_config(here)
-        reportMaker = mkReportMaker(mkRlib=mkRlib,
-                                    configRd=configRd)
-        reportSpec = mkReportSpec(Popen, here)
+        report_app = mk_caps(cwd=path.dirname(__file__),
+                             os_path=path,
+                             open_rd=lambda n: open(n),
+                             mkRlib=mkRlib,
+                             Popen=Popen)
 
         if 'SCRIPT_NAME' in environ:
-            report_app = mk_report_app(
-                format_exc,
-                report_authz=report_if_key(configRd, reportMaker),
-                reportSpec=reportSpec)
+            report_appE = WSGI.error_middleware(format_exc, report_app)
 
             cgi_main(mkCGIHandler=lambda: CGIHandler(),
-                     report_app=report_app)
+                     report_app=report_appE)
         else:
             from sys import argv, stdout
 
@@ -383,11 +273,6 @@ if __name__ == '__main__':
                 if n not in argv:
                     raise IOError()
                 return open(n, 'w')
-
-            report_app = mk_report_app(
-                format_exc,
-                report_authz=lambda config: reportMaker(),
-                reportSpec=reportSpec)
 
             _test_main(argv[:], stdout, argv_wr, report_app)
 

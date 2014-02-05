@@ -24,17 +24,21 @@ import mechanize
 import MySQLdb
 import paste
 
-import hhtcb
-from ocap import DBOpts
 from export_claims import format_claims
+from hhtcb import WSGI, Xataface
+import ocap
 
 log = logging.getLogger(__name__)
 
 
 def app_factory(config):
+    from os import path as os_path
+
     logging.basicConfig(level=logging.INFO)
-    dbo = DBOpts(hhtcb.xataface_config())
-    return SyncApp(dbo)
+    here = ocap.Rd(os_path.dirname(__file__), os_path,
+                   open_rd=lambda n: open(n))
+    xf = Xataface.make(here)
+    return SyncApp(xf)
 
 
 def test_main(argv):
@@ -71,24 +75,21 @@ def test_main(argv):
 
 
 class SyncApp(object):
-    PLAIN = [('Content-Type', 'text/plain')]
-    HTML8 = [('Content-Type', 'text/html; charset=utf-8')]
-
-    def __init__(self, dbo,
+    def __init__(self, xf,
                  title='Hope Harbor FreeClaims Helper'):
-        self._dbo = dbo
+        self._xf = xf
         self._title = title
 
     def __call__(self, env, start_response):
         '''Check authorization, login to the DB, and dispatch to show/upload.
         '''
         try:
-            host, user, password, name = self._dbo.webapp_login(env)
+            host, user, password, name = self._xf.webapp_login(env)
         except KeyError:
-            start_response('400 bad request', self.PLAIN)
+            start_response('400 bad request', WSGI.PLAIN)
             return ['missing key parameter ']
         except OSError:
-            start_response('401 unauthorized', self.PLAIN)
+            start_response('401 unauthorized', WSGI.PLAIN)
             return ['report key does not match.']
 
         # scrub user input

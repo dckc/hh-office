@@ -14,13 +14,12 @@ class Xataface(object):
     >>> here = ocap.Rd('/here', MockXF, MockXF.open_rd)
     >>> xf = Xataface.make(here)
     >>> def superpower():
-    ...     return [xf.config().get(Xataface.DB_SECTION, k) for k in
-    ...             ['host', 'user', 'password', 'name']]
+    ...     return xf.dbopts()
     >>> ck = xf.mk_qs_facet(superpower)
 
     >>> opts = ck({'QUERY_STRING': 'key=sekret'})
     >>> opts
-    ['"localhost"', '"mickey_mouse"', '"club"', '"all_my_friends"']
+    ['localhost', 'mickey_mouse', 'club', 'all_my_friends']
 
     >>> ck({'QUERY_STRING': ''})
     Traceback (most recent call last):
@@ -56,6 +55,15 @@ class Xataface(object):
             return doit()
 
         return invoke
+
+    def dbopts(self,
+               keys=['host', 'user', 'password', 'name']):
+        config = self.config()
+        return [config.get(Xataface.DB_SECTION, k)[1:-1]
+                for k in keys]
+
+    def webapp_login(self, env):
+        return self.mk_qs_facet(doit=lambda: self.dbopts())()
 
     def config(self,
                pfx='[DEFAULT]'):

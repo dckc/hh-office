@@ -8,27 +8,21 @@ import csv
 from itertools import groupby
 from operator import itemgetter
 import wsgiref.handlers
-import datetime
 
 import MySQLdb
 
-from ocap import DBOpts, dbopts
-import hhtcb
+import ocap
+from hhtcb import Xataface, WSGI
 
 
-PLAIN = [('Content-Type', 'text/plain')]
-
-
-def cgi_main():
-    app = ReportApp(DBOpts(hhtcb.xataface_config()), datetime.date)
+def cgi_main(xf, cal):
+    app = ReportApp(xf, cal)
     wsgiref.handlers.CGIHandler().run(app)
 
 
-def _test_main(ini='conf.ini'):
-    import sys
-
-    outfn, visits = sys.argv[1], sys.argv[2:]
-    host, user, password, name = dbopts(hhtcb.xataface_config())
+def _test_main(argv, xf):
+    outfn, visits = argv[1], argv[2:]
+    host, user, password, name = xf.dbopts()
 
     content, pages = format_claims(MySQLdb.connect(host=host, user=user,
                                                    passwd=password, db=name),
@@ -40,18 +34,18 @@ def _test_main(ini='conf.ini'):
 
 
 class ReportApp(object):
-    def __init__(self, dbo, datesrc):
-        self._dbo = dbo
-        self._datesrc = datesrc
+    def __init__(self, xf, cal):
+        self._xf = xf
+        self._datesrc = cal
 
     def __call__(self, env, start_response):
         try:
-            host, user, password, name = self._dbo.webapp_login(env)
+            host, user, password, name = self._xf.webapp_login(env)
         except KeyError:
-            start_response('400 bad request', PLAIN)
+            start_response('400 bad request', WSGI.PLAIN)
             return ['missing key parameter ']
         except OSError:
-            start_response('401 unauthorized', PLAIN)
+            start_response('401 unauthorized', WSGI.PLAIN)
             return ['report key does not match.']
 
         conn = MySQLdb.connect(host=host, user=user, passwd=password, db=name)
@@ -69,7 +63,7 @@ class ReportApp(object):
 def format_claims(conn, visit_ids):
     cursor = conn.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(QUERY % dict(
-            visit_ids=', '.join([str(i) for i in visit_ids])))
+        visit_ids=', '.join([str(i) for i in visit_ids])))
 
     pages = []
     buf = ListWriter()
@@ -384,8 +378,16 @@ COLUMNS = [literal.strip()[1:-1] for literal in '''
 '''.strip().split('\n')]
 
 if __name__ == '__main__':
-    from os import environ
-    if 'SCRIPT_NAME' in environ:
-        cgi_main()
-    else:
-        _test_main()
+    def _with_caps():
+        from os import environ, path as os_path
+        import datetime
+
+        here = ocap.Rd(os_path.dirname(__file__), os_path,
+                       open_rd=lambda n: open(n))
+        xf = Xataface.make(here)
+
+        if 'SCRIPT_NAME' in environ:
+            cgi_main(xf, cal=datetime.date)
+        else:
+            from sys import argv
+            _test_main(argv, xf)
