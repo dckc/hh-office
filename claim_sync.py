@@ -118,21 +118,21 @@ class SyncApp(object):
             self._title,
             ['<h1>Insurance Claim Batch</h1>\n',
              '<form method="POST" action="?key=%s&visits=%s">\n' % (
-                    key, ','.join(map(str, visit_ids))),
+                 key, ','.join(map(str, visit_ids))),
              '<ol>\n'] +
             [piece for claim in claims
              for piece in
              (['  <li>%s<br />%s $%s<br />DX: %s %s <ol>\n' % (
-                            saxutils.escape(claim['detail'][
-                                    'Insurance Company Name']),
-                            saxutils.escape(claim['detail']['2-PatientName']),
-                            claim['detail']['28-TotalCharge'],
-                            claim['detail']['21.1-Diagnosis'],
-                            claim['detail']['21.2-Diagnosis'] or '')] +
+                 saxutils.escape(claim['detail'][
+                     'Insurance Company Name']),
+                 saxutils.escape(claim['detail']['2-PatientName']),
+                 claim['detail']['28-TotalCharge'],
+                 claim['detail']['21.1-Diagnosis'],
+                 claim['detail']['21.2-Diagnosis'] or '')] +
               ['    <li>on %s CPT: %s $%s</li>\n' % (
-                            item['24.1.a-DOSFrom'],
-                            item['24.1.d-CPT'],
-                            item['24.1.f-Charges'])
+                  item['24.1.a-DOSFrom'],
+                  item['24.1.d-CPT'],
+                  item['24.1.f-Charges'])
                for item in claim['items']] +
               ['</ol>\n', '</li>\n'])] +
             ['</ol>\n',
@@ -167,7 +167,7 @@ def update_visits(conn, claims, results):
     for cin, cout in zip(claims, results):
         visit_ids = cin['visit_ids']
         sql = ("""update Visit v
-               set claim_uid = concat(%%s, ',', %%s) 
+               set claim_uid = concat(%%s, ',', %%s)
                where v.id in (%s)""" % ', '.join(map(str, visit_ids)))
         log.info('Updating (%s) to trace %s, batch %s\nSQL:%s',
                  visit_ids, cout.trace_no, cout.batch, sql)
@@ -196,9 +196,9 @@ def format_upload_results(title, batch, results):
         [piece for cout in results for piece in
          ['<tr>',
           '<td><a href="%s%s">%s</a></td>' % (
-                    FreeClaimsUA.base, cout.href, cout.trace_no),
+              FreeClaimsUA.base, cout.href, cout.trace_no),
           '<td><a href="%s%s">%s</a></td>' % (
-                    FreeClaimsUA.base, batch.href, batch.batch_no),
+              FreeClaimsUA.base, batch.href, batch.batch_no),
           '<td>%s</td>' % cout.status,
           '<td>%s</td>' % cout.last,
           '<td>%s</td>' % cout.first,
@@ -208,8 +208,9 @@ def format_upload_results(title, batch, results):
           '</tr>'
           ]] +
         ['</table>',
-         '<p><strong>To update billing dates, return to Hope Harbor Attendance',
-         ' using the back button and choose the Update action button.',
+         '<p><strong>To update billing dates, return to Hope Harbor',
+         ' Attendance using the back button'
+         ' and choose the Update action button.',
          '</strong></p>'])
 
 
@@ -306,11 +307,11 @@ def batches_flatten(out, batches_claims):
                    service_date date_received'''.split())
 
     co.writerows([
-            (batch.batch_no,
-             claim.trace_no, claim.status,
-             claim.last, claim.first,
-             claim.acc_no, claim.acc_no.split('.')[-1],
-             claim.service_date, claim.date_received)
+        (batch.batch_no,
+         claim.trace_no, claim.status,
+         claim.last, claim.first,
+         claim.acc_no, claim.acc_no.split('.')[-1],
+         claim.service_date, claim.date_received)
         for batch, claims in batches_claims
         for claim in claims])
 
@@ -329,8 +330,8 @@ def claim(row):
     trace_cell = row('td')[1]
     return Claim(int(trace_cell.a.contents[0]), trace_cell.a['href'],
                  int(txts[2]), txts[3], txts[4], txts[5], txts[6],
-        datetime.datetime.strptime(txts[9], '%m/%d/%Y'),
-        datetime.datetime.strptime(txts[15], '%m/%d/%Y'))
+                 datetime.datetime.strptime(txts[9], '%m/%d/%Y'),
+                 datetime.datetime.strptime(txts[15], '%m/%d/%Y'))
 
 _CLAIM_MARKUP = '''
                             <tr bgcolor=ddf7f7 >
