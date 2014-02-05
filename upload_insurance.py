@@ -1,57 +1,66 @@
 #!/usr/bin/env python
-import wsgiref.handlers
-import cgi
 
-from sqlalchemy import create_engine, exc 
+from cgi import FieldStorage
+import logging
+
+from sqlalchemy import exc
 from sqlalchemy.engine.url import URL
 
-import hhtcb
-from ocap import DBOpts
+import ocap
+from hhtcb import Xataface, WSGI
 from claims.import_claims import Claim
 
-PLAIN = [('Content-Type', 'text/plain')]
-HTML8 = [('Content-Type', 'text/html; charset=utf-8')]
+log = logging.getLogger(__name__)
 
 
-def cgi_main():
-    wsgiref.handlers.CGIHandler().run(upload_if_key)
+def cgi_main(mkCGIHandler, upload_app):
+    mkCGIHandler().run(upload_app)
 
 
-def upload_if_key(env, start_response,
-                  driver='mysql+mysqldb'):
-    dbo = DBOpts(hhtcb.xataface_config())
-    try:
-        h, u, p, n = dbo.webapp_login(env)
-    except KeyError:
-        start_response('400 bad request', PLAIN)
-        return ['missing key parameter ']
-    except OSError:
-        start_response('401 unauthorized', PLAIN)
-        return ['report key does not match.']
+def mk_db_engine(create_engine, xf,
+                 driver='mysql+mysqldb',
+                 db_section='_database'):
+    def db_engine():
+        config = xf.config()
+        h, u, p, n = [config.get(db_section, k)[1:-1]
+                      for k in ['host', 'user', 'password', 'name']]
+        log.debug('db opts: %s', [h, u, p, n])
+        return create_engine(URL(driver, u, p,
+                                 host=h, database=n))
+    return db_engine
 
-    if env['REQUEST_METHOD'] == 'POST':
-        return upload_insurance(env, start_response,
-                                create_engine(URL(driver, u, p,
-                                                  host=h, database=n)))
-    else:
-        start_response('200 OK', HTML8)
-        return ['<!DOCTYPE html>',
-                '<html><head>',
-                '<title>Upload Insurance Info - Hope Harbor</title>',
-                '</head><body>',
-                '<form method="POST" enctype="multipart/form-data">',
-                '<p>Choose medclaim file: '
-                '<input type="file" name="claim-xls" />',
-                '<input type="submit" />',
-                '</p></form></body></html>']
 
+def mk_upload_app(db_access):
+    def handle(env, start_response):
+        try:
+            engine = db_access(env)
+        except KeyError:
+            start_response('400 bad request', WSGI.PLAIN)
+            return ['missing key parameter ']
+        except IOError:
+            start_response('401 unauthorized', WSGI.PLAIN)
+            return ['report key does not match.']
+
+        if env['REQUEST_METHOD'] == 'POST':
+            return upload_insurance(env, start_response, engine)
+        else:
+            start_response('200 OK', WSGI.HTML8)
+            return ['<!DOCTYPE html>',
+                    '<html><head>',
+                    '<title>Upload Insurance Info - Hope Harbor</title>',
+                    '</head><body>',
+                    '<form method="POST" enctype="multipart/form-data">',
+                    '<p>Choose medclaim file: '
+                    '<input type="file" name="claim-xls" />',
+                    '<input type="submit" />',
+                    '</p></form></body></html>']
 
 
 def upload_insurance(env, start_response, engine):
-    fv = cgi.FieldStorage(fp=env['wsgi.input'], environ=env)
+    fv = FieldStorage(fp=env['wsgi.input'], environ=env)
 
     def bad_request(txts):
-        start_response('400 bad request', PLAIN)
+        start_response('400 bad request', WSGI.PLAIN)
         return txts
 
     if 'claim-xls' not in fv:
@@ -63,13 +72,13 @@ def upload_insurance(env, start_response, engine):
     except KeyError as ex:
         return bad_request(['no such client: ', str(ex)])
     except ReferenceError as ex:
-        start_response('409 conflict', PLAIN)
+        start_response('409 conflict', WSGI.PLAIN)
         return ['insurance already recorded: ',
                 c.patient_name().encode('utf-8')]
     except (exc.IntegrityError, exc.OperationalError) as ex:
         return bad_request(['insert failed: ', str(ex)])
 
-    start_response('201 created', HTML8)
+    start_response('201 created', WSGI.HTML8)
     return ['<p>OK. insurance record created for: ',
             '<a href="index.php?-table=Client&-action=browse&',
             '-recordid=Client%3Fid%3D', str(policy.client.id), '">',
@@ -77,6 +86,21 @@ def upload_insurance(env, start_response, engine):
 
 
 if __name__ == '__main__':
-    from os import environ
-    if 'SCRIPT_NAME' in environ:
-        cgi_main()
+    def _with_caps():
+        from traceback import format_exc
+        from os import environ, path
+        from wsgiref.handlers import CGIHandler
+
+        from sqlalchemy import create_engine
+
+        here = ocap.Rd(path.dirname(__file__), path,
+                       lambda n: open(n))
+        xf = Xataface.make(here)
+        db_engine = mk_db_engine(create_engine, xf)
+        upload_app = mk_upload_app(db_access=xf.mk_qs_facet(db_engine))
+
+        if 'SCRIPT_NAME' in environ:
+            cgi_main(mkCGIHandler=lambda: CGIHandler(),
+                     upload_app=WSGI.error_middleware(format_exc, upload_app))
+
+    _with_caps()
