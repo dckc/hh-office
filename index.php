@@ -8,16 +8,11 @@
  * simply point your web browser to this file.
  */
 
-// Report simple running errors
-error_reporting(E_ERROR | E_PARSE);
-
+require_once 'hh_conf.php';
 
 /* Use Strict-Transport-Security (STS) to force the use of SSL.
  * ack: Nov 2010 http://www.php.net/manual/en/reserved.variables.server.php#100877
  */
-//$use_sts = TRUE;
-require_once 'hh_conf.php';
-
 if ($use_sts && isset($_SERVER['HTTPS'])) {
   header('Strict-Transport-Security: max-age=500');
 } elseif ($use_sts && !isset($_SERVER['HTTPS'])) {
