@@ -119,14 +119,6 @@ class OfficeReport(FPDF):
 
     def _detail_header(self,
                        border_top=1, border_bottom=1, margin_bottom=2):
-        '''
-      <HorizontalLine size="4" bgcolor="'white'"/>
-      <Line fontSize="11" bgcolor="'0xd0d0d0'" color="'black'">
-        <literal width="2"/>
-        <xsl:apply-templates mode="Line" />
-      </Line>
-      <HorizontalLine size="2" bgcolor="'white'" />
-        '''
         detail = HTML.the(self.design, ".//h:table[@class='Detail']")
         thead_row1 = HTML.the(detail, "h:thead/h:tr[1]")
         tbody_row1 = HTML.the(detail, "h:tbody/h:tr[1]")
