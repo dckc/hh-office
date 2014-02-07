@@ -15,14 +15,14 @@ from xml.etree import ElementTree as ET
 from fpdf import FPDF
 
 
-def main(argv, stdin, stdout, open_arg):
+def main(argv, stdin, stdout, open_arg, cal):
     '''
     Note `_with_caps()` below for `least-authority style`__.
 
     __ http://www.madmode.com/2013/python-capability-idioms-part-1.html
     '''
     design_doc = argv[1]
-    rpt = OfficeReport.make(open_arg(design_doc))
+    rpt = OfficeReport.make(open_arg(design_doc), cal)
     rpt.run(lines=stdin)
     stdout.write(rpt.pdf_string())
     raise NotImplementedError('database input, detail, breaks, etc.')
@@ -38,16 +38,17 @@ class OfficeReport(FPDF):
     normal_line_height = 1.2
     black, grey, dark_grey, white = 0, 0xd0, 0xe5, 0xff
 
-    def __init__(self, design,
+    def __init__(self, design, fns,
                  unit='pt', format='Letter',
                  detail_size=10):
         FPDF.__init__(self, unit=unit, format=format)
         self.design = design
+        self._fns = fns
         self._first_line = True
 
     @classmethod
-    def make(cls, fp):
-        return cls(ET.parse(fp))
+    def make(cls, fp, cal):
+        return cls(ET.parse(fp), field_functions(cal))
 
     def run(self, lines):
         self._start_page()
@@ -156,10 +157,14 @@ class OfficeReport(FPDF):
             if HTML.has_class(elt, 'literal'):
                 txt = (' ' * len(elt.text) if HTML.has_class(elt, 'blank')
                        else elt.text)
-                self.cell(self.get_string_width(txt + ' '), self._h(size),
-                          txt, fill=fill)
             else:
-                self.todo('field')
+                import sys; print >>sys.stderr, elt.attrib['title']
+                env = dict(r=RDot(self))
+                env.update(self._fns)
+                print >>sys.stderr, env
+                txt = eval(elt.attrib['title'], {}, env)
+            self.cell(self.get_string_width(txt + ' '), self._h(size),
+                      txt, fill=fill)
         self.ln()
 
     @classmethod
@@ -167,6 +172,29 @@ class OfficeReport(FPDF):
         #@@raise NotImplementedError
         import sys
         print >>sys.stderr, "TODO!!", what
+
+
+class RDot(object):
+    def __init__(self, fpdf):
+        self._fpdf = fpdf
+
+    @property
+    def pageno(self):
+        return str(self._fpdf.page_no())
+
+
+def field_functions(cal):
+    '''
+    >>> from datetime import date
+    >>> env = field_functions(lambda: date(2001, 3, 2))
+    >>> eval('date()', env)
+    '03/02/2001'
+    '''
+    def date():
+        return cal().strftime('%02m/%02d/%04Y')
+
+    return dict([(f.__name__, f)
+                 for f in [date]])
 
 
 class HTML(object):
@@ -211,12 +239,14 @@ class HTML(object):
 if __name__ == '__main__':
     def _with_caps(out='tuto1.pdf'):
         from sys import argv, stdin, stdout
+        from datetime import date
 
         def open_arg(n):
             if n not in argv:
                 raise IOError
             return open(n)
 
-        main(argv[:], stdin, stdout, open_arg)
+        main(argv[:], stdin, stdout, open_arg,
+             cal=lambda: date.today())
 
     _with_caps()
