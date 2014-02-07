@@ -168,11 +168,6 @@ class OfficeReport(FPDF):
         import sys
         print >>sys.stderr, "TODO!!", what
 
-    @classmethod
-    def fontSize(cls, classname,
-                 default=10):
-        return cls.todo() if classname else default
-
 
 class HTML(object):
     example_ctx = ET.fromstring("""
