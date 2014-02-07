@@ -158,10 +158,8 @@ class OfficeReport(FPDF):
                 txt = (' ' * len(elt.text) if HTML.has_class(elt, 'blank')
                        else elt.text)
             else:
-                import sys; print >>sys.stderr, elt.attrib['title']
                 env = dict(r=RDot(self))
                 env.update(self._fns)
-                print >>sys.stderr, env
                 txt = eval(elt.attrib['title'], {}, env)
             self.cell(self.get_string_width(txt + ' '), self._h(size),
                       txt, fill=fill)
@@ -230,7 +228,7 @@ class HTML(object):
     @classmethod
     def the(cls, ctx, expr):
         found = ctx.find(expr, namespaces=cls.namespaces)
-        if not found:
+        if found is not None:
             raise ValueError('cannot find %s in %s',
                              expr, ctx.tag)
         return found
