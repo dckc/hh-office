@@ -30,6 +30,7 @@ def main(argv, stdin, stdout, open_arg):
 class OfficeReport(FPDF):
     portrait, landscape = 'P', 'L'
     font = 'Courier'
+    plain = ''
     full_line = 0
     then_right, then_newline, then_below = 0, 1, 2
     align_left, align_center, align_right = 'L', 'C', 'R'
@@ -39,7 +40,6 @@ class OfficeReport(FPDF):
                  unit='pt', format='Letter',
                  detail_size=10):
         FPDF.__init__(self, unit=unit, format=format)
-        self.font_size = 10
         self.design = design
 
     @classmethod
@@ -63,10 +63,18 @@ class OfficeReport(FPDF):
         self.cell(self.full_line, h=large * self.normal_line_height,
                   txt=hd_txt, ln=self.then_newline)
 
-    def detail(self, lines):
-        self.set_font(self.font, '', self.font_size)
+    def detail(self, lines,
+               default_size=10,
+               sizes=[('small-print', 8),
+                      ('medium-print', 9)]):
+        explicit_sizes = [sz for (n, sz) in sizes
+                          if HTML.by_class(self.design, 'body', n)]
+        self.set_font(
+            self.font, self.plain,
+            explicit_sizes[-1] if explicit_sizes else default_size)
         for line in lines:
-            self.cell(self.full_line, self.font_size * self.normal_line_height,
+            self.cell(self.full_line,
+                      self.font_size * self.normal_line_height,
                       txt=line, ln=self.then_newline)
 
     def header(self):
