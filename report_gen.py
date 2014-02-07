@@ -31,12 +31,12 @@ def main(argv, stdin, stdout, open_arg):
 class OfficeReport(FPDF):
     portrait, landscape = 'P', 'L'
     font = 'Courier'
-    plain = ''
+    plain, bold = '', 'B'
     full_line = 0
     then_right, then_newline, then_below = 0, 1, 2
     align_left, align_center, align_right = 'L', 'C', 'R'
     normal_line_height = 1.2
-    black, grey, white = 0, 0xd0, 0xff
+    black, grey, dark_grey, white = 0, 0xd0, 0xe5, 0xff
 
     def __init__(self, design,
                  unit='pt', format='Letter',
@@ -57,12 +57,20 @@ class OfficeReport(FPDF):
         return self.output('', 'S')
 
     def _start_page(self,
-                    large=12, bold='B'):
+                    large=12, bold='B',
+                    default_size=10,
+                    sizes=[('small-print', 8),
+                           ('medium-print', 9)]):
         self.add_page(
             orientation=(
                 self.landscape
                 if HTML.by_class(self.design, 'body', 'landscape')
                 else self.portrait))
+
+        explicit_sizes = [sz for (n, sz) in sizes
+                          if HTML.by_class(self.design, 'body', n)]
+        self.detail_size = (explicit_sizes[-1] if explicit_sizes
+                            else default_size)
 
         hd_txt = HTML.by_class(self.design, 'h1', 'ReportHeader')[0].text
         self.set_font(self.font, bold, large)
@@ -70,7 +78,7 @@ class OfficeReport(FPDF):
             self.cell(self.get_string_width(hd_txt + ' '),
                       self._h(large), hd_txt,
                       fill=1, ln=self.then_newline)
-        self._header()
+        self._pg_header()
 
     @contextmanager
     def fg_bg(self, fg, bg):
@@ -85,14 +93,7 @@ class OfficeReport(FPDF):
     def _h(self, size):
         return size * self.normal_line_height
 
-    def _detail(self, lines,
-                default_size=10,
-                sizes=[('small-print', 8),
-                       ('medium-print', 9)]):
-        explicit_sizes = [sz for (n, sz) in sizes
-                          if HTML.by_class(self.design, 'body', n)]
-        self.detail_size = (explicit_sizes[-1] if explicit_sizes
-                            else default_size)
+    def _detail(self, lines):
         self.set_font(self.font, self.plain, self.detail_size)
 
         for line in lines:
@@ -103,10 +104,20 @@ class OfficeReport(FPDF):
         if self._first_line:
             return
 
-        self._header()
+        self._pg_header()
 
-    def _header(self,
-                size=11, border_top=4, border_bottom=2):
+    def _pg_header(self,
+                   size=11, margin_top=4, margin_bottom=2):
+        self._first_line = False
+        pghd = HTML.by_class(self.design, 'h2', 'PageHeader')[0]
+        self.ln(margin_top)
+        with self.fg_bg(self.black, self.grey):
+            self._line(pghd, size, fill=1)
+        self.ln(margin_bottom)
+        self._detail_header()
+
+    def _detail_header(self,
+                       border_top=1, border_bottom=1, margin_bottom=2):
         '''
       <HorizontalLine size="4" bgcolor="'white'"/>
       <Line fontSize="11" bgcolor="'0xd0d0d0'" color="'black'">
@@ -115,12 +126,21 @@ class OfficeReport(FPDF):
       </Line>
       <HorizontalLine size="2" bgcolor="'white'" />
         '''
-        self._first_line = False
-        pghd = HTML.by_class(self.design, 'h2', 'PageHeader')[0]
+        detail = HTML.the(self.design, ".//h:table[@class='Detail']")
+        thead_row1 = HTML.the(detail, "h:thead/h:tr[1]")
+        tbody_row1 = HTML.the(detail, "h:tbody/h:tr[1]")
         self._hline(border_top)
-        with self.fg_bg(self.black, self.grey):
-            self._line(pghd, size, fill=1)
+        self.set_font(self.font, self.bold, self.detail_size)
+        with self.fg_bg(self.black, self.dark_grey):
+            for (th, td) in zip(thead_row1, tbody_row1):
+                align = th.attrib.get('align', '')[:1].upper()
+                self.cell(self.get_string_width(td.text + ' '),
+                          self._h(self.detail_size),
+                          th.text, fill=1,
+                          align=align)
+        self.ln()
         self._hline(border_bottom)
+        self.ln(margin_bottom)
 
     def _hline(self, h,
                right_margin=7.5 * 72):
@@ -160,6 +180,8 @@ class HTML(object):
     <body><h1 class="x y">..</h1></body>
     </html>""")
 
+    namespaces = dict(h='http://www.w3.org/1999/xhtml')
+
     @classmethod
     def by_class(cls, ctx, tagname, classname):
         '''
@@ -170,7 +192,7 @@ class HTML(object):
 
         w_class = ctx.findall(
             ".//h:%s[@class]" % tagname,
-            namespaces=dict(h='http://www.w3.org/1999/xhtml'))
+            namespaces=cls.namespaces)
         return [e for e in w_class
                 if cls.has_class(e, classname)]
 
@@ -181,6 +203,14 @@ class HTML(object):
         True
         '''
         return classname in elt.attrib['class'].split()
+
+    @classmethod
+    def the(cls, ctx, expr):
+        found = ctx.find(expr, namespaces=cls.namespaces)
+        if not found:
+            raise ValueError('cannot find %s in %s',
+                             expr, ctx.tag)
+        return found
 
 
 if __name__ == '__main__':
