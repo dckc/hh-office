@@ -40,7 +40,7 @@ class OfficeReport(FPDF):
     then_right, then_newline, then_below = 0, 1, 2
     align_left, align_center, align_right = 'L', 'C', 'R'
     normal_line_height = 1.2
-    black, grey, dark_grey, white = 0, 0xd0, 0xe5, 0xff
+    black, grey, light_grey, white = 0, 0xd0, 0xe5, 0xff
 
     def __init__(self, design, connect, fns,
                  unit='pt', format='Letter',
@@ -144,7 +144,7 @@ class OfficeReport(FPDF):
         self._aligns = [th.attrib.get('align', '')[:1].upper()
                         for th in HTML.the(detail, "h:thead/h:tr[1]")]
         self.set_font(self.font, self.bold, self.detail_size)
-        with self.fg_bg(self.black, self.dark_grey):
+        with self.fg_bg(self.black, self.light_grey):
             self._row(texts, self.detail_size, fill=1,
                       widths=self._widths, aligns=self._aligns,
                       margin_bottom=margin_bottom,
@@ -167,15 +167,17 @@ class OfficeReport(FPDF):
 
     def _detail(self, rowlists):
         self.set_font(self.font, self.plain, self.detail_size)
-
-        for rows in rowlists:
-            for row in rows:
-                self._todo('grey alternating lines')
-                self._todo('real value formatting')
-                self._todo('bind detail environment; evaluate fields')
-                self._row([str(v) for v in row],
-                          self.detail_size,
-                          widths=self._widths, aligns=self._aligns)
+        with self.fg_bg(self.black, self.light_grey):
+            parity = 0
+            for rows in rowlists:
+                for row in rows:
+                    self._todo('breaks')
+                    self._todo('real value formatting')
+                    self._todo('bind detail environment; evaluate fields')
+                    self._row([str(v) for v in row],
+                              self.detail_size, fill=parity,
+                              widths=self._widths, aligns=self._aligns)
+                    parity = 1 - parity
 
     def _row(self, txts, size,
              fill=0, widths=None, aligns=None,
