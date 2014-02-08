@@ -163,8 +163,7 @@ class OfficeReport(FPDF):
 
         txts = [
             ((' ' * len(elt.text) if HTML.has_class(elt, 'blank')
-              else elt.text)
-             if HTML.has_class(elt, 'literal')
+              else elt.text) if HTML.has_class(elt, 'literal')
              else eval(elt.attrib['title'], {}, env))
             for elt in ctx]
         log.debug('_line txts: %s', txts)
@@ -174,7 +173,6 @@ class OfficeReport(FPDF):
         detail = HTML.by_class(self.design, "table", 'Detail')[0]
         fields = [th.attrib['title']
                   for th in HTML.the(detail, "h:tbody/h:tr[1]")]
-        no_globals = {'__builtins__': {}}
 
         self.set_font(self.font, self.plain, self.detail_size)
         with self.fg_bg(self.black, self.light_grey):
@@ -183,30 +181,34 @@ class OfficeReport(FPDF):
                 for row in rows:
                     self._todo('breaks')
 
-                    self._todo('value formatting')
-                    # hmm... just because rlib string-ized db results
-                    # doesn't mean we have to or even should.
-                    cols = [str('' if v is None else v) for v in row]
-
-                    env = dict(zip(colnames, cols))
-                    env.update(self._fns)
-
-                    def _eval(e):
-                        try:
-                            return str(eval(e, no_globals, env))
-                        except ValueError as ex:
-                            log.error('bad field: %s', e, exc_info=ex)
-                        return e
-
-                    vals = [_eval(e) for e in fields]
-                    txts = [(v.strftime('%m/%d/%Y') if hasattr(v, 'strftime')
-                             else str(v))[:len(w)]
-                            for (w, v) in zip(self._widths, vals)]
-
+                    self._todo('finish value formatting')
+                    txts = self._eval_fields(fields, colnames, row)
                     self._row(txts,
                               self.detail_size, fill=parity,
                               widths=self._widths, aligns=self._aligns)
                     parity = 1 - parity
+
+    no_globals = {'__builtins__': {}}
+
+    def _eval_fields(self, fields, colnames, row):
+        # hmm... just because rlib string-ized db results
+        # doesn't mean we have to or even should.
+        cols = [str('' if v is None else v) for v in row]
+
+        env = dict(zip(colnames, cols))
+        env.update(self._fns)
+
+        def _eval(e):
+            try:
+                return str(eval(e, self.no_globals, env))
+            except ValueError as ex:
+                log.error('bad field: %s', e, exc_info=ex)
+            return e
+
+        vals = [_eval(e) for e in fields]
+        return [(v.strftime('%m/%d/%Y') if hasattr(v, 'strftime')
+                else str(v))[:len(w)]
+                for (w, v) in zip(self._widths, vals)]
 
     def _row(self, txts, size,
              fill=0, widths=None, aligns=None,
