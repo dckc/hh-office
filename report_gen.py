@@ -10,6 +10,7 @@ __ https://code.google.com/p/pyfpdf/wiki/Tutorial
 '''
 
 from contextlib import contextmanager
+from datetime import datetime
 from xml.etree import ElementTree as ET
 import logging
 
@@ -173,7 +174,7 @@ class OfficeReport(FPDF):
         detail = HTML.by_class(self.design, "table", 'Detail')[0]
         fields = [th.attrib['title']
                   for th in HTML.the(detail, "h:tbody/h:tr[1]")]
-        no_globals = {}
+        no_globals = {'__builtins__': {}}
 
         self.set_font(self.font, self.plain, self.detail_size)
         with self.fg_bg(self.black, self.light_grey):
@@ -183,13 +184,24 @@ class OfficeReport(FPDF):
                     self._todo('breaks')
 
                     self._todo('value formatting')
-                    cols = [str(v) for v in row]
+                    # hmm... just because rlib string-ized db results
+                    # doesn't mean we have to or even should.
+                    cols = [str('' if v is None else v) for v in row]
 
                     env = dict(zip(colnames, cols))
                     env.update(self._fns)
-                    txts = [t[:len(w)] for (w, t) in zip(
-                        self._widths,
-                        [eval(e, no_globals, env) for e in fields])]
+
+                    def _eval(e):
+                        try:
+                            return str(eval(e, no_globals, env))
+                        except ValueError as ex:
+                            log.error('bad field: %s', e, exc_info=ex)
+                        return e
+
+                    vals = [_eval(e) for e in fields]
+                    txts = [(v.strftime('%m/%d/%Y') if hasattr(v, 'strftime')
+                             else str(v))[:len(w)]
+                            for (w, v) in zip(self._widths, vals)]
 
                     self._row(txts,
                               self.detail_size, fill=parity,
@@ -250,8 +262,22 @@ def field_functions(cal):
     def date():
         return cal().strftime('%02m/%02d/%04Y')
 
+    def stod(s):
+        return (datetime.strptime(s, '%Y-%m-%d').date()
+                if s else s)
+
+    def format(d, fmt):
+        if not d:
+            return d
+        if not fmt.startswith('!@') or not hasattr(d, 'strftime'):
+            raise ValueError((d, fmt))
+        return d.strftime(fmt[2:]) if d else d
+
+    def iif(test, t, f):
+        return t if test else f
+
     return dict([(f.__name__, f)
-                 for f in [date]])
+                 for f in [date, stod, iif, format]])
 
 
 class HTML(object):
@@ -329,7 +355,7 @@ def mk_connect(getdbi, xf):
 
 
 if __name__ == '__main__':
-    def _configure_logging(level=logging.DEBUG):
+    def _configure_logging(level=logging.INFO):
         # TODO: logging.INFO
         logging.basicConfig(level=level)
 
