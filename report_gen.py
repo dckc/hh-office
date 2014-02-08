@@ -14,22 +14,26 @@ from xml.etree import ElementTree as ET
 
 from fpdf import FPDF
 
+import ocap
+from hhtcb import Xataface
 
-def main(argv, stdin, stdout, open_arg, cal):
+
+def main(argv, stdout, cal, connect, templates):
     '''
     Note `_with_caps()` below for `least-authority style`__.
 
     __ http://www.madmode.com/2013/python-capability-idioms-part-1.html
     '''
-    design_doc = argv[1]
-    rpt = OfficeReport.make(open_arg(design_doc), cal)
-    rpt.run(lines=stdin)
+    report_name = argv[1]
+    rpt = OfficeReport.make(templates / (report_name + '.html'), connect, cal)
+    rpt.run()
     stdout.write(rpt.pdf_string())
-    raise NotImplementedError('database input, detail, breaks, etc.')
+    raise NotImplementedError(rpt.todos)
 
 
 class OfficeReport(FPDF):
     portrait, landscape = 'P', 'L'
+    right_margin = 7.5 * 72
     font = 'Courier'
     plain, bold = '', 'B'
     full_line = 0
@@ -38,21 +42,33 @@ class OfficeReport(FPDF):
     normal_line_height = 1.2
     black, grey, dark_grey, white = 0, 0xd0, 0xe5, 0xff
 
-    def __init__(self, design, fns,
+    def __init__(self, design, connect, fns,
                  unit='pt', format='Letter',
                  detail_size=10):
         FPDF.__init__(self, unit=unit, format=format)
+        self.todos = set()
         self.design = design
+        self._connect = connect
         self._fns = fns
         self._first_line = True
 
     @classmethod
-    def make(cls, fp, cal):
-        return cls(ET.parse(fp), field_functions(cal))
+    def make(cls, rd, connect, cal):
+        return cls(ET.parse(rd.fp()), connect, field_functions(cal))
 
-    def run(self, lines):
+    def run(self):
         self._start_page()
-        self._detail(lines)
+        self._detail(self._data())
+
+    def _data(self):
+        sql = HTML.by_class(self.design, 'code', 'query')[0].text
+        with transaction(self._connect) as q:
+            q.execute(sql)
+            while 1:
+                rows = q.fetchmany()
+                if not rows:
+                    break
+                yield rows
 
     def pdf_string(self):
         return self.output('', 'S')
@@ -63,6 +79,7 @@ class OfficeReport(FPDF):
                     sizes=[('small-print', 8),
                            ('medium-print', 9)]):
         body = HTML.by_class(self.design, 'body', 'rlib')[0]
+        self._todo('adjust right_margin for landscape')
         self.add_page(
             orientation=(
                 self.landscape
@@ -82,7 +99,7 @@ class OfficeReport(FPDF):
     def _block(self, text, size, style, fg, bg=None):
         self.set_font(self.font, style, size)
         with self.fg_bg(fg, self.white if bg is None else bg):
-            # TODO: use .text() rather than .cell()?
+            # use .text() rather than .cell()?
             self.cell(self.get_string_width(text + ' '),
                       self._h(size), text,
                       fill=1 if bg is not None else 0,
@@ -146,15 +163,19 @@ class OfficeReport(FPDF):
              if HTML.has_class(elt, 'literal')
              else eval(elt.attrib['title'], {}, env))
             for elt in ctx]
-        self._row(txts, size, fill)
+        self._row(txts, size, fill=fill)
 
-    def _detail(self, lines):
+    def _detail(self, rowlists):
         self.set_font(self.font, self.plain, self.detail_size)
 
-        for line in lines:
-            texts = line.split(',')  # @@TODO: real csv parser
-            self._row(texts, self.detail_size,
-                      widths=self._widths, aligns=self._aligns)
+        for rows in rowlists:
+            for row in rows:
+                self._todo('grey alternating lines')
+                self._todo('real value formatting')
+                self._todo('bind detail environment; evaluate fields')
+                self._row([str(v) for v in row],
+                          self.detail_size,
+                          widths=self._widths, aligns=self._aligns)
 
     def _row(self, txts, size,
              fill=0, widths=None, aligns=None,
@@ -169,23 +190,21 @@ class OfficeReport(FPDF):
                                aligns or [None] * len(txts)):
             self.cell(self.get_string_width(w + ' '), self._h(size),
                       txt, fill=fill, align=a)
+        if fill:
+            self.cell(self.right_margin - self.x, self._h(size), fill=1)
         self.ln()
         if border_bottom:
             self._hline(border_bottom)
         if margin_bottom:
             self.ln(margin_bottom)
 
-    def _hline(self, h,
-               right_margin=7.5 * 72):
+    def _hline(self, h):
         y = self.y + h / 2
-        self.line(self.x, y, right_margin, y)
+        self.line(self.x, y, self.right_margin, y)
         self.ln(h)
 
-    @classmethod
-    def _todo(cls, what=''):
-        #@@raise NotImplementedError
-        import sys
-        print >>sys.stderr, "TODO!!", what
+    def _todo(self, what=''):
+        self.todos.add(what)
 
 
 class RDot(object):
@@ -250,17 +269,58 @@ class HTML(object):
         return found
 
 
+@contextmanager
+def transaction(connect):
+    '''Return a DBI transaction manager.
+
+    :param connect: () => Connection
+    '''
+    conn = connect()
+    trx = conn.cursor()
+    try:
+        yield trx
+    except IOError:
+        conn.rollback()
+        raise
+    else:
+        conn.commit()
+    finally:
+        trx.close()
+        conn.close()
+
+
+def mk_xf(cwd, os_path, open_rd):
+    here = ocap.Rd(cwd, os_path, open_rd)
+    return Xataface.make(here), here
+
+
+def mk_connect(getdbi, xf):
+    host, user, password, name = xf.dbopts()
+    dbi = getdbi()
+
+    def connect():
+        return dbi.connect(host=host, user=user, passwd=password, db=name)
+
+    return connect
+
+
 if __name__ == '__main__':
-    def _with_caps(out='tuto1.pdf'):
-        from sys import argv, stdin, stdout
+    def _with_caps():
         from datetime import date
+        from os import path
+        from sys import argv, stdout
 
-        def open_arg(n):
-            if n not in argv:
-                raise IOError
-            return open(n)
+        def getdbi():
+            # TODO: consider pure-python alternative
+            import MySQLdb
+            return MySQLdb
 
-        main(argv[:], stdin, stdout, open_arg,
-             cal=lambda: date.today())
+        xf, here = mk_xf(cwd=path.dirname(__file__),
+                         os_path=path,
+                         open_rd=lambda n: open(n))
+
+        main(argv[:], stdout, cal=lambda: date.today(),
+             connect=mk_connect(getdbi, xf),
+             templates=here / 'templates')
 
     _with_caps()
