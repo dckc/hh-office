@@ -11,11 +11,14 @@ __ https://code.google.com/p/pyfpdf/wiki/Tutorial
 
 from contextlib import contextmanager
 from xml.etree import ElementTree as ET
+import logging
 
 from fpdf import FPDF
 
 import ocap
 from hhtcb import Xataface
+
+log = logging.getLogger(__name__)
 
 
 def main(argv, stdout, cal, connect, templates):
@@ -33,7 +36,6 @@ def main(argv, stdout, cal, connect, templates):
 
 class OfficeReport(FPDF):
     portrait, landscape = 'P', 'L'
-    right_margin = 7.5 * 72
     font = 'Courier'
     plain, bold = '', 'B'
     full_line = 0
@@ -64,11 +66,12 @@ class OfficeReport(FPDF):
         sql = HTML.by_class(self.design, 'code', 'query')[0].text
         with transaction(self._connect) as q:
             q.execute(sql)
+            colnames = [c[0] for c in q.description]
             while 1:
                 rows = q.fetchmany()
                 if not rows:
                     break
-                yield rows
+                yield colnames, rows
 
     def pdf_string(self):
         return self.output('', 'S')
@@ -79,12 +82,12 @@ class OfficeReport(FPDF):
                     sizes=[('small-print', 8),
                            ('medium-print', 9)]):
         body = HTML.by_class(self.design, 'body', 'rlib')[0]
-        self._todo('adjust right_margin for landscape')
-        self.add_page(
-            orientation=(
-                self.landscape
-                if HTML.has_class(body, 'landscape')
-                else self.portrait))
+        orientation = (
+            self.landscape
+            if HTML.has_class(body, 'landscape')
+            else self.portrait)
+        self.add_page(orientation=orientation)
+        self.right_margin = (10 if orientation == self.landscape else 7.5) * 72
 
         explicit_sizes = [sz for (n, sz) in sizes
                           if HTML.has_class(body, n)]
@@ -163,18 +166,32 @@ class OfficeReport(FPDF):
              if HTML.has_class(elt, 'literal')
              else eval(elt.attrib['title'], {}, env))
             for elt in ctx]
+        log.debug('_line txts: %s', txts)
         self._row(txts, size, fill=fill)
 
     def _detail(self, rowlists):
+        detail = HTML.by_class(self.design, "table", 'Detail')[0]
+        fields = [th.attrib['title']
+                  for th in HTML.the(detail, "h:tbody/h:tr[1]")]
+        no_globals = {}
+
         self.set_font(self.font, self.plain, self.detail_size)
         with self.fg_bg(self.black, self.light_grey):
             parity = 0
-            for rows in rowlists:
+            for colnames, rows in rowlists:
                 for row in rows:
                     self._todo('breaks')
-                    self._todo('real value formatting')
-                    self._todo('bind detail environment; evaluate fields')
-                    self._row([str(v) for v in row],
+
+                    self._todo('value formatting')
+                    cols = [str(v) for v in row]
+
+                    env = dict(zip(colnames, cols))
+                    env.update(self._fns)
+                    txts = [t[:len(w)] for (w, t) in zip(
+                        self._widths,
+                        [eval(e, no_globals, env) for e in fields])]
+
+                    self._row(txts,
                               self.detail_size, fill=parity,
                               widths=self._widths, aligns=self._aligns)
                     parity = 1 - parity
@@ -187,11 +204,16 @@ class OfficeReport(FPDF):
             self.ln(margin_top)
         if border_top:
             self._hline(border_top)
-        for (txt, w, a) in zip(txts,
-                               widths or txts,
-                               aligns or [None] * len(txts)):
+
+        cells = zip(txts,
+                    widths or txts,
+                    aligns or [None] * len(txts))
+        log.debug('_row cells: %s', cells)
+        for (txt, w, a) in cells:
+            self._todo('constrain _row by right margin')
             self.cell(self.get_string_width(w + ' '), self._h(size),
-                      txt, fill=fill, align=a)
+                      txt + ' ', fill=fill, align=a,
+                      ln=self.then_right)
         if fill:
             self.cell(self.right_margin - self.x, self._h(size), fill=1)
         self.ln()
@@ -307,6 +329,10 @@ def mk_connect(getdbi, xf):
 
 
 if __name__ == '__main__':
+    def _configure_logging(level=logging.DEBUG):
+        # TODO: logging.INFO
+        logging.basicConfig(level=level)
+
     def _with_caps():
         from datetime import date
         from os import path
@@ -325,4 +351,5 @@ if __name__ == '__main__':
              connect=mk_connect(getdbi, xf),
              templates=here / 'templates')
 
+    _configure_logging()
     _with_caps()
