@@ -101,13 +101,6 @@ class OfficeReport(FPDF):
     def _h(self, size):
         return size * self.normal_line_height
 
-    def _detail(self, lines):
-        self.set_font(self.font, self.plain, self.detail_size)
-
-        for line in lines:
-            self.write(self._h(self.detail_size), line)
-            self.ln()
-
     def header(self):
         if self._first_line:
             return
@@ -129,14 +122,14 @@ class OfficeReport(FPDF):
         detail = HTML.by_class(self.design, "table", 'Detail')[0]
         texts = [th.text
                  for th in HTML.the(detail, "h:thead/h:tr[1]")]
-        widths = [td.text
-                  for td in HTML.the(detail, "h:tbody/h:tr[1]")]
-        aligns = [th.attrib.get('align', '')[:1].upper()
-                  for th in HTML.the(detail, "h:thead/h:tr[1]")]
+        self._widths = [td.text
+                        for td in HTML.the(detail, "h:tbody/h:tr[1]")]
+        self._aligns = [th.attrib.get('align', '')[:1].upper()
+                        for th in HTML.the(detail, "h:thead/h:tr[1]")]
         self.set_font(self.font, self.bold, self.detail_size)
         with self.fg_bg(self.black, self.dark_grey):
             self._row(texts, self.detail_size, fill=1,
-                      widths=widths, aligns=aligns,
+                      widths=self._widths, aligns=self._aligns,
                       margin_bottom=margin_bottom,
                       border_top=border_top, border_bottom=border_bottom)
 
@@ -154,6 +147,14 @@ class OfficeReport(FPDF):
              else eval(elt.attrib['title'], {}, env))
             for elt in ctx]
         self._row(txts, size, fill)
+
+    def _detail(self, lines):
+        self.set_font(self.font, self.plain, self.detail_size)
+
+        for line in lines:
+            texts = line.split(',')  # @@TODO: real csv parser
+            self._row(texts, self.detail_size,
+                      widths=self._widths, aligns=self._aligns)
 
     def _row(self, txts, size,
              fill=0, widths=None, aligns=None,
