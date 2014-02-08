@@ -62,24 +62,31 @@ class OfficeReport(FPDF):
                     default_size=10,
                     sizes=[('small-print', 8),
                            ('medium-print', 9)]):
+        body = HTML.by_class(self.design, 'body', 'rlib')[0]
         self.add_page(
             orientation=(
                 self.landscape
-                if HTML.by_class(self.design, 'body', 'landscape')
+                if HTML.has_class(body, 'landscape')
                 else self.portrait))
 
         explicit_sizes = [sz for (n, sz) in sizes
-                          if HTML.by_class(self.design, 'body', n)]
+                          if HTML.has_class(body, n)]
         self.detail_size = (explicit_sizes[-1] if explicit_sizes
                             else default_size)
 
-        hd_txt = HTML.by_class(self.design, 'h1', 'ReportHeader')[0].text
-        self.set_font(self.font, bold, large)
-        with self.fg_bg(self.white, self.black):
-            self.cell(self.get_string_width(hd_txt + ' '),
-                      self._h(large), hd_txt,
-                      fill=1, ln=self.then_newline)
+        self._block(
+            HTML.by_class(body, 'h1', 'ReportHeader')[0].text,
+            large, bold, self.white, self.black)
         self._pg_header()
+
+    def _block(self, text, size, style, fg, bg=None):
+        self.set_font(self.font, style, size)
+        with self.fg_bg(fg, self.white if bg is None else bg):
+            # TODO: use .text() rather than .cell()?
+            self.cell(self.get_string_width(text + ' '),
+                      self._h(size), text,
+                      fill=1 if bg is not None else 0,
+                      ln=self.then_newline)
 
     @contextmanager
     def fg_bg(self, fg, bg):
@@ -119,21 +126,53 @@ class OfficeReport(FPDF):
 
     def _detail_header(self,
                        border_top=1, border_bottom=1, margin_bottom=2):
-        detail = HTML.the(self.design, ".//h:table[@class='Detail']")
-        thead_row1 = HTML.the(detail, "h:thead/h:tr[1]")
-        tbody_row1 = HTML.the(detail, "h:tbody/h:tr[1]")
-        self._hline(border_top)
+        detail = HTML.by_class(self.design, "table", 'Detail')[0]
+        texts = [th.text
+                 for th in HTML.the(detail, "h:thead/h:tr[1]")]
+        widths = [td.text
+                  for td in HTML.the(detail, "h:tbody/h:tr[1]")]
+        aligns = [th.attrib.get('align', '')[:1].upper()
+                  for th in HTML.the(detail, "h:thead/h:tr[1]")]
         self.set_font(self.font, self.bold, self.detail_size)
         with self.fg_bg(self.black, self.dark_grey):
-            for (th, td) in zip(thead_row1, tbody_row1):
-                align = th.attrib.get('align', '')[:1].upper()
-                self.cell(self.get_string_width(td.text + ' '),
-                          self._h(self.detail_size),
-                          th.text, fill=1,
-                          align=align)
+            self._row(texts, self.detail_size, fill=1,
+                      widths=widths, aligns=aligns,
+                      margin_bottom=margin_bottom,
+                      border_top=border_top, border_bottom=border_bottom)
+
+    def _line(self, ctx, size,
+              fill=0):
+        env = dict(r=RDot(self))
+        env.update(self._fns)
+
+        self.set_font(self.font, self.plain, size)
+
+        txts = [
+            ((' ' * len(elt.text) if HTML.has_class(elt, 'blank')
+              else elt.text)
+             if HTML.has_class(elt, 'literal')
+             else eval(elt.attrib['title'], {}, env))
+            for elt in ctx]
+        self._row(txts, size, fill)
+
+    def _row(self, txts, size,
+             fill=0, widths=None, aligns=None,
+             margin_top=None, margin_bottom=None,
+             border_top=None, border_bottom=None):
+        if margin_top:
+            self.ln(margin_top)
+        if border_top:
+            self._hline(border_top)
+        for (txt, w, a) in zip(txts,
+                               widths or txts,
+                               aligns or [None] * len(txts)):
+            self.cell(self.get_string_width(w + ' '), self._h(size),
+                      txt, fill=fill, align=a)
         self.ln()
-        self._hline(border_bottom)
-        self.ln(margin_bottom)
+        if border_bottom:
+            self._hline(border_bottom)
+        if margin_bottom:
+            self.ln(margin_bottom)
 
     def _hline(self, h,
                right_margin=7.5 * 72):
@@ -141,24 +180,8 @@ class OfficeReport(FPDF):
         self.line(self.x, y, right_margin, y)
         self.ln(h)
 
-    def _line(self, ctx, size,
-              fill=0):
-        self.set_font(self.font, self.plain, size)
-
-        for elt in ctx:
-            if HTML.has_class(elt, 'literal'):
-                txt = (' ' * len(elt.text) if HTML.has_class(elt, 'blank')
-                       else elt.text)
-            else:
-                env = dict(r=RDot(self))
-                env.update(self._fns)
-                txt = eval(elt.attrib['title'], {}, env)
-            self.cell(self.get_string_width(txt + ' '), self._h(size),
-                      txt, fill=fill)
-        self.ln()
-
     @classmethod
-    def todo(cls, what=''):
+    def _todo(cls, what=''):
         #@@raise NotImplementedError
         import sys
         print >>sys.stderr, "TODO!!", what
@@ -220,9 +243,9 @@ class HTML(object):
     @classmethod
     def the(cls, ctx, expr):
         found = ctx.find(expr, namespaces=cls.namespaces)
-        if found is not None:
-            raise ValueError('cannot find %s in %s',
-                             expr, ctx.tag)
+        if found is None:
+            raise ValueError('cannot find %s in %s' %
+                             (expr, ctx.tag))
         return found
 
 
