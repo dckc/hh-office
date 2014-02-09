@@ -36,7 +36,9 @@ def main(argv, stdout, cal, connect, templates):
     raise NotImplementedError(rpt.todos)
 
 
-Column = namedtuple('Column', ['th', 'filler', 'field', 'align'])
+ColFmt = namedtuple('Column', ['th', 'field',
+                               'literal', 'filler', 'blank', 'align'])
+Break = namedtuple('Break', ['name', 'key_cols', 'colfmts'])
 
 
 class OfficeReport(FPDF):
@@ -81,21 +83,40 @@ class OfficeReport(FPDF):
                              else 7.5) * 72
         self._report_header = HTML.by_class(body, 'h1', 'ReportHeader')[0].text
 
-        self._pghd = HTML.by_class(self.design, 'h2', 'PageHeader')[0]
+        pghd = HTML.by_class(body, 'h2', 'PageHeader')[0]
+        self._pg_colfmts = self._parse_colfmts(pghd, pghd)
 
         explicit_sizes = [sz for (n, sz) in sizes
                           if HTML.has_class(body, n)]
         self.detail_size = (explicit_sizes[-1] if explicit_sizes
                             else default_size)
-        detail = HTML.by_class(self.design, "table", 'Detail')[0]
-        self._columns = [
-            Column(th.text, td.text, td.attrib['title'],
-                   th.attrib.get('align', '')[:1].upper())
-            for (th, td)
-            in zip(HTML.the(detail, "h:thead/h:tr[1]"),
-                   HTML.the(detail, "h:tbody/h:tr[1]"))]
+        detail = HTML.by_class(body, "table", 'Detail')[0]
+        self._detail_colfmts = self._parse_colfmts(
+            HTML.the(detail, "h:thead/h:tr[1]"),
+            HTML.the(detail, "h:tbody/h:tr[1]"),
+            all_fields=True)
+
+        self._breaks = [
+            Break(name=breakrow.attrib['id'],
+                  key_cols=sorted(set([th.attrib['id']
+                                       for th in breakrow
+                                       if 'id' in th.attrib])),
+                  colfmts=self._parse_colfmts(breakrow, breakrow))
+            for breaks_table in HTML.by_class(body, 'table', "Breaks")[:1]
+            for breakrow in HTML.the(breaks_table, 'h:thead')]
 
         self._sql = HTML.by_class(body, 'code', 'query')[0].text
+
+    def _parse_colfmts(self, head_row, body_row, all_fields=False):
+        self._todo('parse tfoot')
+        return [
+            ColFmt(th=th.text, filler=td.text,
+                   literal=HTML.has_class(th, 'literal') and not all_fields,
+                   blank=HTML.has_class(th, 'blank'),
+                   field=td.attrib.get('title', None),
+                   align=th.attrib.get('align', '')[:1].upper())
+            for (th, td)
+            in zip(head_row, body_row)]
 
     def _data(self):
         with transaction(self._connect) as q:
@@ -117,6 +138,7 @@ class OfficeReport(FPDF):
         self._block(
             self._report_header,
             large, bold, self.white, self.black)
+        self._break_vals = [None] * len(self._breaks)
         self._pg_header()
 
     def _block(self, text, size, style, fg, bg=None):
@@ -146,76 +168,101 @@ class OfficeReport(FPDF):
             return
 
         self._pg_header()
+        self._show_breaks(0, self._bindings)
 
     def _pg_header(self,
                    size=11, margin_top=4, margin_bottom=2):
         self._first_line = False
         self.ln(margin_top)
         with self.fg_bg(self.black, self.grey):
-            self._line(self._pghd, size, fill=1)
-        self.ln(margin_bottom)
+            txts = self._eval_fields(bindings=dict(r=RDot(self)),
+                                     colfmts=self._pg_colfmts)
+            self._row(txts, size,
+                      fill=1, margin_bottom=margin_bottom)
         self._detail_header()
 
     def _detail_header(self,
                        border_top=1, border_bottom=1, margin_bottom=2):
         self.set_font(self.font, self.bold, self.detail_size)
         with self.fg_bg(self.black, self.light_grey):
-            self._row([c.th for c in self._columns],
-                      self.detail_size, fill=1, detail=True,
+            self._row([c.th for c in self._detail_colfmts],
+                      self.detail_size, fill=1, colfmts=self._detail_colfmts,
                       margin_bottom=margin_bottom,
                       border_top=border_top, border_bottom=border_bottom)
 
-    def _line(self, ctx, size,
-              fill=0):
-        env = dict(r=RDot(self))
-        env.update(self._fns)
-
-        self.set_font(self.font, self.plain, size)
-
-        txts = [
-            ((' ' * len(elt.text) if HTML.has_class(elt, 'blank')
-              else elt.text) if HTML.has_class(elt, 'literal')
-             else eval(elt.attrib['title'], {}, env))
-            for elt in ctx]
-        log.debug('_line txts: %s', txts)
-        self._row(txts, size, fill=fill)
-
     def _detail(self, rows):
-        self.set_font(self.font, self.plain, self.detail_size)
+        parity = 0
         with self.fg_bg(self.black, self.light_grey):
-            parity = 0
-            for colnames, row in rows:
-                self._todo('breaks')
+            for colnames, vals in rows:
+                # hmm... just because rlib string-ized db results
+                # doesn't mean we have to or even should.
+                valstrs = [str('' if v is None else v) for v in vals]
+                bindings = dict(zip(colnames, valstrs))
+
+                break_ix = self._new_breaks(bindings)
+                if break_ix is not None:
+                    self._do_break_footer()
+                    self._show_breaks(break_ix, bindings)
 
                 self._todo('finish value formatting')
-                self._row(self._eval_fields(colnames, row),
-                          self.detail_size, fill=parity, detail=True)
+                self.set_font(self.font, self.plain, self.detail_size)
+                self._row(self._eval_fields(bindings, self._detail_colfmts),
+                          self.detail_size, fill=parity,
+                          colfmts=self._detail_colfmts)
+
+                self._bindings = bindings
+                self._page_top = False
                 parity = 1 - parity
 
-    no_globals = {'__builtins__': {}}
+    def _new_breaks(self, bindings):
+        least = None
 
-    def _eval_fields(self, colnames, row):
-        # hmm... just because rlib string-ized db results
-        # doesn't mean we have to or even should.
-        cols = [str('' if v is None else v) for v in row]
+        for (ix, (b, curval)) in enumerate(
+                zip(self._breaks, self._break_vals)):
+            newval = [bindings[n] for n in b.key_cols]
+            if least is None and newval != curval:
+                least = ix
 
-        env = dict(zip(colnames, cols))
-        env.update(self._fns)
+            if least is not None:
+                self._break_vals[ix] = newval
 
-        def _eval(e):
+        return least
+
+    def _show_breaks(self, start, bindings,
+                     size=10, style=bold, margin_top=3):
+        self.set_font(self.font, style, size)
+        for b in self._breaks[start:]:
+            txts = self._eval_fields(bindings=bindings,
+                                     colfmts=b.colfmts)
+            self._row(txts, size, colfmts=b.colfmts,
+                      margin_top=margin_top)
+
+    def _do_break_footer(self,
+                         border_bottom=1, margin_bottom=1):
+        self._todo('footer values')
+        self._hline(border_bottom)
+        self.ln(margin_bottom)
+
+    def _eval_fields(self, bindings, colfmts):
+        env = dict(bindings.items() + self._fns.items())
+
+        def _eval(expr):
             try:
-                return str(eval(e, self.no_globals, env))
+                return str(eval(expr, NO_GLOBALS, env))
             except ValueError as ex:
-                log.error('bad field: %s', e, exc_info=ex)
-            return e
+                log.error('bad field: %s', expr, exc_info=ex)
+            return expr
 
-        vals = [_eval(c.field) for c in self._columns]
+        vals = [(' ' * len(c.filler) if c.blank
+                 else c.filler) if c.literal
+                else _eval(c.field)
+                for c in colfmts]
         return [(v.strftime('%m/%d/%Y') if hasattr(v, 'strftime')
                  else str(v))[:len(c.filler)]
-                for (c, v) in zip(self._columns, vals)]
+                for (c, v) in zip(colfmts, vals)]
 
     def _row(self, txts, size,
-             fill=0, detail=False,
+             fill=0, colfmts=None,
              margin_top=None, margin_bottom=None,
              border_top=None, border_bottom=None):
         if margin_top:
@@ -224,10 +271,10 @@ class OfficeReport(FPDF):
             self._hline(border_top)
 
         cells = zip(txts,
-                    [c.filler for c in self._columns] if detail else txts,
-                    [c.align for c in self._columns] if detail
+                    [c.filler for c in colfmts] if colfmts else txts,
+                    [c.align for c in colfmts] if colfmts
                     else [None] * len(txts))
-        log.debug('_row cells: %s', cells)
+        #log.debug('_row cells: %s', cells)
         for (txt, w, a) in cells:
             self._todo('constrain _row by right margin')
             self.cell(self.get_string_width(w + ' '), self._h(size),
@@ -257,6 +304,9 @@ class RDot(object):
     @property
     def pageno(self):
         return str(self._fpdf.page_no())
+
+
+NO_GLOBALS = {'__builtins__': {}}
 
 
 def field_functions(cal):
@@ -315,7 +365,7 @@ class HTML(object):
         >>> HTML.has_class(HTML.example_ctx[0][0], 'x')
         True
         '''
-        return classname in elt.attrib['class'].split()
+        return classname in elt.get('class', '').split()
 
     @classmethod
     def the(cls, ctx, expr):
@@ -363,7 +413,6 @@ def mk_connect(getdbi, xf):
 
 if __name__ == '__main__':
     def _configure_logging(level=logging.INFO):
-        # TODO: logging.INFO
         logging.basicConfig(level=level)
 
     def _with_caps():
