@@ -9,6 +9,7 @@ __ https://code.google.com/p/pyfpdf/wiki/Tutorial
 
 '''
 
+from collections import namedtuple
 from contextlib import contextmanager
 from datetime import datetime
 from xml.etree import ElementTree as ET
@@ -33,6 +34,9 @@ def main(argv, stdout, cal, connect, templates):
     rpt.run()
     stdout.write(rpt.pdf_string())
     raise NotImplementedError(rpt.todos)
+
+
+Column = namedtuple('Column', ['th', 'filler', 'field', 'align'])
 
 
 class OfficeReport(FPDF):
@@ -60,43 +64,58 @@ class OfficeReport(FPDF):
         return cls(ET.parse(rd.fp()), connect, field_functions(cal))
 
     def run(self):
+        self._parse_design()
         self._start_page()
         self._detail(self._data())
 
-    def _data(self):
-        sql = HTML.by_class(self.design, 'code', 'query')[0].text
-        with transaction(self._connect) as q:
-            q.execute(sql)
-            colnames = [c[0] for c in q.description]
-            while 1:
-                rows = q.fetchmany()
-                if not rows:
-                    break
-                yield colnames, rows
-
-    def pdf_string(self):
-        return self.output('', 'S')
-
-    def _start_page(self,
-                    large=12, bold='B',
-                    default_size=10,
-                    sizes=[('small-print', 8),
-                           ('medium-print', 9)]):
+    def _parse_design(self,
+                      default_size=10,
+                      sizes=[('small-print', 8),
+                             ('medium-print', 9)]):
         body = HTML.by_class(self.design, 'body', 'rlib')[0]
-        orientation = (
+        self._orientation = (
             self.landscape
             if HTML.has_class(body, 'landscape')
             else self.portrait)
-        self.add_page(orientation=orientation)
-        self.right_margin = (10 if orientation == self.landscape else 7.5) * 72
+        self.right_margin = (10 if self._orientation == self.landscape
+                             else 7.5) * 72
+        self._report_header = HTML.by_class(body, 'h1', 'ReportHeader')[0].text
+
+        self._pghd = HTML.by_class(self.design, 'h2', 'PageHeader')[0]
 
         explicit_sizes = [sz for (n, sz) in sizes
                           if HTML.has_class(body, n)]
         self.detail_size = (explicit_sizes[-1] if explicit_sizes
                             else default_size)
+        detail = HTML.by_class(self.design, "table", 'Detail')[0]
+        self._columns = [
+            Column(th.text, td.text, td.attrib['title'],
+                   th.attrib.get('align', '')[:1].upper())
+            for (th, td)
+            in zip(HTML.the(detail, "h:thead/h:tr[1]"),
+                   HTML.the(detail, "h:tbody/h:tr[1]"))]
 
+        self._sql = HTML.by_class(body, 'code', 'query')[0].text
+
+    def _data(self):
+        with transaction(self._connect) as q:
+            q.execute(self._sql)
+            colnames = [c[0] for c in q.description]
+            while 1:
+                rows = q.fetchmany()
+                if not rows:
+                    break
+                for row in rows:
+                    yield colnames, row
+
+    def pdf_string(self):
+        return self.output('', 'S')
+
+    def _start_page(self,
+                    large=12, bold='B'):
+        self.add_page(orientation=self._orientation)
         self._block(
-            HTML.by_class(body, 'h1', 'ReportHeader')[0].text,
+            self._report_header,
             large, bold, self.white, self.black)
         self._pg_header()
 
@@ -131,26 +150,18 @@ class OfficeReport(FPDF):
     def _pg_header(self,
                    size=11, margin_top=4, margin_bottom=2):
         self._first_line = False
-        pghd = HTML.by_class(self.design, 'h2', 'PageHeader')[0]
         self.ln(margin_top)
         with self.fg_bg(self.black, self.grey):
-            self._line(pghd, size, fill=1)
+            self._line(self._pghd, size, fill=1)
         self.ln(margin_bottom)
         self._detail_header()
 
     def _detail_header(self,
                        border_top=1, border_bottom=1, margin_bottom=2):
-        detail = HTML.by_class(self.design, "table", 'Detail')[0]
-        texts = [th.text
-                 for th in HTML.the(detail, "h:thead/h:tr[1]")]
-        self._widths = [td.text
-                        for td in HTML.the(detail, "h:tbody/h:tr[1]")]
-        self._aligns = [th.attrib.get('align', '')[:1].upper()
-                        for th in HTML.the(detail, "h:thead/h:tr[1]")]
         self.set_font(self.font, self.bold, self.detail_size)
         with self.fg_bg(self.black, self.light_grey):
-            self._row(texts, self.detail_size, fill=1,
-                      widths=self._widths, aligns=self._aligns,
+            self._row([c.th for c in self._columns],
+                      self.detail_size, fill=1, detail=True,
                       margin_bottom=margin_bottom,
                       border_top=border_top, border_bottom=border_bottom)
 
@@ -169,28 +180,21 @@ class OfficeReport(FPDF):
         log.debug('_line txts: %s', txts)
         self._row(txts, size, fill=fill)
 
-    def _detail(self, rowlists):
-        detail = HTML.by_class(self.design, "table", 'Detail')[0]
-        fields = [th.attrib['title']
-                  for th in HTML.the(detail, "h:tbody/h:tr[1]")]
-
+    def _detail(self, rows):
         self.set_font(self.font, self.plain, self.detail_size)
         with self.fg_bg(self.black, self.light_grey):
             parity = 0
-            for colnames, rows in rowlists:
-                for row in rows:
-                    self._todo('breaks')
+            for colnames, row in rows:
+                self._todo('breaks')
 
-                    self._todo('finish value formatting')
-                    txts = self._eval_fields(fields, colnames, row)
-                    self._row(txts,
-                              self.detail_size, fill=parity,
-                              widths=self._widths, aligns=self._aligns)
-                    parity = 1 - parity
+                self._todo('finish value formatting')
+                self._row(self._eval_fields(colnames, row),
+                          self.detail_size, fill=parity, detail=True)
+                parity = 1 - parity
 
     no_globals = {'__builtins__': {}}
 
-    def _eval_fields(self, fields, colnames, row):
+    def _eval_fields(self, colnames, row):
         # hmm... just because rlib string-ized db results
         # doesn't mean we have to or even should.
         cols = [str('' if v is None else v) for v in row]
@@ -205,13 +209,13 @@ class OfficeReport(FPDF):
                 log.error('bad field: %s', e, exc_info=ex)
             return e
 
-        vals = [_eval(e) for e in fields]
+        vals = [_eval(c.field) for c in self._columns]
         return [(v.strftime('%m/%d/%Y') if hasattr(v, 'strftime')
-                else str(v))[:len(w)]
-                for (w, v) in zip(self._widths, vals)]
+                 else str(v))[:len(c.filler)]
+                for (c, v) in zip(self._columns, vals)]
 
     def _row(self, txts, size,
-             fill=0, widths=None, aligns=None,
+             fill=0, detail=False,
              margin_top=None, margin_bottom=None,
              border_top=None, border_bottom=None):
         if margin_top:
@@ -220,8 +224,9 @@ class OfficeReport(FPDF):
             self._hline(border_top)
 
         cells = zip(txts,
-                    widths or txts,
-                    aligns or [None] * len(txts))
+                    [c.filler for c in self._columns] if detail else txts,
+                    [c.align for c in self._columns] if detail
+                    else [None] * len(txts))
         log.debug('_row cells: %s', cells)
         for (txt, w, a) in cells:
             self._todo('constrain _row by right margin')
