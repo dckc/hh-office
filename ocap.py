@@ -11,6 +11,9 @@ class Rd(object):
         p = self._os_path
         return Rd(p.join(self._path, n), p, self._open_rd)
 
+    def __div__(self, n):
+        return self.subRd(n)
+
     def fp(self):
         return self._open_rd(self._path)
 
