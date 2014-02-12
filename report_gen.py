@@ -42,7 +42,6 @@ Break = namedtuple('Break', ['name', 'key_cols', 'colfmts', 'footfmts'])
 
 
 class OfficeReport(FPDF):
-    portrait, landscape = 'P', 'L'
     font = 'Courier'
     plain, bold = '', 'B'
     full_line = 0
@@ -50,6 +49,7 @@ class OfficeReport(FPDF):
     align_left, align_center, align_right = 'L', 'C', 'R'
     normal_line_height = 1.2
     black, grey, light_grey, white = 0, 0xd0, 0xe5, 0xff
+    pt_per_inch = 72
 
     def __init__(self, design, fns,
                  unit='pt', format='Letter',
@@ -70,25 +70,29 @@ class OfficeReport(FPDF):
         self._detail(self._data(connect))
 
     def _parse_design(self,
-                      default_size=10,
                       sizes=[('small-print', 8),
-                             ('medium-print', 9)]):
+                             ('medium-print', 9),
+                             ('normal-print', 10)],
+                      orientations=[('landscape', 'L', 11, 8.5),
+                                    ('portrait', 'P', 8.5, 11)]):
         body = HTML.by_class(self.design, 'body', 'rlib')[0]
-        self._orientation = (
-            self.landscape
-            if HTML.has_class(body, 'landscape')
-            else self.portrait)
-        self.right_margin = (10 if self._orientation == self.landscape
-                             else 7.5) * 72
+
+        self._orientation, self.right_margin = (
+            [(abbr, self.pt_per_inch * (w - 1.0))
+             for (name, abbr, w, h) in orientations
+             if HTML.has_class(body, name)]
+            or [orientations[-1]])[0]
+
         self._report_header = HTML.by_class(body, 'h1', 'ReportHeader')[0].text
 
         pghd = HTML.by_class(body, 'h2', 'PageHeader')[0]
         self._pg_colfmts = self._parse_colfmts(pghd, pghd)
 
-        explicit_sizes = [sz for (n, sz) in sizes
-                          if HTML.has_class(body, n)]
-        self.detail_size = (explicit_sizes[-1] if explicit_sizes
-                            else default_size)
+        self.detail_size = (
+            [sz for (n, sz) in sizes
+             if HTML.has_class(body, n)]
+            or [sizes[-1][1]])[0]
+
         detail = HTML.by_class(body, "table", 'Detail')[0]
         self._detail_colfmts = self._parse_colfmts(
             HTML.the(detail, "h:thead/h:tr[1]"),
@@ -104,17 +108,6 @@ class OfficeReport(FPDF):
                   colfmts=self._parse_colfmts(breakrow, breakrow))
             for breaks_table in HTML.by_class(body, 'table', "Breaks")[:1]
             for breakrow in HTML.the(breaks_table, 'h:thead')]
-
-        log.debug('break footer colfmt fillers: %s',
-                  [c.filler
-                   for b in self._breaks if b.footfmts
-                   for c in b.footfmts])
-        log.debug('break footer colfmt literal? %s',
-                  [c.literal
-                   for b in self._breaks if b.footfmts
-                   for c in b.footfmts])
-        self._break_vals = {}
-        self._break_sums = {}
 
         self._sql = HTML.by_class(body, 'code', 'query')[0].text
 
@@ -152,6 +145,9 @@ class OfficeReport(FPDF):
 
     def _start_page(self,
                     large=12, bold='B'):
+        self._break_vals = {}
+        self._break_sums = {}
+
         self.add_page(orientation=self._orientation)
         self._block(
             self._report_header,
