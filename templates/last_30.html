@@ -58,7 +58,7 @@
       <td title="val(balance)" align="right"
 	  >  1000</td>
       <td title="discharge_status" align="right">  </td>
-      <td title="iif(discharge_date &gt; '', format(stod(discharge_date), '!@%e %b%y'), '')">03 Nov12</td>
+      <td title="iif(discharge_date is not None, format(stod(discharge_date), '!@%e %b%y'), '')">03 Nov12</td>
       <td title="officer_names" align="left"
 	  >Officer89012345678901234567890</td>
     </tr>

@@ -81,9 +81,9 @@
 	  > 1,000.00</td>
       <td title="client_paid" align="right"
 	  > 1,000.00</td>
-      <td title="iif(bill_date &gt; '', format(stod(bill_date), '!@%m/%d/%y'), '')" align="right"
+      <td title="iif(bill_date is not None, format(stod(bill_date), '!@%m/%d/%y'), '')" align="right"
 	  >01/01/11</td>
-      <td title="iif(check_date &gt; '', format(stod(check_date), '!@%m/%d/%y'), '')" align="right"
+      <td title="iif(check_date is not None, format(stod(check_date), '!@%m/%d/%y'), '')" align="right"
 	  >01/01/11</td>
       <td title="insurance_paid" align="right"
 	  > 1,000.00</td>

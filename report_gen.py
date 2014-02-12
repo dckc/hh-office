@@ -38,7 +38,7 @@ def main(argv, stdout, cal, connect, templates):
 
 ColFmt = namedtuple('Column', ['th', 'field',
                                'literal', 'filler', 'blank', 'align'])
-Break = namedtuple('Break', ['name', 'key_cols', 'colfmts'])
+Break = namedtuple('Break', ['name', 'key_cols', 'colfmts', 'footfmts'])
 
 
 class OfficeReport(FPDF):
@@ -100,22 +100,42 @@ class OfficeReport(FPDF):
                   key_cols=sorted(set([th.attrib['id']
                                        for th in breakrow
                                        if 'id' in th.attrib])),
+                  footfmts=self._footfmts(breakrow.attrib['id'], detail),
                   colfmts=self._parse_colfmts(breakrow, breakrow))
             for breaks_table in HTML.by_class(body, 'table', "Breaks")[:1]
             for breakrow in HTML.the(breaks_table, 'h:thead')]
 
+        log.debug('break footer colfmt fillers: %s',
+                  [c.filler
+                   for b in self._breaks if b.footfmts
+                   for c in b.footfmts])
+        log.debug('break footer colfmt literal? %s',
+                  [c.literal
+                   for b in self._breaks if b.footfmts
+                   for c in b.footfmts])
+        self._break_vals = {}
+        self._break_sums = {}
+
         self._sql = HTML.by_class(body, 'code', 'query')[0].text
 
-    def _parse_colfmts(self, head_row, body_row, all_fields=False):
-        self._todo('parse tfoot')
+    def _parse_colfmts(self, head_row, body_row,
+                       all_fields=False, in_footer=False):
         return [
             ColFmt(th=th.text, filler=td.text,
-                   literal=HTML.has_class(th, 'literal') and not all_fields,
-                   blank=HTML.has_class(th, 'blank'),
+                   literal=(
+                       not HTML.has_class(th, 'sum') if in_footer else
+                       HTML.has_class(th, 'literal') and not all_fields),
+                   blank=in_footer or HTML.has_class(th, 'blank'),
                    field=td.attrib.get('title', None),
                    align=th.attrib.get('align', '')[:1].upper())
             for (th, td)
             in zip(head_row, body_row)]
+
+    def _footfmts(self, name, detail):
+        foot_row = HTML.the(detail, 'h:tfoot/h:tr[@class]')
+        if foot_row.attrib['class'] != name:
+            return None
+        return self._parse_colfmts(foot_row, foot_row, in_footer=True)
 
     def _data(self, connect):
         with run_query(connect, self._sql) as q:
@@ -136,7 +156,6 @@ class OfficeReport(FPDF):
         self._block(
             self._report_header,
             large, bold, self.white, self.black)
-        self._break_vals = [None] * len(self._breaks)
         self._pg_header()
 
     def _block(self, text, size, style, fg, bg=None):
@@ -192,10 +211,7 @@ class OfficeReport(FPDF):
         parity = 0
         with self.fg_bg(self.black, self.light_grey):
             for colnames, vals in rows:
-                # hmm... just because rlib string-ized db results
-                # doesn't mean we have to or even should.
-                valstrs = [str('' if v is None else v) for v in vals]
-                bindings = dict(zip(colnames, valstrs))
+                bindings = dict(zip(colnames, vals))
 
                 break_ix = self._new_breaks(bindings)
                 if break_ix is not None:
@@ -203,10 +219,13 @@ class OfficeReport(FPDF):
                     self._show_breaks(break_ix, bindings)
 
                 self._todo('finish value formatting')
+                self._todo('money formatting in break footers')
                 self.set_font(self.font, self.plain, self.detail_size)
                 self._row(self._eval_fields(bindings, self._detail_colfmts),
                           self.detail_size, fill=parity,
                           colfmts=self._detail_colfmts)
+
+                self._update_sums(bindings)
 
                 self._bindings = bindings
                 self._page_top = False
@@ -215,14 +234,13 @@ class OfficeReport(FPDF):
     def _new_breaks(self, bindings):
         least = None
 
-        for (ix, (b, curval)) in enumerate(
-                zip(self._breaks, self._break_vals)):
+        for (ix, b) in enumerate(self._breaks):
             newval = [bindings[n] for n in b.key_cols]
-            if least is None and newval != curval:
+            if least is None and newval != self._break_vals.get(b.name):
                 least = ix
 
             if least is not None:
-                self._break_vals[ix] = newval
+                self._break_vals[b.name] = newval
 
         return least
 
@@ -235,29 +253,43 @@ class OfficeReport(FPDF):
             self._row(txts, size, colfmts=b.colfmts,
                       margin_top=margin_top)
 
+    def _update_sums(self, bindings):
+        for fmts in [b.footfmts for b in self._breaks if b.footfmts][:1]:
+            for f in fmts:
+                if not f.literal:
+                    self._break_sums[f.field] = (
+                        self._break_sums.get(f.field, 0)
+                        + bindings[f.field])
+
     def _do_break_footer(self,
-                         border_bottom=1, margin_bottom=1):
-        self._todo('footer values')
-        self._hline(border_bottom)
-        self.ln(margin_bottom)
+                         style=bold,
+                         margin_top=2, border_top=1,
+                         margin_bottom=1):
+        if not self._break_sums:
+            return
+
+        self._todo('get footers to line up')
+        for fmts in [b.footfmts for b in self._breaks if b.footfmts][:1]:
+            txts = self._eval_fields(bindings=self._break_sums,
+                                     colfmts=fmts)
+            self.set_font(self.font, style, self.detail_size)
+            self._row(txts, self.detail_size, colfmts=fmts,
+                      border_top=border_top,
+                      margin_top=margin_top,
+                      margin_bottom=margin_bottom)
+            self._break_sums = {}
 
     def _eval_fields(self, bindings, colfmts):
         env = dict(bindings.items() + self._fns.items())
 
-        def _eval(expr):
-            try:
-                return str(eval(expr, NO_GLOBALS, env))
-            except ValueError as ex:
-                log.error('bad field: %s', expr, exc_info=ex)
-            return expr
-
         vals = [(' ' * len(c.filler) if c.blank
                  else c.filler) if c.literal
-                else _eval(c.field)
+                else _eval(c.field, env)
                 for c in colfmts]
-        return [(v.strftime('%m/%d/%Y') if hasattr(v, 'strftime')
-                 else str(v))[:len(c.filler)]
-                for (c, v) in zip(colfmts, vals)]
+        valstrs = [(v.strftime('%m/%d/%Y') if hasattr(v, 'strftime')
+                    else str('' if v is None else v))[:len(c.filler)]
+                   for (c, v) in zip(colfmts, vals)]
+        return valstrs
 
     def _row(self, txts, size,
              fill=0, colfmts=None,
@@ -295,6 +327,18 @@ class OfficeReport(FPDF):
         self.todos.add(what)
 
 
+def _abbr_align(s):
+    return s[:1].upper()
+
+
+def _eval(expr, env):
+    try:
+        return eval(expr, NO_GLOBALS, env)
+    except (ValueError, TypeError) as ex:
+        log.error('bad field: %s', expr, exc_info=ex)
+        return expr
+
+
 class RDot(object):
     def __init__(self, fpdf):
         self._fpdf = fpdf
@@ -312,14 +356,14 @@ def field_functions(cal):
     >>> from datetime import date
     >>> env = field_functions(lambda: date(2001, 3, 2))
     >>> eval('date()', env)
-    '03/02/2001'
+    datetime.date(2001, 3, 2)
     '''
     def date():
-        return cal().strftime('%02m/%02d/%04Y')
+        return cal()
 
     def stod(s):
         return (datetime.strptime(s, '%Y-%m-%d').date()
-                if s else s)
+                if s and isinstance(s, type('')) else s)
 
     def format(d, fmt):
         if not d:
