@@ -30,8 +30,8 @@ def main(argv, stdout, cal, connect, templates):
     __ http://www.madmode.com/2013/python-capability-idioms-part-1.html
     '''
     report_name = argv[1]
-    rpt = OfficeReport.make(templates / (report_name + '.html'), connect, cal)
-    rpt.run()
+    rpt = OfficeReport.make(templates / (report_name + '.html'), cal)
+    rpt.run(connect)
     stdout.write(rpt.pdf_string())
     raise NotImplementedError(rpt.todos)
 
@@ -51,24 +51,23 @@ class OfficeReport(FPDF):
     normal_line_height = 1.2
     black, grey, light_grey, white = 0, 0xd0, 0xe5, 0xff
 
-    def __init__(self, design, connect, fns,
+    def __init__(self, design, fns,
                  unit='pt', format='Letter',
                  detail_size=10):
         FPDF.__init__(self, unit=unit, format=format)
         self.todos = set()
         self.design = design
-        self._connect = connect
         self._fns = fns
         self._first_line = True
 
     @classmethod
-    def make(cls, rd, connect, cal):
-        return cls(ET.parse(rd.fp()), connect, field_functions(cal))
+    def make(cls, rd, cal):
+        return cls(ET.parse(rd.fp()), field_functions(cal))
 
-    def run(self):
+    def run(self, connect):
         self._parse_design()
         self._start_page()
-        self._detail(self._data())
+        self._detail(self._data(connect))
 
     def _parse_design(self,
                       default_size=10,
@@ -118,9 +117,8 @@ class OfficeReport(FPDF):
             for (th, td)
             in zip(head_row, body_row)]
 
-    def _data(self):
-        with transaction(self._connect) as q:
-            q.execute(self._sql)
+    def _data(self, connect):
+        with run_query(connect, self._sql) as q:
             colnames = [c[0] for c in q.description]
             while 1:
                 rows = q.fetchmany()
@@ -377,14 +375,15 @@ class HTML(object):
 
 
 @contextmanager
-def transaction(connect):
-    '''Return a DBI transaction manager.
+def run_query(connect, sql):
+    '''Return a DBI cursor manager executing a SQL query.
 
     :param connect: () => Connection
     '''
     conn = connect()
     trx = conn.cursor()
     try:
+        trx.execute(sql)
         yield trx
     except IOError:
         conn.rollback()
