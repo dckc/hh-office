@@ -185,7 +185,7 @@ class OfficeReport(FPDF):
             return
 
         self._pg_header()
-        self._show_breaks(0, self._bindings)
+        self._break_vals = {}
 
     def _pg_header(self,
                    size=11, margin_top=4, margin_bottom=2):
