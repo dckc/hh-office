@@ -12,6 +12,7 @@ __ https://code.google.com/p/pyfpdf/wiki/Tutorial
 from collections import namedtuple
 from contextlib import contextmanager
 from datetime import datetime
+from pprint import pformat
 from xml.etree import ElementTree as ET
 import logging
 
@@ -101,7 +102,7 @@ class OfficeReport(FPDF):
 
         self._breaks = [
             Break(name=breakrow.attrib['id'],
-                  key_cols=sorted(set([th.attrib['id']
+                  key_cols=sorted(set([th.attrib['id'].lower()
                                        for th in breakrow
                                        if 'id' in th.attrib])),
                   footfmts=self._footfmts(breakrow.attrib['id'], detail),
@@ -145,6 +146,9 @@ class OfficeReport(FPDF):
         sum_fields = [f.field for b in breaks if b.footfmts
                       for f in b.footfmts if not f.literal]
 
+        log.debug('break keys: %s',
+                  pformat([(b.name, b.key_cols) for b in self._breaks]))
+
         for bindings in self._rows(connect, sql):
             for (ix, b) in enumerate(breaks):
                 newval = [bindings[n] for n in b.key_cols]
@@ -161,6 +165,10 @@ class OfficeReport(FPDF):
             row_bk_ix = bk_ix
             if bk_ix is not None:
                 break_sums = {}
+                if bk_ix > 0:
+                    log.debug('some break found: %s',
+                              pformat([b.name for b in self._breaks[bk_ix:]]))
+
                 for b in breaks[bk_ix:]:
                     break_vals[b.name] = [bindings[n] for n in b.key_cols]
 
@@ -172,14 +180,18 @@ class OfficeReport(FPDF):
 
     def _rows(self, connect, sql):
         with run_query(connect, sql) as q:
-            colnames = [c[0] for c in q.description]
+            colnames = [c[0].lower() for c in q.description]
             while 1:
                 rows = q.fetchmany()
                 if not rows:
                     break
 
                 for vals in rows:
-                    bindings = dict(zip(colnames, vals))
+                    # wierd... duplicate column names. clobber later ones
+                    # rather than earlier ones.
+                    bindings = dict(reversed(zip(colnames, vals)))
+                    if bindings['client_id'] is None:
+                        import pdb; pdb.set_trace()
                     yield bindings
 
     def pdf_string(self):
@@ -191,6 +203,8 @@ class OfficeReport(FPDF):
         self._block(report_header,
                     large, bold, self.white, self.black)
         self._pg_header()
+        self._page_turn = False
+        self._in_group_header = False
 
     def _block(self, text, size, style, fg, bg=None):
         self.set_font(self.font, style, size)
@@ -218,7 +232,10 @@ class OfficeReport(FPDF):
         if self.page_no() == 1:
             return
 
+        log.debug('page turn. bindings: %s', pformat(self._bindings))
         self._pg_header()
+        self._show_group_headers(0)
+        self._page_turn = True
 
     def _pg_header(self,
                    size=11, margin_top=4, margin_bottom=2):
@@ -243,8 +260,10 @@ class OfficeReport(FPDF):
         parity = 0
         with self.fg_bg(self.black, self.light_grey):
             for bindings, group_start_ix, group_end, group_sums in data:
-                if group_start_ix is not None:
-                    self._show_group_headers(group_start_ix, bindings)
+                self._bindings = bindings
+
+                if group_start_ix is not None and not self._page_turn:
+                    self._show_group_headers(group_start_ix)
 
                 self._todo('finish value formatting')
                 self._todo('money formatting in break footers')
@@ -252,20 +271,36 @@ class OfficeReport(FPDF):
                 self._row(self._eval_fields(bindings, self._detail_colfmts),
                           self.detail_size, fill=parity,
                           colfmts=self._detail_colfmts)
+                self._page_turn = False
 
                 if group_end:
                     self._show_group_footer(group_sums)
 
                 parity = 1 - parity
 
-    def _show_group_headers(self, start, bindings,
+    def _orphan_control(self, lines, size): #@@
+        h = size * lines
+        y = self.y
+        self.ln(h)
+        if not self._page_turn:
+            self.set_y(y)
+
+    def _show_group_headers(self, start,
                             size=10, style=bold, margin_top=3):
+        # Don't duplicate group headers at top of page. Gross.
+        if self._in_group_header:
+            return
+
+        self._in_group_header = True
+
         self.set_font(self.font, style, size)
+        log.debug('group header. bindings: %s', pformat(self._bindings))
         for b in self._breaks[start:]:
-            txts = self._eval_fields(bindings=bindings,
+            txts = self._eval_fields(bindings=self._bindings,
                                      colfmts=b.colfmts)
             self._row(txts, size, colfmts=b.colfmts,
                       margin_top=margin_top)
+        self._in_group_header = False
 
     def _show_group_footer(self, group_sums,
                            style=bold,
@@ -457,7 +492,7 @@ def mk_connect(getdbi, xf):
 
 
 if __name__ == '__main__':
-    def _configure_logging(level=logging.INFO):
+    def _configure_logging(level=logging.DEBUG):
         logging.basicConfig(level=level)
 
     def _with_caps():
