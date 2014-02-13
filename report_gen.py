@@ -58,16 +58,17 @@ class OfficeReport(FPDF):
         self.todos = set()
         self.design = design
         self._fns = fns
-        self._first_line = True
 
     @classmethod
     def make(cls, rd, cal):
         return cls(ET.parse(rd.fp()), field_functions(cal))
 
     def run(self, connect):
+        # TODO: return design as a value from parse_design;
+        # pass it to start_page.
         self._parse_design()
         self._start_page()
-        self._detail(self._data(connect))
+        self._detail(self._data(connect, self._breaks, self._sql))
 
     def _parse_design(self,
                       sizes=[('small-print', 8),
@@ -130,24 +131,64 @@ class OfficeReport(FPDF):
             return None
         return self._parse_colfmts(foot_row, foot_row, in_footer=True)
 
-    def _data(self, connect):
-        with run_query(connect, self._sql) as q:
+    def _data(self, connect, breaks, sql):
+        '''Iterate over data with breaks.
+
+        Yield bindings, group_start_index, is_group_end, group_sums
+        where group_change_index is None unless this is the last
+        row of a group.
+        '''
+        self._todo('restore group headings on page break')
+        row = None
+        row_bk_ix = None
+        break_vals = {}
+        break_sums = {}
+        sum_fields = [f.field for b in breaks if b.footfmts
+                      for f in b.footfmts if not f.literal]
+
+        for bindings in self._rows(connect, sql):
+            for (ix, b) in enumerate(breaks):
+                newval = [bindings[n] for n in b.key_cols]
+                if newval != break_vals.get(b.name):
+                    bk_ix = ix
+                    break
+            else:
+                bk_ix = None
+
+            if row is not None:
+                yield row, row_bk_ix, bk_ix is not None, break_sums
+
+            row = bindings
+            row_bk_ix = bk_ix
+            if bk_ix is not None:
+                break_sums = {}
+                for b in breaks[bk_ix:]:
+                    break_vals[b.name] = [bindings[n] for n in b.key_cols]
+
+            for f in sum_fields:
+                break_sums[f] = break_sums.get(f, 0) + bindings[f]
+
+        if row is not None:
+            yield row, row_bk_ix, True, break_sums
+
+    def _rows(self, connect, sql):
+        with run_query(connect, sql) as q:
             colnames = [c[0] for c in q.description]
             while 1:
                 rows = q.fetchmany()
                 if not rows:
                     break
-                for row in rows:
-                    yield colnames, row
+
+                for vals in rows:
+                    bindings = dict(zip(colnames, vals))
+                    yield bindings
 
     def pdf_string(self):
         return self.output('', 'S')
 
     def _start_page(self,
                     large=12, bold='B'):
-        self._break_vals = {}
-        self._break_sums = {}
-
+        # TODO: move orientation processing here
         self.add_page(orientation=self._orientation)
         self._block(
             self._report_header,
@@ -177,15 +218,13 @@ class OfficeReport(FPDF):
         return size * self.normal_line_height
 
     def header(self):
-        if self._first_line:
+        if self.page_no() == 1:
             return
 
         self._pg_header()
-        self._break_vals = {}
 
     def _pg_header(self,
                    size=11, margin_top=4, margin_bottom=2):
-        self._first_line = False
         self.ln(margin_top)
         with self.fg_bg(self.black, self.grey):
             txts = self._eval_fields(bindings=dict(r=RDot(self)),
@@ -203,16 +242,12 @@ class OfficeReport(FPDF):
                       margin_bottom=margin_bottom,
                       border_top=border_top, border_bottom=border_bottom)
 
-    def _detail(self, rows):
+    def _detail(self, data):
         parity = 0
         with self.fg_bg(self.black, self.light_grey):
-            for colnames, vals in rows:
-                bindings = dict(zip(colnames, vals))
-
-                break_ix = self._new_breaks(bindings)
-                if break_ix is not None:
-                    self._do_break_footer()
-                    self._show_breaks(break_ix, bindings)
+            for bindings, group_start_ix, group_end, group_sums in data:
+                if group_start_ix is not None:
+                    self._show_group_headers(group_start_ix, bindings)
 
                 self._todo('finish value formatting')
                 self._todo('money formatting in break footers')
@@ -221,27 +256,13 @@ class OfficeReport(FPDF):
                           self.detail_size, fill=parity,
                           colfmts=self._detail_colfmts)
 
-                self._update_sums(bindings)
+                if group_end:
+                    self._show_group_footer(group_sums)
 
-                self._bindings = bindings
-                self._page_top = False
                 parity = 1 - parity
 
-    def _new_breaks(self, bindings):
-        least = None
-
-        for (ix, b) in enumerate(self._breaks):
-            newval = [bindings[n] for n in b.key_cols]
-            if least is None and newval != self._break_vals.get(b.name):
-                least = ix
-
-            if least is not None:
-                self._break_vals[b.name] = newval
-
-        return least
-
-    def _show_breaks(self, start, bindings,
-                     size=10, style=bold, margin_top=3):
+    def _show_group_headers(self, start, bindings,
+                            size=10, style=bold, margin_top=3):
         self.set_font(self.font, style, size)
         for b in self._breaks[start:]:
             txts = self._eval_fields(bindings=bindings,
@@ -249,31 +270,19 @@ class OfficeReport(FPDF):
             self._row(txts, size, colfmts=b.colfmts,
                       margin_top=margin_top)
 
-    def _update_sums(self, bindings):
-        for fmts in [b.footfmts for b in self._breaks if b.footfmts][:1]:
-            for f in fmts:
-                if not f.literal:
-                    self._break_sums[f.field] = (
-                        self._break_sums.get(f.field, 0)
-                        + bindings[f.field])
-
-    def _do_break_footer(self,
-                         style=bold,
-                         margin_top=2, border_top=1,
-                         margin_bottom=1):
-        if not self._break_sums:
-            return
-
+    def _show_group_footer(self, group_sums,
+                           style=bold,
+                           margin_top=2, border_top=1,
+                           margin_bottom=1):
         self._todo('get footers to line up')
         for fmts in [b.footfmts for b in self._breaks if b.footfmts][:1]:
-            txts = self._eval_fields(bindings=self._break_sums,
+            txts = self._eval_fields(bindings=group_sums,
                                      colfmts=fmts)
             self.set_font(self.font, style, self.detail_size)
             self._row(txts, self.detail_size, colfmts=fmts,
                       border_top=border_top,
                       margin_top=margin_top,
                       margin_bottom=margin_bottom)
-            self._break_sums = {}
 
     def _eval_fields(self, bindings, colfmts):
         env = dict(bindings.items() + self._fns.items())
