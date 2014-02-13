@@ -52,8 +52,7 @@ class OfficeReport(FPDF):
     pt_per_inch = 72
 
     def __init__(self, design, fns,
-                 unit='pt', format='Letter',
-                 detail_size=10):
+                 unit='pt', format='Letter'):
         FPDF.__init__(self, unit=unit, format=format)
         self.todos = set()
         self.design = design
@@ -67,7 +66,7 @@ class OfficeReport(FPDF):
         # TODO: return design as a value from parse_design;
         # pass it to start_page.
         self._parse_design()
-        self._start_page()
+        self._init_page(self._orientation, self._report_header)
         self._detail(self._data(connect, self._breaks, self._sql))
 
     def _parse_design(self,
@@ -186,13 +185,11 @@ class OfficeReport(FPDF):
     def pdf_string(self):
         return self.output('', 'S')
 
-    def _start_page(self,
-                    large=12, bold='B'):
-        # TODO: move orientation processing here
-        self.add_page(orientation=self._orientation)
-        self._block(
-            self._report_header,
-            large, bold, self.white, self.black)
+    def _init_page(self, orientation, report_header,
+                   large=12, bold='B'):
+        self.add_page(orientation=orientation)
+        self._block(report_header,
+                    large, bold, self.white, self.black)
         self._pg_header()
 
     def _block(self, text, size, style, fg, bg=None):
