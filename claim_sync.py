@@ -24,17 +24,21 @@ import mechanize
 import MySQLdb
 import paste
 
-import hhtcb
-from ocap import DBOpts
 from export_claims import format_claims
+from hhtcb import WSGI, Xataface
+import ocap
 
 log = logging.getLogger(__name__)
 
 
 def app_factory(config):
+    from os import path as os_path
+
     logging.basicConfig(level=logging.INFO)
-    dbo = DBOpts(hhtcb.xataface_config())
-    return SyncApp(dbo)
+    here = ocap.Rd(os_path.dirname(__file__), os_path,
+                   open_rd=lambda n: open(n))
+    xf = Xataface.make(here)
+    return SyncApp(xf)
 
 
 def test_main(argv):
@@ -71,24 +75,21 @@ def test_main(argv):
 
 
 class SyncApp(object):
-    PLAIN = [('Content-Type', 'text/plain')]
-    HTML8 = [('Content-Type', 'text/html; charset=utf-8')]
-
-    def __init__(self, dbo,
+    def __init__(self, xf,
                  title='Hope Harbor FreeClaims Helper'):
-        self._dbo = dbo
+        self._xf = xf
         self._title = title
 
     def __call__(self, env, start_response):
         '''Check authorization, login to the DB, and dispatch to show/upload.
         '''
         try:
-            host, user, password, name = self._dbo.webapp_login(env)
+            host, user, password, name = self._xf.webapp_login(env)
         except KeyError:
-            start_response('400 bad request', self.PLAIN)
+            start_response('400 bad request', WSGI.PLAIN)
             return ['missing key parameter ']
         except OSError:
-            start_response('401 unauthorized', self.PLAIN)
+            start_response('401 unauthorized', WSGI.PLAIN)
             return ['report key does not match.']
 
         # scrub user input
@@ -118,21 +119,21 @@ class SyncApp(object):
             self._title,
             ['<h1>Insurance Claim Batch</h1>\n',
              '<form method="POST" action="?key=%s&visits=%s">\n' % (
-                    key, ','.join(map(str, visit_ids))),
+                 key, ','.join(map(str, visit_ids))),
              '<ol>\n'] +
             [piece for claim in claims
              for piece in
              (['  <li>%s<br />%s $%s<br />DX: %s %s <ol>\n' % (
-                            saxutils.escape(claim['detail'][
-                                    'Insurance Company Name']),
-                            saxutils.escape(claim['detail']['2-PatientName']),
-                            claim['detail']['28-TotalCharge'],
-                            claim['detail']['21.1-Diagnosis'],
-                            claim['detail']['21.2-Diagnosis'] or '')] +
+                 saxutils.escape(claim['detail'][
+                     'Insurance Company Name']),
+                 saxutils.escape(claim['detail']['2-PatientName']),
+                 claim['detail']['28-TotalCharge'],
+                 claim['detail']['21.1-Diagnosis'],
+                 claim['detail']['21.2-Diagnosis'] or '')] +
               ['    <li>on %s CPT: %s $%s</li>\n' % (
-                            item['24.1.a-DOSFrom'],
-                            item['24.1.d-CPT'],
-                            item['24.1.f-Charges'])
+                  item['24.1.a-DOSFrom'],
+                  item['24.1.d-CPT'],
+                  item['24.1.f-Charges'])
                for item in claim['items']] +
               ['</ol>\n', '</li>\n'])] +
             ['</ol>\n',
@@ -167,7 +168,7 @@ def update_visits(conn, claims, results):
     for cin, cout in zip(claims, results):
         visit_ids = cin['visit_ids']
         sql = ("""update Visit v
-               set claim_uid = concat(%%s, ',', %%s) 
+               set claim_uid = concat(%%s, ',', %%s)
                where v.id in (%s)""" % ', '.join(map(str, visit_ids)))
         log.info('Updating (%s) to trace %s, batch %s\nSQL:%s',
                  visit_ids, cout.trace_no, cout.batch, sql)
@@ -196,9 +197,9 @@ def format_upload_results(title, batch, results):
         [piece for cout in results for piece in
          ['<tr>',
           '<td><a href="%s%s">%s</a></td>' % (
-                    FreeClaimsUA.base, cout.href, cout.trace_no),
+              FreeClaimsUA.base, cout.href, cout.trace_no),
           '<td><a href="%s%s">%s</a></td>' % (
-                    FreeClaimsUA.base, batch.href, batch.batch_no),
+              FreeClaimsUA.base, batch.href, batch.batch_no),
           '<td>%s</td>' % cout.status,
           '<td>%s</td>' % cout.last,
           '<td>%s</td>' % cout.first,
@@ -208,8 +209,9 @@ def format_upload_results(title, batch, results):
           '</tr>'
           ]] +
         ['</table>',
-         '<p><strong>To update billing dates, return to Hope Harbor Attendance',
-         ' using the back button and choose the Update action button.',
+         '<p><strong>To update billing dates, return to Hope Harbor',
+         ' Attendance using the back button'
+         ' and choose the Update action button.',
          '</strong></p>'])
 
 
@@ -306,11 +308,11 @@ def batches_flatten(out, batches_claims):
                    service_date date_received'''.split())
 
     co.writerows([
-            (batch.batch_no,
-             claim.trace_no, claim.status,
-             claim.last, claim.first,
-             claim.acc_no, claim.acc_no.split('.')[-1],
-             claim.service_date, claim.date_received)
+        (batch.batch_no,
+         claim.trace_no, claim.status,
+         claim.last, claim.first,
+         claim.acc_no, claim.acc_no.split('.')[-1],
+         claim.service_date, claim.date_received)
         for batch, claims in batches_claims
         for claim in claims])
 
@@ -329,8 +331,8 @@ def claim(row):
     trace_cell = row('td')[1]
     return Claim(int(trace_cell.a.contents[0]), trace_cell.a['href'],
                  int(txts[2]), txts[3], txts[4], txts[5], txts[6],
-        datetime.datetime.strptime(txts[9], '%m/%d/%Y'),
-        datetime.datetime.strptime(txts[15], '%m/%d/%Y'))
+                 datetime.datetime.strptime(txts[9], '%m/%d/%Y'),
+                 datetime.datetime.strptime(txts[15], '%m/%d/%Y'))
 
 _CLAIM_MARKUP = '''
                             <tr bgcolor=ddf7f7 >

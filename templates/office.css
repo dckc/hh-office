@@ -13,6 +13,7 @@ h2.PageHeader { background: #d0d0d0; font-size: 11pt }
 .Breaks tfoot tr td { font-style: italic }
 
 .money { color: green }
+.sum { text-decoration: underline }
 
 /* hmm... table { width: 100% } */
 

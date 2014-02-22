@@ -1,46 +1,160 @@
-from os import path
+'''hhtcb -- Hope harbor xataface, WSGI utilities.
 
-import libxml2
+hhtcb is now a misnomer, but oh well.
+'''
 
-from ocap import PrefixConfig
+from cgi import parse_qs
+from ConfigParser import SafeConfigParser
 
-
-class Path(object):
-    def __init__(self, dirpath, segment=None):
-        self._dp = dirpath
-        self._seg = segment
-
-    def __str__(self, segment=None):
-        if segment is None:
-            segment = self._seg
-        return path.join(self._dp, seg_ck(segment))
+import ocap
 
 
-def seg_ck(fn):
-    assert path.sep not in fn
-    assert path.pathsep not in fn
-    return fn
+class Xataface(object):
+    r'''
+    >>> here = ocap.Rd('/here', MockXF, MockXF.open_rd)
+    >>> xf = Xataface.make(here)
+    >>> def superpower():
+    ...     return xf.dbopts()
+    >>> ck = xf.mk_qs_facet(superpower)
+
+    >>> opts = ck({'QUERY_STRING': 'key=sekret'})
+    >>> opts
+    ['localhost', 'mickey_mouse', 'club', 'all_my_friends']
+
+    >>> ck({'QUERY_STRING': ''})
+    Traceback (most recent call last):
+      ...
+    KeyError: 'missing key parameter'
+
+    >>> ck({'QUERY_STRING': 'key=secret'})
+    Traceback (most recent call last):
+      ...
+    IOError: report key does not match.
+    '''
+    ocap  # pyflakes doesn't see into docstrings
+
+    def __init__(self, configRd):
+        self._rd = configRd
+
+    @classmethod
+    def make(cls, here,
+             ini='conf.ini'):
+        return cls(here.subRd(ini))
+
+    DB_SECTION = '_database'
+
+    def mk_qs_facet(self, doit,
+                    key_param='key',
+                    opt='report_key'):
+        def invoke(env):
+            k = WSGI.param(env, key_param)
+
+            if self.config().get(self.DB_SECTION, opt) not in k:
+                raise IOError('report key does not match.')
+
+            return doit()
+
+        return invoke
+
+    def dbopts(self,
+               keys=['host', 'user', 'password', 'name']):
+        config = self.config()
+        return [config.get(Xataface.DB_SECTION, k)[1:-1]
+                for k in keys]
+
+    def webapp_login(self, env):
+        return self.mk_qs_facet(doit=lambda: self.dbopts())()
+
+    def config(self,
+               pfx='[DEFAULT]'):
+        '''
+        TODO: factor out of print_report.py
+        '''
+        config = SafeConfigParser()
+        config.readfp(Prefix(self._rd.fp(), pfx), str(self._rd))
+        return config
 
 
-class Dir(Path):
-    def subdir(self, segment):
-        return Dir(path.join(self._dp, segment))
+class MockXF(object):
+    import pkg_resources as pkg
 
-    def file(self, fn):
-        return File(self._dp, fn)
+    # TODO: refactor content as instance var
+    content = {'/here/conf.ini':
+               '\n'.join([line.strip()
+                          for line in '''
+               title=before first section
+
+               [_database]
+               report_key=sekret
+               host="localhost"
+               user="mickey_mouse"
+               password="club"
+               name="all_my_friends"
+                          '''.split('\n')]),
+               '/here/templates/weekly_groups.html':
+               pkg.resource_string(__name__, 'templates/weekly_groups.html')}
+
+    @classmethod
+    def open_rd(cls, n):
+        from StringIO import StringIO
+        return StringIO(cls.content[n])
+
+    @classmethod
+    def abspath(cls, p):
+        import posixpath
+        return posixpath.abspath(p)
+
+    @classmethod
+    def join(cls, *paths):
+        import posixpath
+        return posixpath.join(*paths)
+
+    @classmethod
+    def exists(cls, path):
+        return path in cls.content
 
 
-class File(Path):
-    def fp(self):
-        return open(str(self))
+class WSGI:
+    PLAIN = [('Content-Type', 'text/plain')]
+    HTML8 = [('Content-Type', 'text/html; charset=utf-8')]
+    PDF = [('Content-Type', 'application/pdf')]
 
-    def xml_content(self):
-        return libxml2.parseFile(str(self))
+    QS = 'QUERY_STRING'
 
-    def exists(self):
-        return path.exists(str(self))
+    @classmethod
+    def param(cls, env, n):
+        v = parse_qs(env.get(cls.QS, n)).get(n)
+        if not v:
+            raise KeyError('missing %s parameter' % n)
+        return v
+
+    @classmethod
+    def error_middleware(cls, format_exc, app):
+        '''
+        TODO: factor out of print_report.py
+        '''
+        def err_app(env, start_response):
+            try:
+                return app(env, start_response)
+            except:  # pylint: disable-msg=W0703,W0702
+                start_response('500 internal error', WSGI.PLAIN)
+                return [format_exc()]
+
+        return err_app
 
 
-def xataface_config(ini='conf.ini'):
-    here = path.dirname(__file__)
-    return PrefixConfig(File(here, ini), '[DEFAULT]').opts()
+class Prefix(object):
+    '''work-around: xataface needs options before the 1st [section]
+    TODO: factor out of print_report.py
+    '''
+    def __init__(self, fp, line):
+        self._fp = fp
+        self._l = line
+
+    def readline(self):
+        if self._l:
+            l = self._l
+            self._l = None
+            return l
+        else:
+            return self._fp.readline()
