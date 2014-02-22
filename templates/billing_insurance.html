@@ -52,16 +52,16 @@
 
   <tfoot>
     <tr class="per_client">
-      <td> mm/dd/yyyy<!-- placeholder for session date in footer --></td>
-      <td>......................</td>
+      <td> mm/dd/yy<!-- placeholder for session date in footer --></td>
+      <td>0........1........9</td>
       <td title="attend_n" class="sum" align="right"
 	  > 1,000</td>
       <td title="charge" class="sum money" align="right"
 	  > 1,000.00</td>
       <td title="client_paid" class="sum money" align="right"
 	  > 1,000.00</td>
-      <td> mm/dd/yyyy</td>
-      <td> mm/dd/yyyy</td>
+      <td>mm/dd/yy</td>
+      <td>mm/dd/yy</td>
       <td title="insurance_paid" class="sum money" align="right"
 	  > 1,000.00</td>
       <td title="due" class="sum money" align="right"
@@ -74,7 +74,7 @@
       <td title="format(stod(session_date), '!@%m/%d/%y')" align="right"
 	  > 01/01/11</td>
       <td title="group_name" align="left"
-	  >                   </td>
+	  >0         1       9</td>
       <td title="attend_n" align="right"
 	  > 1,000</td>
       <td title="charge" align="right"
@@ -106,7 +106,7 @@
 <pre><code class="query">
 select a.* from Attendance a
 where insurance > '' or carrier_name > ''
-order by client_name, session_date desc, group_name
+order by client_name, client_id, session_date desc, group_name, group_id
 </code></pre>
 </div>
 
