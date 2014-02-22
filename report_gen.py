@@ -42,6 +42,10 @@ ColFmt = namedtuple('Column', ['th', 'field',
 Break = namedtuple('Break', ['name', 'key_cols', 'colfmts', 'footfmts'])
 
 
+class EndOfPage(Exception):
+    pass
+
+
 class OfficeReport(FPDF):
     font = 'Courier'
     plain, bold = '', 'B'
@@ -78,8 +82,8 @@ class OfficeReport(FPDF):
                                     ('portrait', 'P', 8.5, 11)]):
         body = HTML.by_class(self.design, 'body', 'rlib')[0]
 
-        self._orientation, self.right_margin = (
-            [(abbr, self.pt_per_inch * (w - 1.0))
+        self._orientation, self.right_margin, self.page_bottom = (
+            [(abbr, self.pt_per_inch * (w - 1.0), self.pt_per_inch * (h - 1.0))
              for (name, abbr, w, h) in orientations
              if HTML.has_class(body, name)]
             or [orientations[-1]])[0]
@@ -190,8 +194,6 @@ class OfficeReport(FPDF):
                     # wierd... duplicate column names. clobber later ones
                     # rather than earlier ones.
                     bindings = dict(reversed(zip(colnames, vals)))
-                    if bindings['client_id'] is None:
-                        import pdb; pdb.set_trace()
                     yield bindings
 
     def pdf_string(self):
@@ -199,12 +201,11 @@ class OfficeReport(FPDF):
 
     def _init_page(self, orientation, report_header,
                    large=12, bold='B'):
+        self.set_auto_page_break(False)
         self.add_page(orientation=orientation)
         self._block(report_header,
                     large, bold, self.white, self.black)
         self._pg_header()
-        self._page_turn = False
-        self._in_group_header = False
 
     def _block(self, text, size, style, fg, bg=None):
         self.set_font(self.font, style, size)
@@ -232,10 +233,7 @@ class OfficeReport(FPDF):
         if self.page_no() == 1:
             return
 
-        log.debug('page turn. bindings: %s', pformat(self._bindings))
         self._pg_header()
-        self._show_group_headers(0)
-        self._page_turn = True
 
     def _pg_header(self,
                    size=11, margin_top=4, margin_bottom=2):
@@ -258,49 +256,52 @@ class OfficeReport(FPDF):
 
     def _detail(self, data):
         parity = 0
+        self.set_font(self.font, self.plain, self.detail_size)
         with self.fg_bg(self.black, self.light_grey):
             for bindings, group_start_ix, group_end, group_sums in data:
-                self._bindings = bindings
-
-                if group_start_ix is not None and not self._page_turn:
-                    self._show_group_headers(group_start_ix)
+                if group_start_ix is not None:
+                    try:
+                        self._show_group_headers(bindings, group_start_ix)
+                    except EndOfPage:
+                        self.add_page(self._orientation)
+                        self._show_group_headers(bindings, group_start_ix)
+                    self.set_font(self.font, self.plain, self.detail_size)
 
                 self._todo('finish value formatting')
                 self._todo('money formatting in break footers')
-                self.set_font(self.font, self.plain, self.detail_size)
-                self._row(self._eval_fields(bindings, self._detail_colfmts),
-                          self.detail_size, fill=parity,
-                          colfmts=self._detail_colfmts)
-                self._page_turn = False
+                txts = self._eval_fields(bindings, self._detail_colfmts)
+                try:
+                    self._row(txts,
+                              self.detail_size, fill=parity,
+                              colfmts=self._detail_colfmts)
+                except EndOfPage:
+                    self.add_page(self._orientation)
+                    self._show_group_headers(bindings, group_start_ix)
+                    self.set_font(self.font, self.plain, self.detail_size)
+                    self._row(txts,
+                              self.detail_size, fill=parity,
+                              colfmts=self._detail_colfmts)
 
                 if group_end:
-                    self._show_group_footer(group_sums)
+                    try:
+                        self._show_group_footer(group_sums)
+                    except EndOfPage:
+                        self.add_page(self._orientation)
+                        self._show_group_headers(bindings, group_start_ix)
+                        self._show_group_footer(group_sums)
+                    self.set_font(self.font, self.plain, self.detail_size)
 
                 parity = 1 - parity
 
-    def _orphan_control(self, lines, size): #@@
-        h = size * lines
-        y = self.y
-        self.ln(h)
-        if not self._page_turn:
-            self.set_y(y)
-
-    def _show_group_headers(self, start,
+    def _show_group_headers(self, bindings, start,
                             size=10, style=bold, margin_top=3):
-        # Don't duplicate group headers at top of page. Gross.
-        if self._in_group_header:
-            return
-
-        self._in_group_header = True
-
         self.set_font(self.font, style, size)
-        log.debug('group header. bindings: %s', pformat(self._bindings))
+        log.debug('group header. bindings: %s', pformat(bindings))
         for b in self._breaks[start:]:
-            txts = self._eval_fields(bindings=self._bindings,
+            txts = self._eval_fields(bindings=bindings,
                                      colfmts=b.colfmts)
             self._row(txts, size, colfmts=b.colfmts,
                       margin_top=margin_top)
-        self._in_group_header = False
 
     def _show_group_footer(self, group_sums,
                            style=bold,
@@ -330,8 +331,14 @@ class OfficeReport(FPDF):
 
     def _row(self, txts, size,
              fill=0, colfmts=None,
-             margin_top=None, margin_bottom=None,
-             border_top=None, border_bottom=None):
+             margin_top=0, margin_bottom=0,
+             border_top=0, border_bottom=0):
+        check_y = (self.y + size +
+                   margin_top + margin_bottom +
+                   border_top + border_bottom)
+        if check_y > self.page_bottom:
+            raise EndOfPage
+
         if margin_top:
             self.ln(margin_top)
         if border_top:
