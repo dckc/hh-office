@@ -142,7 +142,6 @@ class OfficeReport(FPDF):
         where group_change_index is None unless this is the last
         row of a group.
         '''
-        self._todo('restore group headings on page break')
         row = None
         row_bk_ix = None
         break_vals = {}
