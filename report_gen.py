@@ -259,7 +259,7 @@ class OfficeReport(FPDF):
                         self._show_group_headers(bindings, group_start_ix)
                     except EndOfPage:
                         self.add_page(self._orientation)
-                        self._show_group_headers(bindings, group_start_ix)
+                        self._show_group_headers(bindings, 0)
                     self.set_font(self.font, self.plain, self.detail_size)
 
                 self._todo('finish value formatting')
@@ -271,7 +271,7 @@ class OfficeReport(FPDF):
                               colfmts=self._detail_colfmts)
                 except EndOfPage:
                     self.add_page(self._orientation)
-                    self._show_group_headers(bindings, group_start_ix)
+                    self._show_group_headers(bindings, 0)
                     self.set_font(self.font, self.plain, self.detail_size)
                     self._row(txts,
                               self.detail_size, fill=parity,
@@ -282,7 +282,7 @@ class OfficeReport(FPDF):
                         self._show_group_footer(group_sums)
                     except EndOfPage:
                         self.add_page(self._orientation)
-                        self._show_group_headers(bindings, group_start_ix)
+                        self._show_group_headers(bindings, 0)
                         self._show_group_footer(group_sums)
                     self.set_font(self.font, self.plain, self.detail_size)
 
