@@ -150,8 +150,8 @@ class OfficeReport(FPDF):
         sum_fields = [f.field for b in breaks if b.footfmts
                       for f in b.footfmts if not f.literal]
 
-        log.debug('break keys: %s',
-                  pformat([(b.name, b.key_cols) for b in self._breaks]))
+        # log.debug('break keys: %s',
+        #           pformat([(b.name, b.key_cols) for b in self._breaks]))
 
         for bindings in self._rows(connect, sql):
             for (ix, b) in enumerate(breaks):
@@ -169,10 +169,6 @@ class OfficeReport(FPDF):
             row_bk_ix = bk_ix
             if bk_ix is not None:
                 break_sums = {}
-                if bk_ix > 0:
-                    log.debug('some break found: %s',
-                              pformat([b.name for b in self._breaks[bk_ix:]]))
-
                 for b in breaks[bk_ix:]:
                     break_vals[b.name] = [bindings[n] for n in b.key_cols]
 
@@ -296,7 +292,7 @@ class OfficeReport(FPDF):
     def _show_group_headers(self, bindings, start,
                             size=10, style=bold, margin_top=3):
         self.set_font(self.font, style, size)
-        log.debug('group header. bindings: %s', pformat(bindings))
+        # log.debug('group header. bindings: %s', pformat(bindings))
         for b in self._breaks[start:]:
             txts = self._eval_fields(bindings=bindings,
                                      colfmts=b.colfmts)
@@ -344,11 +340,15 @@ class OfficeReport(FPDF):
         if border_top:
             self._hline(border_top)
 
+        log.debug('_row(txts=%s, fillers=%s)',
+                  pformat(txts),
+                  pformat([c.filler for c in colfmts]) if colfmts else None)
         cells = zip(txts,
-                    [c.filler for c in colfmts] if colfmts else txts,
+                    [c.filler for c in colfmts] if colfmts
+                    else [t + ' ' for t in txts],
                     [c.align for c in colfmts] if colfmts
                     else [None] * len(txts))
-        #log.debug('_row cells: %s', cells)
+        # log.debug('_row cells: %s', cells)
         for (txt, w, a) in cells:
             self._todo('constrain _row by right margin')
             self.cell(self.get_string_width(w + ' '), self._h(size),
@@ -499,7 +499,7 @@ def mk_connect(getdbi, xf):
 
 
 if __name__ == '__main__':
-    def _configure_logging(level=logging.DEBUG):
+    def _configure_logging(level=logging.INFO):
         logging.basicConfig(level=level)
 
     def _with_caps():
