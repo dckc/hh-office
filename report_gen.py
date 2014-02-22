@@ -303,7 +303,6 @@ class OfficeReport(FPDF):
                            style=bold,
                            margin_top=2, border_top=1,
                            margin_bottom=1):
-        self._todo('get footers to line up')
         for fmts in [b.footfmts for b in self._breaks if b.footfmts][:1]:
             txts = self._eval_fields(bindings=group_sums,
                                      colfmts=fmts)
