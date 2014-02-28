@@ -1,2 +1,23 @@
+
+# elementtree==1.2.6-20050316
+# URL: http://svn.effbot.org/public/elementtree-1.3
+# Repository UUID: be285980-f00d-0410-a9fe-d4747b46ecd0
+# Revision: 532
+# Last Changed Author: fredrik
+# Last Changed Date: 2007-09-12 02:13:23 -0600 (Wed, 12 Sep 2007)
+elementtree
+
+# cElementTree==1.0.5-20051216
+# URL: http://svn.effbot.org/public/tags/celementtree-1.0.6-20090110-preview
+# Repository UUID: be285980-f00d-0410-a9fe-d4747b46ecd0
+# Revision: 532
+# Last Changed Author: fredrik
+# Last Changed Rev: 523
+# Last Changed Date: 2009-01-10 10:45:07 -0700 (Sat, 10 Jan 2009)
+cElementTree
+
+# fpdf==1.7
 fpdf
+
+# MySQL-python==1.2.3c1
 MySQL-python

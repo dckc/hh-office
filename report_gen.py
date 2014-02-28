@@ -13,9 +13,9 @@ from collections import namedtuple
 from contextlib import contextmanager
 from datetime import datetime
 from pprint import pformat
-from xml.etree import ElementTree as ET
 import logging
 
+import cElementTree as ET
 from fpdf import FPDF
 
 import ocap
@@ -100,8 +100,8 @@ class OfficeReport(FPDF):
 
         detail = HTML.by_class(body, "table", 'Detail')[0]
         self._detail_colfmts = self._parse_colfmts(
-            HTML.the(detail, "h:thead/h:tr[1]"),
-            HTML.the(detail, "h:tbody/h:tr[1]"),
+            HTML.the(detail, "h:thead/h:tr"),
+            HTML.the(detail, "h:tbody/h:tr"),
             all_fields=True)
 
         self._breaks = [
@@ -438,8 +438,7 @@ class HTML(object):
         '''
 
         w_class = ctx.findall(
-            ".//h:%s[@class]" % tagname,
-            namespaces=cls.namespaces)
+            ".//{%s}%s[@class]" % (cls.namespaces['h'], tagname))
         return [e for e in w_class
                 if cls.has_class(e, classname)]
 
@@ -453,10 +452,15 @@ class HTML(object):
 
     @classmethod
     def the(cls, ctx, expr):
-        found = ctx.find(expr, namespaces=cls.namespaces)
+        '''
+        >>> HTML.the(HTML.example_ctx, 'h:body/h:h1').tag.split('}')[1]
+        'h1'
+        '''
+        qexpr = expr.replace('h:', '{' + cls.namespaces['h'] + '}')
+        found = ctx.find(qexpr)
         if found is None:
-            raise ValueError('cannot find %s in %s' %
-                             (expr, ctx.tag))
+            raise ValueError('cannot find %s (%s) in %s' %
+                             (expr, qexpr, ctx.tag))
         return found
 
 
