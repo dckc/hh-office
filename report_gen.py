@@ -34,7 +34,9 @@ def main(argv, stdout, cal, connect, templates):
     rpt = OfficeReport.make(templates / (report_name + '.html'), cal)
     rpt.run(connect)
     stdout.write(rpt.pdf_string())
-    raise NotImplementedError(rpt.todos)
+
+    if '--todos' in argv and rpt.todos:
+        raise NotImplementedError(rpt.todos)
 
 
 ColFmt = namedtuple('Column', ['th', 'field',
