@@ -31,8 +31,8 @@ def main(argv, stdout, cal, connect, templates):
     __ http://www.madmode.com/2013/python-capability-idioms-part-1.html
     '''
     report_name = argv[1]
-    rpt = OfficeReport.make(templates / (report_name + '.html'), cal)
-    rpt.run(connect)
+    rpt = OfficeReports.make(templates, cal)
+    rpt.run(connect, report_name)
     stdout.write(rpt.pdf_string())
 
     if '--todos' in argv and rpt.todos:
@@ -48,7 +48,7 @@ class EndOfPage(Exception):
     pass
 
 
-class OfficeReport(FPDF):
+class OfficeReports(FPDF):
     font = 'Courier'
     plain, bold = '', 'B'
     full_line = 0
@@ -58,31 +58,33 @@ class OfficeReport(FPDF):
     black, grey, light_grey, white = 0, 0xd0, 0xe5, 0xff
     pt_per_inch = 72
 
-    def __init__(self, design, fns,
+    def __init__(self, templates, fns,
                  unit='pt', format='Letter'):
         FPDF.__init__(self, unit=unit, format=format)
         self.todos = set()
-        self.design = design
+        self._templates = templates
         self._fns = fns
 
     @classmethod
-    def make(cls, rd, cal):
-        return cls(ET.parse(rd.fp()), field_functions(cal))
+    def make(cls, templates, cal):
+        return cls(templates, field_functions(cal))
 
-    def run(self, connect):
+    def run(self, connect, report_name,
+            ext='.html'):
+        design = ET.parse((self._templates / (report_name + ext)).fp())
         # TODO: return design as a value from parse_design;
         # pass it to start_page.
-        self._parse_design()
+        self._parse_design(design)
         self._init_page(self._orientation, self._report_header)
         self._detail(self._data(connect, self._breaks, self._sql))
 
-    def _parse_design(self,
+    def _parse_design(self, design,
                       sizes=[('small-print', 8),
                              ('medium-print', 9),
                              ('normal-print', 10)],
                       orientations=[('landscape', 'L', 11, 8.5),
                                     ('portrait', 'P', 8.5, 11)]):
-        body = HTML.by_class(self.design, 'body', 'rlib')[0]
+        body = HTML.by_class(design, 'body', 'rlib')[0]
 
         self._orientation, self.right_margin, self.page_bottom = (
             [(abbr, self.pt_per_inch * (w - 1.0), self.pt_per_inch * (h - 1.0))
