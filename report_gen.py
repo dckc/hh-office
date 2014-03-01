@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''Generate office report from design document and SQL data.
 
 refs:
@@ -25,7 +26,7 @@ log = logging.getLogger(__name__)
 
 
 def cgi_main(mkCGIHandler, cal, format_exc, sealed_connect, templates):
-    reports = OfficeReports.make(templates, cal, sealed_connect)
+    reports = OfficeReportsApp.make(templates, cal, sealed_connect)
     reportsE = WSGI.error_middleware(format_exc, reports)
     mkCGIHandler().run(reportsE)
 
