@@ -134,7 +134,11 @@ class OfficeReports(FPDF):
             in zip(head_row, body_row)]
 
     def _footfmts(self, name, detail):
-        foot_row = HTML.the(detail, 'h:tfoot/h:tr[@class]')
+        try:
+            foot_row = HTML.the(detail, 'h:tfoot/h:tr[@class]')
+        except ValueError:
+            return None
+
         if foot_row.attrib['class'] != name:
             return None
         return self._parse_colfmts(foot_row, foot_row, in_footer=True)
