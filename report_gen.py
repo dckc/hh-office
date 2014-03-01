@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''Generate office report from design document and SQL data.
 
 refs:
