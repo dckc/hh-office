@@ -19,20 +19,28 @@ import cElementTree as ET
 from fpdf import FPDF
 
 import ocap
-from hhtcb import Xataface
+from hhtcb import Xataface, WSGI, MockXF
 
 log = logging.getLogger(__name__)
 
 
-def main(argv, stdout, cal, connect, templates):
+def cgi_main(mkCGIHandler, cal, format_exc, sealed_connect, templates):
+    reports = OfficeReports.make(templates, cal, sealed_connect)
+    reportsE = WSGI.error_middleware(format_exc, reports)
+    mkCGIHandler().run(reportsE)
+
+    MockXF  # for pyflakes
+
+
+def test_main(argv, stdout, cal, connect, templates):
     '''
     Note `_with_caps()` below for `least-authority style`__.
 
     __ http://www.madmode.com/2013/python-capability-idioms-part-1.html
     '''
     report_name = argv[1]
-    rpt = OfficeReport.make(templates / (report_name + '.html'), cal)
-    rpt.run(connect)
+    rpt = OfficeReports.make(templates, cal)
+    rpt.run(connect, report_name)
     stdout.write(rpt.pdf_string())
 
     if '--todos' in argv and rpt.todos:
@@ -48,7 +56,7 @@ class EndOfPage(Exception):
     pass
 
 
-class OfficeReport(FPDF):
+class OfficeReports(FPDF):
     font = 'Courier'
     plain, bold = '', 'B'
     full_line = 0
@@ -58,31 +66,33 @@ class OfficeReport(FPDF):
     black, grey, light_grey, white = 0, 0xd0, 0xe5, 0xff
     pt_per_inch = 72
 
-    def __init__(self, design, fns,
+    def __init__(self, templates, fns,
                  unit='pt', format='Letter'):
         FPDF.__init__(self, unit=unit, format=format)
         self.todos = set()
-        self.design = design
+        self._templates = templates
         self._fns = fns
 
     @classmethod
-    def make(cls, rd, cal):
-        return cls(ET.parse(rd.fp()), field_functions(cal))
+    def make(cls, templates, cal):
+        return cls(templates, field_functions(cal))
 
-    def run(self, connect):
+    def run(self, connect, report_name,
+            ext='.html'):
+        design = ET.parse((self._templates / (report_name + ext)).fp())
         # TODO: return design as a value from parse_design;
         # pass it to start_page.
-        self._parse_design()
+        self._parse_design(design)
         self._init_page(self._orientation, self._report_header)
         self._detail(self._data(connect, self._breaks, self._sql))
 
-    def _parse_design(self,
+    def _parse_design(self, design,
                       sizes=[('small-print', 8),
                              ('medium-print', 9),
                              ('normal-print', 10)],
                       orientations=[('landscape', 'L', 11, 8.5),
                                     ('portrait', 'P', 8.5, 11)]):
-        body = HTML.by_class(self.design, 'body', 'rlib')[0]
+        body = HTML.by_class(design, 'body', 'rlib')[0]
 
         self._orientation, self.right_margin, self.page_bottom = (
             [(abbr, self.pt_per_inch * (w - 1.0), self.pt_per_inch * (h - 1.0))
@@ -132,7 +142,11 @@ class OfficeReport(FPDF):
             in zip(head_row, body_row)]
 
     def _footfmts(self, name, detail):
-        foot_row = HTML.the(detail, 'h:tfoot/h:tr[@class]')
+        try:
+            foot_row = HTML.the(detail, 'h:tfoot/h:tr[@class]')
+        except ValueError:
+            return None
+
         if foot_row.attrib['class'] != name:
             return None
         return self._parse_colfmts(foot_row, foot_row, in_footer=True)
@@ -371,6 +385,85 @@ class OfficeReport(FPDF):
         self.todos.add(what)
 
 
+class OfficeReportsApp(OfficeReports):
+    r'''Get reports built from HTML design docs and SQL data.
+
+    Given access to a read a Xataface configuration, and access to
+    query a database, we can "seal" access to the database so that
+    only those with the `report_key` can access the database::
+
+      >>> here = ocap.Rd('/here', MockXF, MockXF.open_rd)
+      >>> xf = Xataface.make(here)
+      >>> dbi = MockDBI()
+      >>> sealed_connect = xf.mk_qs_facet(lambda: dbi.connect)
+
+    Reports also get access to the calendar, i.e. today's date::
+
+      >>> from datetime import date
+      >>> cal = lambda: date(2012, 3, 4)
+
+    And of course we need read access to the report templates::
+
+      >>> templates = here / 'templates'
+
+    With that, we can make our reports WSGI app (and a test wrapper)::
+
+      >>> reports = OfficeReportsApp.make(templates, cal, sealed_connect)
+      >>> from webtest import TestApp
+      >>> tapp = TestApp(reports)
+
+    Now an authorized request results in a PDF report::
+
+      >>> r1 = tapp.get('/weekly_groups?key=sekret')
+      >>> r1.body[:9]
+      '%PDF-1.3\n'
+
+    If the key is missing or does not match, the request is not authorized::
+
+      >>> r1 = tapp.get('/weekly_groups?key=wrong', status=403)
+      >>> r1.body
+      'report key does not match.'
+
+      >>> r1 = tapp.get('/weekly_groups', status=403)
+      >>> r1.body
+      "'missing key parameter'"
+
+    The report name has to match a known template::
+
+      >>> r1 = tapp.get('/unknown_report?key=sekret', status=404)
+      >>> r1.body
+      'KeyError'
+
+    '''
+    def __init__(self, templates, fns, sealed_connect):
+        OfficeReports.__init__(self, templates, fns)
+        self._sealed_connect = sealed_connect
+
+    @classmethod
+    def make(cls, templates, cal, sealed_connect):
+        return cls(templates, field_functions(cal), sealed_connect)
+
+    def __call__(self, env, start_response):
+        try:
+            connect = self._sealed_connect(env)
+        except (IOError, KeyError) as e:
+            start_response('403 not authorized', WSGI.PLAIN)
+            return [str(e)]
+
+        report_name = env.get('PATH_INFO', '')[1:]
+
+        try:
+            self.run(connect, report_name)
+        except KeyError as e:
+            start_response('404 not found', WSGI.PLAIN)
+            return ['KeyError']
+
+        body = self.pdf_string()
+        assert(isinstance(body, type('')))
+        start_response('200 ok', WSGI.PDF)
+        return [body]
+
+
 def _abbr_align(s):
     return s[:1].upper()
 
@@ -502,14 +595,48 @@ def mk_connect(getdbi, xf):
     return connect
 
 
+class MockDBI(object):
+    def __init__(self,
+                 cols=['session_day', 'session_date', 'group_name',
+                       'time', 'therapist_name', 'charge',
+                       'client_paid', 'note', 'client_name',
+                       'session_id', 'group_id']):
+        self.cols = cols
+
+    def connect(self):
+        return self
+
+    def cursor(self):
+        return self
+
+    def execute(self, sql, params=None):
+        self.sql, self.params = sql, params
+
+    @property
+    def description(self):
+        return [(c, None)  # We only need the 1st item, so far.
+                for c in self.cols]
+
+    def fetchmany(self):
+        return []
+
+    def commit(self):
+        pass
+
+    def close(self):
+        pass
+
+
 if __name__ == '__main__':
     def _configure_logging(level=logging.INFO):
         logging.basicConfig(level=level)
 
     def _with_caps():
         from datetime import date
-        from os import path
+        from os import environ, path
         from sys import argv, stdout
+        from traceback import format_exc
+        from wsgiref.handlers import CGIHandler
 
         def getdbi():
             # TODO: consider pure-python alternative
@@ -520,9 +647,20 @@ if __name__ == '__main__':
                          os_path=path,
                          open_rd=lambda n: open(n))
 
-        main(argv[:], stdout, cal=lambda: date.today(),
-             connect=mk_connect(getdbi, xf),
-             templates=here / 'templates')
+        templates = here / 'templates'
+        connect = mk_connect(getdbi, xf)
+        cal = lambda: date.today()
+
+        if 'SCRIPT_NAME' in environ:
+            xf = Xataface.make(here)
+            cgi_main(mkCGIHandler=lambda: CGIHandler(),
+                     cal=cal, format_exc=format_exc,
+                     sealed_connect=xf.mk_qs_facet(lambda: connect),
+                     templates=templates)
+        else:
+            test_main(argv[:], stdout, cal=cal,
+                      connect=connect,
+                      templates=templates)
 
     _configure_logging()
     _with_caps()
