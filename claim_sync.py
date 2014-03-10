@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''claim_sync -- sync claims between hh-office and FreeClaims
 
 TODO:
@@ -31,14 +32,11 @@ import ocap
 log = logging.getLogger(__name__)
 
 
-def app_factory(config):
-    from os import path as os_path
-
-    logging.basicConfig(level=logging.INFO)
-    here = ocap.Rd(os_path.dirname(__file__), os_path,
-                   open_rd=lambda n: open(n))
+def cgi_main(here, mkCGIHandler, format_exc):
     xf = Xataface.make(here)
-    return SyncApp(xf)
+    sync = SyncApp(xf)
+    syncE = WSGI.error_middleware(format_exc, sync)
+    mkCGIHandler().run(syncE)
 
 
 def test_main(argv):
@@ -378,5 +376,25 @@ def scrub_nested_form(ua, response):
 
 
 if __name__ == '__main__':
-    import sys
-    test_main(sys.argv)
+    def _configure_logging():
+        logging.basicConfig(level=logging.INFO)
+
+    def _bootstrap():
+        from os import environ
+
+        if 'SCRIPT_NAME' in environ:
+            from os import path as os_path
+            from wsgiref.handlers import CGIHandler
+            from traceback import format_exc
+
+            here = ocap.Rd(os_path.dirname(__file__), os_path,
+                           open_rd=lambda n: open(n))
+            cgi_main(here,
+                     mkCGIHandler=lambda: CGIHandler(),
+                     format_exc=format_exc)
+        else:
+            from sys import argv
+            test_main(argv)
+
+    _configure_logging()
+    _bootstrap()
