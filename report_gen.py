@@ -513,8 +513,11 @@ def field_functions(cal):
     def iif(test, t, f):
         return t if test else f
 
+    def val(x):
+        return x
+
     return dict([(f.__name__, f)
-                 for f in [date, stod, iif, format]])
+                 for f in [date, stod, iif, format, val]])
 
 
 class HTML(object):
