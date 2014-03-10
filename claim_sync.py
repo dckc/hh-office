@@ -23,7 +23,7 @@ import csv
 from mechanize._beautifulsoup import BeautifulSoup as HTML
 import mechanize
 import MySQLdb
-import paste
+import paste.request
 
 from export_claims import format_claims
 from hhtcb import WSGI, Xataface
@@ -94,25 +94,35 @@ class SyncApp(object):
         params = paste.request.parse_formvars(env)
         visit_ids = [int(visit_id)
                      for visit_id in params.get('visits').split(',')]
-        log.debug('visit_ids: %s', visit_ids)
+        log.info('requested visit_ids: %s', visit_ids)
 
+        log.info('MySQLdb.connect(db=%s) ...', name)
         conn = MySQLdb.connect(host=host, user=user, passwd=password, db=name)
         content, claims = format_claims(conn, visit_ids)
+        log.info('found %s claims', len(claims))
 
         if env['REQUEST_METHOD'] == 'POST':
             u, p = params.get('user'), params.get('password')
             batches, results = self.upload(u, p, content, claims)
             update_visits(conn, claims, results)
-            start_response('200 ok', self.HTML8)
+            start_response('200 ok', WSGI.HTML8)
             return format_upload_results(self._title, batches[0], results)
         else:
-            start_response('200 ok', self.HTML8)
-            base = env['SCRIPT_NAME'] + env['PATH_INFO']
+            start_response('200 ok', WSGI.HTML8)
+            base = paste.request.construct_url(env, with_query_string=False)
             key = params.get('key')
             return self.show(base, key, visit_ids, content, claims)
 
     def show(self, base, key, visit_ids, content, claims,
              default_user='4482'):
+        r'''
+        >>> a = SyncApp(xf=None)
+        >>> body = a.show(base='b:', key='k1', visit_ids=[1,2], content=['@@con'], claims=[])
+        >>> len(body)
+        21
+        >>> body[3]
+        '<h1>Insurance Claim Batch</h1>\n'
+        '''
         return doc_with(
             self._title,
             ['<h1>Insurance Claim Batch</h1>\n',
@@ -151,6 +161,7 @@ class SyncApp(object):
 
     def upload(self, u, p, content, claims, fn='claim_sync.csv'):
         ua = FreeClaimsUA()
+        log.info('FreeClaimsUA.login(u=%s) ...', u)
         ua.login(u, p)
         txt = ''.join(content)
         data = StringIO.StringIO(txt)
@@ -377,7 +388,9 @@ def scrub_nested_form(ua, response):
 
 if __name__ == '__main__':
     def _configure_logging():
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.INFO, filename='claim_sync.log',
+                            format='%(asctime)s %(levelname)s: %(message)s')
+        log.debug('logging configured')
 
     def _bootstrap():
         from os import environ
