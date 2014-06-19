@@ -87,6 +87,7 @@
 <div>
 <h2>Query</h2>
 <pre><code class="query">
+<![CDATA[
 select year(sn.session_date) sn_year, month(sn.session_date) sn_month,
        sn.id, sn.session_date, gp.name gp_name,
        th.id th_id, th.name th_name, 
@@ -105,6 +106,7 @@ group by
 order by
  year(sn.session_date) desc, month(sn.session_date) desc,
  th.name, gp.name, sn.session_date
+]]>
 </code></pre>
 </div>
 
