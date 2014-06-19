@@ -1,0 +1,113 @@
+<!DOCTYPE html> <!-- -*- nxml -*- -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Hope Harbor Income by Therapist Skeleton</title>
+<link rel="stylesheet" href="office.css" />
+</head>
+
+<body class="rlib medium-print portrait">
+<h1 class="ReportHeader reversed">Hope Harbor</h1>
+<h2 class="PageHeader">
+  <span class="literal"
+	>Income by Therapist</span>
+  <span class="literal blank">0.........0.........0.........0</span>
+  <span class="field" title="date()">mm/dd/yyyy</span>
+  <span class="literal blank">        </span>
+  <span class="literal">pg. </span>
+  <span class="field" title="r.pageno">####</span>
+</h2>
+
+<table class="Breaks">
+<thead>
+  <tr id="per_therapist">
+    <th id="sn_year" title="sn_year" align="left" class="field"
+	colspan="2"
+	>2000_</th>
+    <th id="sn_month" title="sn_month" align="left" class="field"
+	colspan="2"
+	>31_</th>
+    <th id="th_id" title="th_name" align="left" class="field"
+	colspan="2"
+	>Lastname, Firstname ________9_</th>
+  </tr>
+</thead>
+<tbody><tr><td colspan="9">
+
+
+<table class="Detail">
+  <thead>
+    <tr>
+      <th align="right">Date</th>
+      <th align="left">Group</th>
+      <th align="right">Attend</th>
+      <th align="right">Charge</th>
+      <th align="right">Client Pd</th>
+      <th align="right">Ins. Pd</th>
+    </tr>
+  </thead>
+
+  <tfoot>
+    <tr class="per_therapist">
+      <td> mm/dd/yyyy<!-- placeholder for session date in footer --></td>
+      <td> ...<!-- placeholder for group name in footer --></td>
+      <td title="attend_n" class="sum" align="right"
+	  > 1,000</td>
+      <td title="charge" class="sum money" align="right"
+	  > 1,000.00</td>
+      <td title="client_paid" class="sum money" align="right"
+	  > 1,000.00</td>
+      <td title="insurance_paid" class="sum money" align="right"
+	  > 1,000.00</td>
+    </tr>
+  </tfoot>
+
+  <tbody>
+    <tr>
+      <!-- todo: literal | in detail row -->
+      <td title="stod(session_date)" align="right"
+	  > 01/01/2011</td>
+      <td title="gp_name" align="left"
+	  >123456789_123456789_12345</td>
+      <td title="attendees" align="right"
+	  > 1,000</td>
+      <td title="charge" align="right"
+	  > 10,000.00</td>
+      <td title="insurance_paid" align="right"
+	  > 10,000.00</td>
+      <td title="client_paid" align="right"
+	  > 10,000.00</td>
+    </tr>
+  </tbody>
+</table>
+
+</td></tr></tbody></table>
+
+<hr />
+
+<div>
+<h2>Query</h2>
+<pre><code class="query">
+select year(sn.session_date) sn_year, month(sn.session_date) sn_month,
+       sn.id, sn.session_date, gp.name gp_name,
+       th.id th_id, th.name th_name, 
+       count(vt.id) attendees,
+       sum(vt.charge) charge, sum(vt.insurance_paid) ins_pd,
+       sum(vt.client_paid) client_pd
+from
+  Visit vt
+  join `Session` sn on vt.Session_id = sn.id
+  join `Group` gp on sn.Group_id = gp.id
+  join Therapist th on sn.Therapist_id = th.id
+where current_date - sn.session_date <= 90
+group by
+ year(sn.session_date), month(sn.session_date),
+ sn.session_date, sn.id, th.id, th.name
+order by
+ year(sn.session_date) desc, month(sn.session_date) desc,
+ th.name, gp.name, sn.session_date
+</code></pre>
+</div>
+
+</body>
+</html>
+
