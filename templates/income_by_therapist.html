@@ -20,12 +20,12 @@
 <table class="Breaks">
 <thead>
   <tr id="per_therapist">
+    <th id="sn_month" title="sn_month_name" align="left" class="field"
+	colspan="2"
+	>Jun</th>
     <th id="sn_year" title="sn_year" align="left" class="field"
 	colspan="2"
-	>2000_</th>
-    <th id="sn_month" title="sn_month" align="left" class="field"
-	colspan="2"
-	>31_</th>
+	>2000</th>
     <th id="th_id" title="th_name" align="left" class="field"
 	colspan="2"
 	>Lastname, Firstname ________9_</th>
@@ -48,7 +48,7 @@
 
   <tfoot>
     <tr class="per_therapist">
-      <td>mm/dd/yyyy<!-- placeholder for session date in footer --></td>
+      <td>Jun 02<!-- placeholder for session date in footer --></td>
       <td>123456789_123456789_12345<!-- " group name " --></td>
       <td title="attend_n" class="sum" align="right"
 	  > 10,000</td>
@@ -64,8 +64,8 @@
   <tbody>
     <tr>
       <!-- todo: literal | in detail row -->
-      <td title="stod(session_date)" align="right"
-	  > 01/01/2011</td>
+      <td title="short_date" align="right"
+	  > Jun 02</td>
       <td title="gp_name" align="left"
 	  >123456789_123456789_12345</td>
       <td title="attend_n" align="right"
@@ -89,7 +89,10 @@
 <pre><code class="query">
 <![CDATA[
 select year(sn.session_date) sn_year, month(sn.session_date) sn_month,
-       sn.id, sn.session_date, gp.name gp_name,
+       monthname(sn.session_date) sn_month_name,
+       sn.id,
+       date_format(sn.session_date, '%b %d') short_date,
+       gp.name gp_name,
        th.id th_id, th.name th_name, 
        count(vt.id) attend_n,
        sum(vt.charge) charge, sum(vt.insurance_paid) ins_pd,
@@ -99,7 +102,7 @@ from
   join `Session` sn on vt.Session_id = sn.id
   join `Group` gp on sn.Group_id = gp.id
   join Therapist th on sn.Therapist_id = th.id
-where current_date - sn.session_date <= 90
+where sn.session_date > last_day(current_date + interval -60 day)
 group by
  year(sn.session_date), month(sn.session_date),
  sn.session_date, sn.id, th.id, th.name
