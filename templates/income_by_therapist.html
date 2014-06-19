@@ -54,9 +54,9 @@
 	  > 1,000</td>
       <td title="charge" class="sum money" align="right"
 	  > 1,000.00</td>
-      <td title="client_paid" class="sum money" align="right"
+      <td title="client_pd" class="sum money" align="right"
 	  > 1,000.00</td>
-      <td title="insurance_paid" class="sum money" align="right"
+      <td title="ins_pd" class="sum money" align="right"
 	  > 1,000.00</td>
     </tr>
   </tfoot>
@@ -68,13 +68,13 @@
 	  > 01/01/2011</td>
       <td title="gp_name" align="left"
 	  >123456789_123456789_12345</td>
-      <td title="attendees" align="right"
+      <td title="attend_n" align="right"
 	  > 1,000</td>
       <td title="charge" align="right"
 	  > 10,000.00</td>
-      <td title="insurance_paid" align="right"
+      <td title="ins_pd" align="right"
 	  > 10,000.00</td>
-      <td title="client_paid" align="right"
+      <td title="client_pd" align="right"
 	  > 10,000.00</td>
     </tr>
   </tbody>
@@ -91,7 +91,7 @@
 select year(sn.session_date) sn_year, month(sn.session_date) sn_month,
        sn.id, sn.session_date, gp.name gp_name,
        th.id th_id, th.name th_name, 
-       count(vt.id) attendees,
+       count(vt.id) attend_n,
        sum(vt.charge) charge, sum(vt.insurance_paid) ins_pd,
        sum(vt.client_paid) client_pd
 from
