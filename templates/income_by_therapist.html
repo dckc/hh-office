@@ -102,7 +102,9 @@ from
   join `Session` sn on vt.Session_id = sn.id
   join `Group` gp on sn.Group_id = gp.id
   join Therapist th on sn.Therapist_id = th.id
-where sn.session_date > last_day(current_date + interval -60 day)
+where sn.session_date > where c.recent >= (
+ select cutoff from Batch
+ where name = 'income')
 group by
  year(sn.session_date), month(sn.session_date),
  sn.session_date, sn.id, th.id, th.name
