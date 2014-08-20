@@ -14,9 +14,9 @@ from collections import namedtuple
 from contextlib import contextmanager
 from datetime import datetime
 from pprint import pformat
-from xml.etree import ElementTree as ET
 import logging
 
+import cElementTree as ET
 from fpdf import FPDF
 
 import ocap
@@ -113,8 +113,8 @@ class OfficeReports(FPDF):
 
         detail = HTML.by_class(body, "table", 'Detail')[0]
         self._detail_colfmts = self._parse_colfmts(
-            HTML.the(detail, "h:thead/h:tr[1]"),
-            HTML.the(detail, "h:tbody/h:tr[1]"),
+            HTML.the(detail, "h:thead/h:tr"),
+            HTML.the(detail, "h:tbody/h:tr"),
             all_fields=True)
 
         self._breaks = [
@@ -276,7 +276,7 @@ class OfficeReports(FPDF):
                         self._show_group_headers(bindings, group_start_ix)
                     except EndOfPage:
                         self.add_page(self._orientation)
-                        self._show_group_headers(bindings, group_start_ix)
+                        self._show_group_headers(bindings, 0)
                     self.set_font(self.font, self.plain, self.detail_size)
 
                 self._todo('finish value formatting')
@@ -288,7 +288,7 @@ class OfficeReports(FPDF):
                               colfmts=self._detail_colfmts)
                 except EndOfPage:
                     self.add_page(self._orientation)
-                    self._show_group_headers(bindings, group_start_ix)
+                    self._show_group_headers(bindings, 0)
                     self.set_font(self.font, self.plain, self.detail_size)
                     self._row(txts,
                               self.detail_size, fill=parity,
@@ -299,7 +299,7 @@ class OfficeReports(FPDF):
                         self._show_group_footer(group_sums)
                     except EndOfPage:
                         self.add_page(self._orientation)
-                        self._show_group_headers(bindings, group_start_ix)
+                        self._show_group_headers(bindings, 0)
                         self._show_group_footer(group_sums)
                     self.set_font(self.font, self.plain, self.detail_size)
 
@@ -513,8 +513,11 @@ def field_functions(cal):
     def iif(test, t, f):
         return t if test else f
 
+    def val(x):
+        return x
+
     return dict([(f.__name__, f)
-                 for f in [date, stod, iif, format]])
+                 for f in [date, stod, iif, format, val]])
 
 
 class HTML(object):
@@ -534,8 +537,7 @@ class HTML(object):
         '''
 
         w_class = ctx.findall(
-            ".//h:%s[@class]" % tagname,
-            namespaces=cls.namespaces)
+            ".//{%s}%s[@class]" % (cls.namespaces['h'], tagname))
         return [e for e in w_class
                 if cls.has_class(e, classname)]
 
@@ -549,10 +551,15 @@ class HTML(object):
 
     @classmethod
     def the(cls, ctx, expr):
-        found = ctx.find(expr, namespaces=cls.namespaces)
+        '''
+        >>> HTML.the(HTML.example_ctx, 'h:body/h:h1').tag.split('}')[1]
+        'h1'
+        '''
+        qexpr = expr.replace('h:', '{' + cls.namespaces['h'] + '}')
+        found = ctx.find(qexpr)
         if found is None:
-            raise ValueError('cannot find %s in %s' %
-                             (expr, ctx.tag))
+            raise ValueError('cannot find %s (%s) in %s' %
+                             (expr, qexpr, ctx.tag))
         return found
 
 

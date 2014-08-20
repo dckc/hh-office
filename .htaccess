@@ -5,11 +5,11 @@ Deny from all
 </FilesMatch>
 
 RewriteEngine on
-RewriteRule print_report/(.*) print_report.py/$1
+RewriteRule print_report/(.*) report_gen.py/$1
 RewriteRule export_claims export_claims.py
 RewriteRule upload_insurance upload_insurance.py
 
-<Files print_report.py>
+<Files report_gen.py>
   SetHandler cgi-script
   Options +ExecCGI
 </Files>
