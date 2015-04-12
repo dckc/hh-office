@@ -4,6 +4,7 @@ create or replace view Attendance_all as
 select v.id
      , g.id as group_id, g.name as group_name, g.rate as group_rate
      , c.id as client_id, c.name as client_name, c.billing_cutoff, c.recent
+     , c.voucher, c.voucher_note
      , c.insurance
      , ins.id as policy_id, ins.dx1, ins.dx2
      , co.id as carrier_id, co.name as carrier_name

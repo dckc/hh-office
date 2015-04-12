@@ -80,6 +80,8 @@ class Client(IntId, Migrated, Audited, Base):
     balance = Column(Money)
     balance_cached = Column(TIMESTAMP())
     invoice_note = Column(TEXT())
+    voucher = Column(BOOLEAN())
+    voucher_note = Column(TextLine)
 
 
 # Indexes for restoring from backup
