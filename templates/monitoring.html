@@ -99,6 +99,9 @@ select
 , note
 from Attendance_all a
 where group_name like '%monitoring%'
+and recent >= (
+ select cutoff from Batch
+ where name = 'current')
 order by client_name, client_id, session_date desc
 </code></pre>
 </div>
