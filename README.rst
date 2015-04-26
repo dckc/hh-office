@@ -20,12 +20,10 @@ It's built using xataface__, a php/mysql framework::
 
   11ec0e67be67f14cd0c49d4820ba42d5  xataface-1.3rc6.tar.gz
 
-It also uses rlib__, a reporting library, for large PDF reports::
-
-  06b3e629c6f99a8b2fd1264f32db8f56  rlib-1.3.7.tar.gz
+It also uses PyFPDF__, a reporting library, for PDF reports.
 
 __ http://xataface.com/
-__ http://rlib.sicompos.com/
+__ https://code.google.com/p/pyfpdf/wiki/Tutorialo
 
 TODO
 ====
